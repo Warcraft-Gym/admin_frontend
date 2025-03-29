@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores';
+import { jwtDecode } from "jwt-decode";
 
 export const fetchWrapper = {
     get: request('GET'),
@@ -9,27 +10,47 @@ export const fetchWrapper = {
 
 function request(method) {
     return (url, body) => {
+        console.log("Method: ", method);
+        
         const requestOptions = {
             method,
-            headers: authHeader(url)
+            headers: authHeader(method, url)
         };
         if (body) {
             requestOptions.headers['Content-Type'] = 'application/json';
             requestOptions.body = JSON.stringify(body);
         }
+        console.log("Send request to url : ", url, requestOptions)
         return fetch(url, requestOptions).then(handleResponse);
     }
 }
 
+
+
 // helper functions
 
-function authHeader(url) {
+function isTokenExpired(token) {
+  const payload = jwtDecode(token);
+  const currentTime = Math.floor(Date.now() / 1000);
+  return payload.exp && payload.exp < currentTime;
+}
+
+function authHeader(method, url) {
+    console.log("use authHeader")
     // return auth header with jwt if user is logged in and request is to the api url
-    const { user } = useAuthStore();
-    const isLoggedIn = !!user?.token;
-    const isApiUrl = url.startsWith(import.meta.env.VITE_API_URL);
-    if (isLoggedIn && isApiUrl) {
-        return { Authorization: `Bearer ${user.token}` };
+    const authstore = useAuthStore();
+    const user = authstore.user;
+    const isRestricted = ['POST','PUT','DELETE'].includes(method);
+    const isLoggedIn = !!user?.access_token;
+    const isApiUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL);
+    const isRefreshUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL+"/refresh");
+    if (isRefreshUrl){
+        return { Authorization: `Bearer ${user.refresh_token}` };
+    } else if (isRestricted && isLoggedIn && isApiUrl) {
+        if(isTokenExpired(user.access_token)) {
+            authstore.refresh()
+        }
+        return { Authorization: `Bearer ${user.access_token}` };
     } else {
         return {};
     }
@@ -38,7 +59,7 @@ function authHeader(url) {
 function handleResponse(response) {
     return response.text().then(text => {
         const data = text && JSON.parse(text);
-        
+        console.log(response);
         if (!response.ok) {
             const { user, logout } = useAuthStore();
             if ([401, 403].includes(response.status) && user) {
