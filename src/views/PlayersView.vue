@@ -5,7 +5,6 @@
       <div v-if="errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
-
       <!-- Loading State -->
       <div v-if="isLoading">Loading Players...</div>
       <table v-else-if="players.length > 0">
@@ -18,6 +17,9 @@
             <th>Discord Tag</th>
             <th>MMR</th>
             <th>Race</th>
+            <td>
+              <button @click="showNewPlayerModal = true">Add New Player</button>
+            </td>
           </tr>
         </thead>
         <tbody>
@@ -31,12 +33,50 @@
             <td>{{ player.race }}</td>
             <td>
             <button @click="editPlayer(player)">Edit</button>
+            <button @click="removePlayer(player.id)">Delete</button>
             </td>
           </tr>
         </tbody>
       </table>
       <!-- No Users Found Message -->
       <div v-else>No users found.</div>
+
+    <!-- Add New Player Modal -->
+        <div v-if="showNewPlayerModal" :class="['modal', showNewPlayerModal ? 'modal-active' : '']">
+          <div class="modal-content">
+            <h2>Add New Player</h2>
+            <form @submit.prevent="createNewPlayer">
+              <div>
+                <label for="name">Name:</label>
+                <input id="name" v-model="newPlayer.name" />
+              </div>
+              <div>
+                <label for="battleTag">BattleTag:</label>
+                <input id="battleTag" v-model="newPlayer.battleTag" />
+              </div>
+              <div>
+                <label for="country">Country:</label>
+                <input id="country" v-model="newPlayer.country" />
+              </div>
+              <div>
+                <label for="discordTag">Discord Tag:</label>
+                <input id="discordTag" v-model="newPlayer.discordTag" />
+              </div>
+              <div>
+                <label for="mmr">MMR:</label>
+                <input id="mmr" type="number" v-model="newPlayer.mmr" />
+              </div>
+              <div>
+                <label for="race">Race:</label>
+                <input id="race" v-model="newPlayer.race" />
+              </div>
+              <button type="submit">Save</button>
+              <button @click="cancelAddNewPlayer">Cancel</button>
+            </form>
+          </div>
+        </div>
+        <div v-if="showNewPlayerModal" class="overlay" @click="cancelAddNewPlayer"></div>
+
 
         <!-- Popup Modal -->
         <div v-if="selectedPlayer" :class="['modal', selectedPlayer ? 'modal-active' : '']" class="modal">
@@ -78,12 +118,23 @@
 </template>
 
 <script>
+import '@/assets/base.css';
 import { usePlayerStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
 // State for editing
 const selectedPlayer = ref(null);
 const isLoading  = ref(false); // State for selected user
 const errorMessage = ref(null);
+const showNewPlayerModal = ref(false);
+const newPlayer = ref({
+      name: '',
+      battleTag: '',
+      country: '',
+      discordTag: '',
+      mmr: 0,
+      race: '',
+    });
+
 
 export default {
     name: 'PlayersView',
@@ -106,7 +157,6 @@ export default {
             isLoading.value = false;
           }
         };
-
 
         onMounted(() => {
           fetchPlayers();
@@ -132,6 +182,39 @@ export default {
           selectedPlayer.value = null; // Clear the selected user
         };
 
+        const createNewPlayer = async () => {
+          try {
+            await playerStore.createPlayer(newPlayer.value);
+            await fetchPlayers();
+            cancelAddNewPlayer();
+          } catch (error) {
+            console.error('Error creating user:', error);
+          }
+        };
+
+        const removePlayer = async (playerId) => {
+          try {
+            await playerStore.deletePlayer(playerId);
+            await fetchPlayers(); // Refresh the list after deletion
+          } catch (error) {
+            console.error('Error deleting player:', error);
+          }
+        };
+
+
+        const cancelAddNewPlayer = () => {
+          showNewPlayerModal.value = false;
+          newPlayer.value = {
+            name: '',
+            battleTag: '',
+            country: '',
+            discordTag: '',
+            mmr: 0,
+            race: '',
+          };
+        };
+
+
         return {
             isLoading: computed(() => playerStore.isLoading),
             players: computed(() => playerStore.players),
@@ -139,12 +222,19 @@ export default {
             editPlayer,
             updatePlayer,
             cancelEdit,
+            errorMessage,
+            showNewPlayerModal,
+            newPlayer,
+            createNewPlayer,
+            cancelAddNewPlayer,
+            removePlayer,
         }
     },
 };
 </script>
 
 <style>
+
 /* Table styling */
 table {
   width: 100%;

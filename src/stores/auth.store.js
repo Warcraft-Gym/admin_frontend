@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { jwtDecode } from "jwt-decode";
 
 import { fetchWrapper, router } from '@/helpers';
 
@@ -37,6 +38,11 @@ export const useAuthStore = defineStore({
 
             // redirect to previous url or default to home page
             router.push(this.returnUrl || '/');
+        },
+    	isTokenExpired(token) {
+            const payload = jwtDecode(token);
+            const currentTime = Math.floor(Date.now() / 1000);
+            return payload.exp && payload.exp < currentTime;
         },
         logout() {
             this.user = null;

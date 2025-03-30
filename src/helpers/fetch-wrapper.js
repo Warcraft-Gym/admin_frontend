@@ -1,5 +1,4 @@
 import { useAuthStore } from '@/stores';
-import { jwtDecode } from "jwt-decode";
 
 export const fetchWrapper = {
     get: request('GET'),
@@ -25,16 +24,6 @@ function request(method) {
     }
 }
 
-
-
-// helper functions
-
-function isTokenExpired(token) {
-  const payload = jwtDecode(token);
-  const currentTime = Math.floor(Date.now() / 1000);
-  return payload.exp && payload.exp < currentTime;
-}
-
 function authHeader(method, url) {
     console.log("use authHeader")
     // return auth header with jwt if user is logged in and request is to the api url
@@ -47,7 +36,7 @@ function authHeader(method, url) {
     if (isRefreshUrl){
         return { Authorization: `Bearer ${user.refresh_token}` };
     } else if (isRestricted && isLoggedIn && isApiUrl) {
-        if(isTokenExpired(user.access_token)) {
+        if(authstore.isTokenExpired(user.access_token)) {
             authstore.refresh()
         }
         return { Authorization: `Bearer ${user.access_token}` };
