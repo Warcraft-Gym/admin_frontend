@@ -16,7 +16,8 @@ export const usePlayerStore = defineStore({
             try{
                 this.isLoading = true; // Set loading to true
                 const resp = await fetchWrapper.get(`${backendUrl}/users`);
-                this.players =  resp
+                this.players = resp
+
             } finally {
                 this.isLoading = false; // Set loading to false once complete
             }
@@ -30,6 +31,31 @@ export const usePlayerStore = defineStore({
         },
         async deletePlayer(player_id) {
             await fetchWrapper.delete(`${backendUrl}/users/${player_id}`);
+        },
+        async searchPlayer( name, race, minMMR, maxMMR ) {
+            let queryString = ''
+            let queryADD = false
+
+            //Name
+            if( name ) {
+                queryString += 'name ilike ' + name
+                queryADD = true
+            }
+            //Race
+            if ( race ) {
+                if( queryADD ) queryString += ' and '
+                queryString += 'race == ' + race                
+                queryADD = true
+            }
+            //MMR
+            if ( minMMR && maxMMR ) {
+                if( queryADD ) queryString += ' and '
+                queryString += 'mmr >= ' + minMMR + ' and ' + 'mmr <= ' + maxMMR 
+                queryADD = true
+            }
+
+            const resp = await fetchWrapper.post(`${backendUrl}/users/search?query=`+queryString);
+            this.players = resp
         }
     }
 });

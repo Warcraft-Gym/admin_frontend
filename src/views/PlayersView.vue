@@ -1,43 +1,131 @@
 <template>
     <div>
       <h1>Player Information</h1>
-        <!-- Error Message -->
+      <v-row>
+        <v-col cols="12">
+          <v-expansion-panels>
+            <v-expansion-panel class="search-engine">
+              <v-expansion-panel-title>
+                  <v-row no-gutters>
+                    <v-col class="d-flex justify-start" cols="4">
+                      <p class="text-subtitle-2 pannel-title">Filters</p>
+                    </v-col>
+                  </v-row>
+              </v-expansion-panel-title>
+              <v-expansion-panel-text>
+                <v-row>
+                  <v-col cols="6">
+                    <input v-model="searchName" type="text" placeholder="Search a player name...">
+                  </v-col>
+                  <v-col cols="6">
+                    <select v-model="searchRace">
+                      <option value="" selected disabled hidden>races</option>
+                      <option v-for="race in races">{{ race.name }}</option>
+                    </select>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12">
+                    <p>mmr range</p>
+                    <v-range-slider
+                      v-model="rangeValues"
+                      :min="0"
+                      :max="2000"
+                      strict
+                      step="10"
+                      class="align-center"
+                      hide-details>
+                      <template v-slot:prepend>
+                        <v-text-field
+                          v-model="rangeValues[0]"
+                          density="compact"
+                          disabled
+                          type="number"
+                          hide-details
+                          single-line></v-text-field>
+                      </template>
+                      <template v-slot:append>
+                        <v-text-field
+                          v-model="rangeValues[1]"
+                          density="compact"
+                          disabled
+                          type="number"
+                          hide-details
+                          single-line></v-text-field>
+                      </template>
+                    </v-range-slider>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="auto">
+                    <v-btn @click="searchPlayer" append-icon="mdi-magnify">Search</v-btn>
+                  </v-col>
+                  <v-col cols="auto">
+                    <v-btn v-if="searchEnabled" @click="fetchPlayers" variant="tonal" append-icon="mdi-refresh">Reset</v-btn>
+                  </v-col>
+                </v-row>
+              </v-expansion-panel-text>
+              
+            </v-expansion-panel>
+          </v-expansion-panels>
+        </v-col>
+      </v-row>
+      
+      <!-- Error Message -->
       <div v-if="errorMessage" class="error-message">
         {{ errorMessage }}
-      </div>
-      <!-- Loading State -->
-      <div v-if="isLoading">Loading Players...</div>
-      <table v-else-if="players.length > 0">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>BattleTag</th>
-            <th>Country</th>
-            <th>Discord Tag</th>
-            <th>MMR</th>
-            <th>Race</th>
-            <td>
-              <button @click="showNewPlayerModal = true">Add New Player</button>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="player in players" :key="player.id">
-            <td>{{ player.id }}</td>
-            <td>{{ player.name }}</td>
-            <td>{{ player.battleTag }}</td>
-            <td>{{ player.country }}</td>
-            <td>{{ player.discordTag }}</td>
-            <td>{{ player.mmr }}</td>
-            <td>{{ player.race }}</td>
-            <td>
-            <button @click="editPlayer(player)">Edit</button>
-            <button @click="removePlayer(player.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      </div>      
+
+      <v-row v-else-if="players.length > 0">
+        <v-col cols="12">
+          <!-- Loading State -->
+          <div v-if="isLoading">Loading Players...</div>
+          <v-table fixed-header height="60vh" >
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>BattleTag</th>
+                <th>Country</th>
+                <th>Discord Tag</th>
+                <th>GNL MMR</th>
+                <th>Main Race</th>
+                <th>W3C Stats</th>
+                <th>
+                  <v-btn @click="showNewPlayerModal = true">Add New Player</v-btn>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="player in players" :key="player.id">
+                <td>{{ player.id }}</td>
+                <td>{{ player.name }}</td>
+                <td>{{ player.battleTag }}</td>
+                <td>{{ player.country }}</td>
+                <td>{{ player.discordTag }}</td>
+                <td>{{ player.mmr }}</td>
+                <td>{{ player.race }}</td>     
+                <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
+                <td>stats</td>
+                <td>
+                  <v-row>
+                    <v-col cols="auto">
+                      <v-btn density="compact" icon="mdi-account-edit" @click="editPlayer(player)"></v-btn>
+                    </v-col>
+                    <v-col cols="auto">
+                      <v-btn density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(player.id)"></v-btn>
+                    </v-col>
+                    <v-col cols="auto">
+                      <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
+                      <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>
+                    </v-col>
+                  </v-row>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-col>
+      </v-row>
       <!-- No Users Found Message -->
       <div v-else>No users found.</div>
 
@@ -116,7 +204,6 @@
         <div v-if="selectedPlayer" class="overlay" @click="cancelEdit"></div>
     </div>
 </template>
-
 <script>
 import '@/assets/base.css';
 import { usePlayerStore } from '@/stores';
@@ -135,19 +222,45 @@ const newPlayer = ref({
       race: '',
     });
 
+//research models
+const searchRace = ref(null)
+const searchName = ref(null)
+const searchEnabled = ref(false)
+const rangeValues = ref([500, 1500])
+
+const races = ref([
+  {
+    name :"HU"
+  },
+  {
+    name :"OC"
+  },
+  {
+    name :"UD"
+  },
+  {
+    name :"NE"
+  },
+])
 
 export default {
+
     name: 'PlayersView',
     setup(){
+
         const playerStore = usePlayerStore();
         // Fetch data when the page is loaded
 
+
         // Fetch users when the component is mounted
         const fetchPlayers = async () => {
+          
           isLoading.value = true;
           errorMessage.value = null; // Reset error message
           try {
             await playerStore.fetchPlayers(); // Fetch user data
+
+
             if (playerStore.players.length === 0) {
               errorMessage.value = 'No users found.';
             }
@@ -155,14 +268,35 @@ export default {
             errorMessage.value = 'Failed to load users. Please try again later.';
           } finally {
             isLoading.value = false;
+
+            //reset placeholders
+            searchEnabled.value = false;
+            searchName.value = ''
+            searchRace.value = ''
+            rangeValues.value[0] = '500'
+            rangeValues.value[1] = '1500'
           }
         };
 
-        onMounted(() => {
-          fetchPlayers();
+        onMounted( () => {
+          fetchPlayers(); 
         });
 
         // Methods
+        const searchPlayer = async () => {
+          
+          isLoading.value = true;
+
+          try {
+            console.log( rangeValues.value[0] )
+            await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
+          } finally {
+            isLoading.value = false;            
+            searchEnabled.value = true;
+          }
+          
+        }
+
         const editPlayer = (player) => {
           selectedPlayer.value = { ...player }; // Clone the user object to avoid modifying the original object directly
         };
@@ -201,7 +335,6 @@ export default {
           }
         };
 
-
         const cancelAddNewPlayer = () => {
           showNewPlayerModal.value = false;
           newPlayer.value = {
@@ -213,11 +346,18 @@ export default {
             race: '',
           };
         };
-
-
+        
         return {
             isLoading: computed(() => playerStore.isLoading),
             players: computed(() => playerStore.players),
+
+            //search variables
+            searchPlayer,
+            searchName,
+            searchRace,
+            rangeValues,
+            searchEnabled,
+
             selectedPlayer,
             editPlayer,
             updatePlayer,
@@ -228,6 +368,8 @@ export default {
             createNewPlayer,
             cancelAddNewPlayer,
             removePlayer,
+            races,            
+            fetchPlayers,
         }
     },
 };
@@ -235,21 +377,9 @@ export default {
 
 <style>
 
-/* Table styling */
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-thead th {
-  background-color: #f2f2f2;
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
-tbody td {
-  padding: 10px;
-  border: 1px solid #ddd;
+/* pannel */
+.pannel-title {
+  margin: 0;
 }
 
 /* Modal styling */
@@ -282,11 +412,6 @@ tbody td {
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
   z-index: 999;
-}
-
-/* Buttons */
-button {
-  margin-right: 10px;
 }
 
 .modal.modal-active {

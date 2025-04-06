@@ -23,5 +23,5 @@ const { user: authUser } = storeToRefs(authStore);
 </template>
 
 <style>
-@import '@/assets/base.css';
+/*@import '@/assets/base.css';*/
 </style>
