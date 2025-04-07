@@ -36,15 +36,15 @@
                   </v-toolbar>
                 </template>
                 <template v-slot:item="{ item }">
-                  <tr class="text-no-wrap">
+                  <tr class="text-no-wrap" @click="$router.push(`/seasons/${item.id}`)">
                     <td>{{ item.id }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.number_weeks }}</td>
                     <td>{{ item.pick_ban }}</td>
                     <td>{{ item.series_per_week }}</td> 
                     <td>
-                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editSeason(item)"></v-btn>
-                      <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removeSeason(item.id)"></v-btn>
+                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editSeason(item)"></v-btn>
+                      <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="removeSeason(item.id)"></v-btn>
                       <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
                       <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>                      
                     </td>
