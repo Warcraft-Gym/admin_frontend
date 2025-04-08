@@ -3,6 +3,9 @@ import { createApp } from 'vue';
 import '@mdi/font/css/materialdesignicons.css'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
+//Countries API
+import 'flagpack/dist/flagpack.css'
+
 //Pinia
 import { createPinia } from 'pinia';
 
