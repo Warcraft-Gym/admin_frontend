@@ -34,7 +34,7 @@ export const useSeriesStore = defineStore({
         async getSeriesByMatchId(match_id) {
             try{
                 this.isLoading = true; // Set loading to true
-                search = `match_id == ${match_id}`
+                const search = `match_id == ${match_id}`
                 const resp = await fetchWrapper.post(`${backendUrl}/series/search?query=${search}`);
                 this.series =  resp
             } finally {

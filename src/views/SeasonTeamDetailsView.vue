@@ -176,13 +176,6 @@
                 <v-toolbar-title>Available Players</v-toolbar-title>
               </v-toolbar>
             </template>
-            <template v-slot:item.name="{ item }">
-              <div>
-                <p>{{ item.id }}</p>
-                <p>{{ item.name }}</p>
-                <p class="small-text">{{ item.battleTag }}</p>
-              </div>
-            </template>
           </v-data-table>
         </v-card-text>
         <v-card-actions>

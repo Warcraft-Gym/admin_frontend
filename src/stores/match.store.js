@@ -10,8 +10,13 @@ export const useMatchStore = defineStore({
         // initialize state from local storage to enable user to stay logged in
         matches: [], // Store user data
         isLoading: false, // Track loading state
+        match: {}
     }),
     actions: {
+
+        async fetchMatchDetails(matchId){
+            this.match = await fetchWrapper.get(`${backendUrl}/matches/${matchId}`);
+        },
         async updateMatch(match) {
             const matchId = match.id;
             const updatedMatch = await fetchWrapper.put(`${backendUrl}/matches/${matchId}`, match);
