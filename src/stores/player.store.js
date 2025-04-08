@@ -48,7 +48,7 @@ export const usePlayerStore = defineStore({
                 queryADD = true
             }
             //MMR
-            if ( minMMR && maxMMR ) {
+            if ( minMMR !== null && minMMR !== undefined &&  maxMMR !== null && maxMMR !== undefined) {
                 if( queryADD ) queryString += ' and '
                 queryString += 'mmr >= ' + minMMR + ' and ' + 'mmr <= ' + maxMMR 
                 queryADD = true

@@ -12,6 +12,7 @@ const { user: authUser } = storeToRefs(authStore);
         <nav v-show="authStore.user" class="navbar navbar-expand navbar-dark bg-dark">
             <div class="navbar-nav">
                 <RouterLink to="/" class="nav-item nav-link">Home</RouterLink>
+                <RouterLink to="/seasons" class="nav-item nav-link">Seasons</RouterLink>
                 <RouterLink to="/players" class="nav-item nav-link">Players</RouterLink>
                 <a @click="authStore.logout()" class="nav-item nav-link">Logout</a>
             </div>
