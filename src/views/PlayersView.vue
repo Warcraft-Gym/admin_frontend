@@ -185,24 +185,13 @@
       </div>
       <!-- Add New Player Modal -->
       <v-dialog
+        id="newPlayerModal"
         v-if="showNewPlayerModal"
         v-model="showNewPlayerModal"
-        width="auto">
-        /*
-        ID
-        Name
-        BattleTag
-        Country
-        Discord Tag
-        GNL MMR
-        Main Race
-        W3C Stats
-        Fantasy Tier
-        Actions
-        */
+        max-width="65vw">
         <v-card>
           <template v-slot:title>
-            <span>
+            <span class="modal-title">
               <v-icon icon="mdi-account-plus"></v-icon>
               Add New Player
             </span>
@@ -224,10 +213,28 @@
             </v-row>
             <v-row dense="true">
               <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.country" 
-                  label="Player Country">
-                </v-text-field>
+                <v-autocomplete 
+                  v-model="newPlayer.country"
+                  :menu-props="{ scrollStrategy: 'close'}"
+                  :items="countries"
+                  item-title="name"
+                  item-value="a2"
+                  label="Player Country"
+                  >
+                  <template v-slot:selection="{ item }">
+                      <span style="margin-right: 5px" v-if="item.raw.a2" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      {{ item.raw.name }}                      
+                  </template>
+                  <template v-slot:item="{ props: props, item }">
+                    <v-list-item
+                      v-bind="props"
+                      :title="item.raw.name">  
+                      <template v-slot:prepend>                         
+                        <span style="margin-right: 5px" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      </template>                         
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
               </v-col>
               <v-col cols="6">
                 <v-text-field
@@ -392,6 +399,7 @@ const tableHeader = [
 
 //Countries
 import CountryCodes from 'country-code-info'
+import countries from 'country-code-info/data/countries.json'
 
 //RACES
 import HUicon from '@/assets/raceIcons/HUMAN.png'
@@ -437,7 +445,7 @@ export default {
 
     name: 'PlayersView',
     setup(){
-
+        console.log(countries)
         const playerStore = usePlayerStore();
         // Fetch data when the page is loaded
 
@@ -563,6 +571,7 @@ export default {
             fetchPlayers,
 
             CountryCodes,
+            countries,
         }
     },
 };
