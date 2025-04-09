@@ -28,8 +28,23 @@
                         clearable
                         label="Races"
                         :menu-props="{ scrollStrategy: 'close'}"
-                        :items="races"
-                        item-title="name">
+                        :item-props="itemProps"
+                        :items="races">
+                        <template v-slot:selection="{ item }">            
+                          <span>
+                            <v-avatar :image="item.raw.icon" rounded="0" size="20"></v-avatar>
+                            {{ item.raw.name }}
+                          </span>     
+                        </template>
+                        <template v-slot:item="{ props: itemProps, item }">
+                          <v-list-item
+                            v-bind="itemProps"
+                            :title="item.raw.name">  
+                            <template v-slot:prepend>
+                              <v-avatar :image="item.raw.icon" rounded="0" size="28"></v-avatar>
+                            </template>                         
+                          </v-list-item>
+                        </template>
                       </v-select>
                     </v-col>
                   </v-row>
@@ -81,105 +96,216 @@
       </div>
       <!-- Players -->
       <div id="playerList">
-          <!-- Error Message -->
-          <v-row justify="center" v-if="errorMessage" class="error-message">
-            <v-col cols="auto">
-              <p>{{ errorMessage }}</p>
-            </v-col>
-          </v-row>  
-          <!-- Table -->
-          <v-row v-else-if="players.length > 0">
-            <v-col cols="12">
-              <v-data-table
-                :headers="tableHeader"
-                :loading="isLoading"
-                :items="players"
-                fixed-header
-                hover>
-                <template v-slot:loading>
-                  <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-                </template>
-                <template v-slot:top>
-                  <v-toolbar flat>
-                    <v-toolbar-title>
-                      <v-icon icon="mdi-account"></v-icon>
-                      Player list
-                    </v-toolbar-title>                    
-                    <v-btn 
-                      @click="showNewPlayerModal = true"
-                      class="toolbar-btn"
-                      variant="tonal"
-                      prepend-icon="mdi-plus"
-                    >Add New Player</v-btn>
-                  </v-toolbar>
-                </template>
-                <template v-slot:item="{ item }">
-                  <tr class="text-no-wrap">
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.battleTag }}</td>
-                    <td>{{ item.country }}</td>
-                    <td>{{ item.discordTag }}</td>
-                    <td>{{ item.mmr }}</td>
-                    <td>{{ item.race }}</td>     
-                    <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
-                    <td>stats</td>
-                    <td>fantasy</td>
-                    <td>
-                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
-                      <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(item.id)"></v-btn>
-                      <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
-                      <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>                      
-                    </td>
-                  </tr>
-                </template>
-              </v-data-table>
-            </v-col>
-          </v-row>          
-          <!-- No User Found -->
-          <v-row v-else justify="center">
-            <v-cols cols="auto">
-              <p>No users found.</p>
-            </v-cols>
-          </v-row>
-        </div>
-
-    <!-- Add New Player Modal -->
-        <div v-if="showNewPlayerModal" :class="['modal', showNewPlayerModal ? 'modal-active' : '']">
-          <div class="modal-content">
-            <h2>Add New Player</h2>
-            <form @submit.prevent="createNewPlayer">
-              <div>
-                <label for="name">Name:</label>
-                <input id="name" v-model="newPlayer.name" />
-              </div>
-              <div>
-                <label for="battleTag">BattleTag:</label>
-                <input id="battleTag" v-model="newPlayer.battleTag" />
-              </div>
-              <div>
-                <label for="country">Country:</label>
-                <input id="country" v-model="newPlayer.country" />
-              </div>
-              <div>
-                <label for="discordTag">Discord Tag:</label>
-                <input id="discordTag" v-model="newPlayer.discordTag" />
-              </div>
-              <div>
-                <label for="mmr">MMR:</label>
-                <input id="mmr" type="number" v-model="newPlayer.mmr" />
-              </div>
-              <div>
-                <label for="race">Race:</label>
-                <input id="race" v-model="newPlayer.race" />
-              </div>
-              <button type="submit">Save</button>
-              <button @click="cancelAddNewPlayer">Cancel</button>
-            </form>
-          </div>
-        </div>
-        <div v-if="showNewPlayerModal" class="overlay" @click="cancelAddNewPlayer"></div>
-
+        <!-- Error Message -->
+        <v-row justify="center" v-if="errorMessage" class="error-message">
+          <v-col cols="auto">
+            <p>{{ errorMessage }}</p>
+          </v-col>
+        </v-row>  
+        <!-- Table -->
+        <v-row v-else-if="players.length > 0">
+          <v-col cols="12">
+            <v-data-table
+              :headers="tableHeader"
+              :loading="isLoading"
+              :items="players"
+              fixed-header
+              hover>
+              <template v-slot:loading>
+                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+              </template>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-toolbar-title>
+                    <v-icon icon="mdi-account"></v-icon>
+                    <h2>Player list</h2>
+                  </v-toolbar-title>                    
+                  <v-btn 
+                    @click="showNewPlayerModal = true"
+                    class="toolbar-btn"
+                    variant="tonal"
+                    prepend-icon="mdi-plus"
+                  >Add New Player</v-btn>
+                </v-toolbar>
+              </template>
+              <template v-slot:item="{ item }">
+                <tr class="text-no-wrap">
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.battleTag }}</td>
+                  <td>
+                    <div v-if="item.country !== null && item.country !== ''">
+                      <v-tooltip 
+                        location="top"
+                        :text="CountryCodes.findCountry({'a2': item.country}).name">
+                        <template v-slot:activator="{ props }">                          
+                          <span v-bind="props" :class="'fp '+ item.country.toLowerCase()"></span>
+                        </template>
+                      </v-tooltip>
+                    </div>
+                  </td>
+                  <td>{{ item.discordTag }}</td>
+                  <td>{{ item.mmr }}</td>
+                  <td>
+                    <div v-if="item.race !== null && item.race !== ''">
+                      <v-tooltip 
+                        location="top"
+                        :text="retrieveRaceInfo( item.race ).name">
+                        <template v-slot:activator="{ props }"> 
+                          <v-avatar 
+                            v-bind="props" 
+                            :image="retrieveRaceInfo( item.race ).icon" 
+                            rounded="0" 
+                            size="28">
+                          </v-avatar>                                                   
+                        </template>
+                      </v-tooltip>                      
+                    </div>
+                  </td>     
+                  <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
+                  <td>stats</td>
+                  <td>fantasy</td>
+                  <td>
+                    <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
+                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(item.id)"></v-btn>
+                    <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
+                    <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>                      
+                  </td>
+                </tr>
+              </template>
+            </v-data-table>
+          </v-col>
+        </v-row>          
+        <!-- No User Found -->
+        <v-row v-else justify="center">
+          <v-cols cols="auto">
+            <p>No users found.</p>
+          </v-cols>
+        </v-row>
+      </div>
+      <!-- Add New Player Modal -->
+      <v-dialog
+        id="newPlayerModal"
+        v-if="showNewPlayerModal"
+        v-model="showNewPlayerModal"
+        max-width="65vw">
+        <v-card>
+          <template v-slot:title>
+            <span class="modal-title">
+              <v-icon icon="mdi-account-plus"></v-icon>
+              Add New Player
+            </span>
+          </template>
+          <template v-slot:text>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.name" 
+                  label="Player name">
+                </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.battleTag" 
+                  label="Player BattleTag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-autocomplete 
+                  v-model="newPlayer.country"
+                  :menu-props="{ scrollStrategy: 'close'}"
+                  :items="countries"
+                  item-title="name"
+                  item-value="a2"
+                  label="Player Country"
+                  >
+                  <template v-slot:selection="{ item }">
+                      <span style="margin-right: 5px" v-if="item.raw.a2" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      {{ item.raw.name }}                      
+                  </template>
+                  <template v-slot:item="{ props: props, item }">
+                    <v-list-item
+                      v-bind="props"
+                      :title="item.raw.name">  
+                      <template v-slot:prepend>                         
+                        <span style="margin-right: 5px" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      </template>                         
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.discordTag" 
+                  label="Player Discord Tag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-number-input
+                  v-model="newPlayer.mmr" 
+                  control-variant="hidden"
+                  label="Player MMR"
+                  :hideInput="false"
+                  :inset="false"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <v-select 
+                  v-model="newPlayer.race"
+                  label="Races"
+                  :menu-props="{ scrollStrategy: 'close'}"
+                  :item-props="itemProps"
+                  :items="races">
+                  <template v-slot:selection="{ item }">            
+                    <span>
+                      <v-avatar :image="item.raw.icon" rounded="0" size="20"></v-avatar>
+                      {{ item.raw.name }}
+                    </span>     
+                  </template>
+                  <template v-slot:item="{ props: itemProps, item }">
+                    <v-list-item
+                      v-bind="itemProps"
+                      :title="item.raw.name">  
+                      <template v-slot:prepend>
+                        <v-avatar :image="item.raw.icon" rounded="0" size="28"></v-avatar>
+                      </template>                         
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </v-col>
+            </v-row> 
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.fantasyTier" 
+                  label="Player Fantasy Tier">
+                </v-text-field>
+              </v-col>
+            </v-row>           
+          </template>       
+              
+          <v-card-actions>
+            <v-btn 
+              prepend-icon="mdi-plus"
+              @click="createNewPlayer"
+              color="light-green"
+              variant="tonal">
+              Add
+            </v-btn>
+            <v-btn 
+              prepend-icon="mdi-close" 
+              @click="cancelAddNewPlayer"
+              color="orange"
+              variant="tonal">
+              Cancel
+            </v-btn>
+          </v-card-actions>        
+        </v-card>
+      </v-dialog>
 
         <!-- Popup Modal -->
         <div v-if="selectedPlayer" :class="['modal', selectedPlayer ? 'modal-active' : '']" class="modal">
@@ -230,13 +356,14 @@ const isLoading  = ref(false); // State for selected user
 const errorMessage = ref(null);
 const showNewPlayerModal = ref(false);
 const newPlayer = ref({
-      name: '',
-      battleTag: '',
-      country: '',
-      discordTag: '',
-      mmr: 0,
-      race: '',
-    });
+  name: '',
+  battleTag: '',
+  country: '',
+  discordTag: '',
+  mmr: 0,
+  race: '',
+  fantasyTier: '',
+});
 
 //research models
 const searchRace = ref(null)
@@ -270,26 +397,55 @@ const tableHeader = [
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
 ]
 
-const races = ref([
+//Countries
+import CountryCodes from 'country-code-info'
+import countries from 'country-code-info/data/countries.json'
+
+//RACES
+import HUicon from '@/assets/raceIcons/HUMAN.png'
+import OCicon from '@/assets/raceIcons/ORC.png'
+import UDicon from '@/assets/raceIcons/UNDEAD.png'
+import NEicon from '@/assets/raceIcons/NIGHT_ELF.png'
+import RAicon from '@/assets/raceIcons/RANDOM.png'
+
+const races = [
   {
-    name :"HU"
+    value: 'HU',
+    name: 'Human',
+    icon: HUicon
   },
   {
-    name :"OC"
+    value: 'OC',
+    name: 'Orc',
+    icon: OCicon
   },
   {
-    name :"UD"
+    value :'UD',
+    name: 'Undead',
+    icon: UDicon
   },
   {
-    name :"NE"
+    value :'NE',
+    name: 'Nightelf',
+    icon: NEicon
   },
-])
+  {
+    value :'RANDOM',
+    name: 'Random',
+    icon: RAicon
+  },
+]
+
+const retrieveRaceInfo = ( raceName ) => {
+  const currentRace = races.find( ({ value }) => value === raceName );
+  return currentRace
+}
 
 export default {
 
     name: 'PlayersView',
     setup(){
-
+        console.log(countries)
         const playerStore = usePlayerStore();
         // Fetch data when the page is loaded
 
@@ -326,17 +482,14 @@ export default {
 
         // Methods
         const searchPlayer = async () => {
-          
           isLoading.value = true;
-
           try {
-            console.log( rangeValues.value[0] )
+            console.log( searchRace )
             await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
           } finally {
             isLoading.value = false;            
             searchEnabled.value = true;
           }
-          
         }
 
         const editPlayer = (player) => {
@@ -413,8 +566,12 @@ export default {
             createNewPlayer,
             cancelAddNewPlayer,
             removePlayer,
-            races,            
+            races,     
+            retrieveRaceInfo,       
             fetchPlayers,
+
+            CountryCodes,
+            countries,
         }
     },
 };
@@ -435,42 +592,6 @@ export default {
 /* pannel */
 .pannel-title {
   margin: 0;
-}
-
-/* Modal styling */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-content div {
-  margin-bottom: 10px;
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-}
-
-.modal.modal-active {
-  display: block; /* Visible state */
 }
 
 </style>
