@@ -80,11 +80,11 @@
                       <v-col cols="5">
                         <v-autocomplete 
                           v-if="team1 && team1.player_by_season"
-                          v-model="newSeries.player1_id"
+                          v-model="newSeries_Player_1"
                           :menu-props="{ scrollStrategy: 'close'}"
                           :items="team1.player_by_season[match.season_id]"
                           item-title="name"
-                          item-value="id"
+                          :item-value="item => item"
                           :label="team1.name + ' Player'"
                           >
                           <template v-slot:selection="{ item }">
@@ -105,11 +105,11 @@
                       <v-col cols="5">
                         <v-autocomplete 
                           v-if="team2 && team2.player_by_season"
-                          v-model="newSeries.player2_id"
+                          v-model="newSeries_Player_2"
                           :menu-props="{ scrollStrategy: 'close'}"
                           :items="team2.player_by_season[match.season_id]"
                           item-title="name"
-                          item-value="id"
+                          :item-value="item => item"
                           :label="team2.name + ' Player'"
                           >
                           <template v-slot:selection="{ item }">
@@ -129,31 +129,35 @@
                       </v-col>
                     </v-row>
                     <v-row class="justify-space-between">                    
-                      <v-col v-if="newSeries.player1_id" cols="5">
-                        <p>Additional informations</p>
-                        <ul>
-                          <li>Race: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race }}</li>
-                          <li>MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).mmr }}</li>
-                          <li>Country: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).country }}</li>
-                          <li>WR: </li>
-                          <!--
-                          <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
-                          <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
-                          -->
-                        </ul>
+                      <v-col cols="5">
+                        <div v-if="newSeries_Player_1">
+                          <p>Additional informations</p>
+                          <ul>
+                            <li>Race: {{ newSeries_Player_1.race }}</li>
+                            <li>MMR: {{ newSeries_Player_1.mmr }}</li>
+                            <li>Country: {{ newSeries_Player_1.country }}</li>
+                            <li>WR: </li>
+                            <!--
+                            <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
+                            <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
+                            -->
+                          </ul>
+                        </div>
                       </v-col>
-                      <v-col v-if="newSeries.player2_id" cols="5">
-                        <p>Additional informations</p>
-                        <ul>
-                          <li>Race: {{ team2.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player2_id ).race }}</li>
-                          <li>MMR: {{ team2.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player2_id ).mmr }}</li>
-                          <li>Country: {{ team2.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player2_id ).country }}</li>
-                          <li>WR: </li>
-                          <!--
-                          <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
-                          <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
-                          -->
-                        </ul>
+                      <v-col cols="5">
+                        <div  v-if="newSeries_Player_2">
+                          <p>Additional informations</p>
+                          <ul>
+                            <li>Race: {{ newSeries_Player_2.race }}</li>
+                            <li>MMR: {{ newSeries_Player_2.mmr }}</li>
+                            <li>Country: {{ newSeries_Player_2.country }}</li>
+                            <li>WR: </li>
+                            <!--
+                            <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
+                            <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
+                            -->
+                          </ul>
+                        </div>
                       </v-col>
                     </v-row>   
                   </v-container>    
@@ -299,10 +303,11 @@ export default {
     const seriesStore = useSeriesStore();
     const teamStore = useTeamStore();
     const isLoading = ref(false);
-    const newSeries = ref({ match_id: matchId, player1_id: null, player2_id: null });
     const team1 = ref({});
     const team2 = ref({});    
     const date = useDate();
+    const newSeries_Player_1 = ref(null)
+    const newSeries_Player_2 = ref(null)
 
     const formateDate = ( dateToFormat ) => {
       const formatedDate = {
@@ -322,12 +327,6 @@ export default {
 
     const cancelCreateSeries = () => {
       showNewSeriesModal.value = false;
-      newSeries.player1_id = ''
-      newSeries.player2_id = ''
-      newSeries.value = {
-        player1_id: null,
-        player2_id: null
-      };
     };
 
     const fetchMatchDetails = async () => {
@@ -372,10 +371,17 @@ export default {
     };
 
     const createSeries = async () => {
-      newSeries.value.player1_score = 0
-      newSeries.value.player2_score = 0
+      const newSeries = {}
+      newSeries.match_id = matchStore.match.id
+      newSeries.season_id = matchStore.match.season_id
+      newSeries.host_player_id = newSeries_Player_1.value.id
+      newSeries.player1_score = 0
+      newSeries.player2_score = 0
+      newSeries.player1_id = newSeries_Player_1.value.id
+      newSeries.player2_id = newSeries_Player_2.value.id
+      console.debug(newSeries)
       try {
-        await seriesStore.createSeries(newSeries.value);
+        await seriesStore.createSeries(newSeries);
         await fetchMatchSeries(); // Refresh match details after creation
         cancelCreateSeries();
       } catch (error) {
@@ -402,11 +408,13 @@ export default {
       team1,
       team2,
       isLoading,
-      newSeries,
       seriesHeaders,
       fetchMatchDetails,
       createSeries,
       removeSeries,
+
+      newSeries_Player_1,
+      newSeries_Player_2,
 
       bannerImg,
       date,
