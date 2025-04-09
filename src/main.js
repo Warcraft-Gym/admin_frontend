@@ -18,6 +18,9 @@ import * as directives from 'vuetify/directives'
 import { createVuetify } from 'vuetify';
 
 const vuetify = new createVuetify ({
+    theme: {
+        defaultTheme: 'light',
+    },
     icons: {
         defaultSet: 'mdi',
         aliases,

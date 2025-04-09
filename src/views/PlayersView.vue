@@ -307,42 +307,129 @@
         </v-card>
       </v-dialog>
 
-        <!-- Popup Modal -->
-        <div v-if="selectedPlayer" :class="['modal', selectedPlayer ? 'modal-active' : '']" class="modal">
-          <div class="modal-content">
-            <h2>Edit User: {{ selectedPlayer.name }}</h2>
-            <form @submit.prevent="updatePlayer">
-              <div>
-                <label for="name">Name:</label>
-                <input id="name" v-model="selectedPlayer.name" />
-              </div>
-              <div>
-                <label for="battleTag">BattleTag:</label>
-                <input id="battleTag" v-model="selectedPlayer.battleTag" />
-              </div>
-              <div>
-                <label for="country">Country:</label>
-                <input id="country" v-model="selectedPlayer.country" />
-              </div>
-              <div>
-                <label for="discordTag">Discord Tag:</label>
-                <input id="discordTag" v-model="selectedPlayer.discordTag" />
-              </div>
-              <div>
-                <label for="mmr">MMR:</label>
-                <input id="mmr" type="number" v-model="selectedPlayer.mmr" />
-              </div>
-              <div>
-                <label for="race">Race:</label>
-                <input id="race" v-model="selectedPlayer.race" />
-              </div>
-              <button type="submit">Save</button>
-              <button @click="cancelEdit">Cancel</button>
-            </form>
-          </div>
-        </div>
-        <!-- Modal Overlay -->
-        <div v-if="selectedPlayer" class="overlay" @click="cancelEdit"></div>
+      <!-- Edit Player Modal -->
+      <v-dialog
+        id="EditPlayerModal"
+        v-if="selectedPlayer"
+        v-model="selectedPlayer"
+        max-width="65vw">
+        <v-card>
+          <template v-slot:title>
+            <span class="modal-title">
+              <v-icon icon="mdi-account-edit"></v-icon>
+              {{ selectedPlayer.name }}
+            </span>
+          </template>
+          <template v-slot:text>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.name" 
+                  label="Player name">
+                </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.battleTag" 
+                  label="Player BattleTag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-autocomplete 
+                  v-model="selectedPlayer.country"
+                  :menu-props="{ scrollStrategy: 'close'}"
+                  :items="countries"
+                  item-title="name"
+                  item-value="a2"
+                  label="Player Country"
+                  >
+                  <template v-slot:selection="{ item }">
+                      <span style="margin-right: 5px" v-if="item.raw.a2" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      {{ item.raw.name }}                      
+                  </template>
+                  <template v-slot:item="{ props: props, item }">
+                    <v-list-item
+                      v-bind="props"
+                      :title="item.raw.name">  
+                      <template v-slot:prepend>                         
+                        <span style="margin-right: 5px" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
+                      </template>                         
+                    </v-list-item>
+                  </template>
+                </v-autocomplete>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.discordTag" 
+                  label="Player Discord Tag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-number-input
+                  v-model="selectedPlayer.mmr" 
+                  control-variant="hidden"
+                  label="Player MMR"
+                  :hideInput="false"
+                  :inset="false"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <v-select 
+                  v-model="selectedPlayer.race"
+                  label="Races"
+                  :menu-props="{ scrollStrategy: 'close'}"
+                  :item-props="itemProps"
+                  :items="races">
+                  <template v-slot:selection="{ item }">            
+                    <span>
+                      <v-avatar :image="item.raw.icon" rounded="0" size="20"></v-avatar>
+                      {{ item.raw.name }}
+                    </span>     
+                  </template>
+                  <template v-slot:item="{ props: itemProps, item }">
+                    <v-list-item
+                      v-bind="itemProps"
+                      :title="item.raw.name">  
+                      <template v-slot:prepend>
+                        <v-avatar :image="item.raw.icon" rounded="0" size="28"></v-avatar>
+                      </template>                         
+                    </v-list-item>
+                  </template>
+                </v-select>
+              </v-col>
+            </v-row> 
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.fantasyTier" 
+                  label="Player Fantasy Tier">
+                </v-text-field>
+              </v-col>
+            </v-row>           
+          </template>       
+              
+          <v-card-actions>
+            <v-btn 
+              prepend-icon="mdi-pencil"
+              @click="updatePlayer"
+              color="light-green"
+              variant="tonal">
+              Edit
+            </v-btn>
+            <v-btn 
+              prepend-icon="mdi-close" 
+              @click="cancelEdit"
+              color="orange"
+              variant="tonal">
+              Cancel
+            </v-btn>
+          </v-card-actions>        
+        </v-card>
+      </v-dialog>
     </div>
 </template>
 <script>
