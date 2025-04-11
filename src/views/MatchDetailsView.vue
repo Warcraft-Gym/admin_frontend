@@ -53,7 +53,8 @@
               id="newSeriesModal"
               v-if="showNewSeriesModal"
               v-model="showNewSeriesModal"
-              max-width="65vw">
+              max-width="95vw"
+              max-height="95vh">
               <v-card>
                 <template v-slot:title>
                   <span class="modal-title">
@@ -63,6 +64,7 @@
                 </template>
                 <template v-slot:text>
                   <v-container>
+                    <!-- Header modal -->
                     <v-row class="align-center justify-center">
                       <v-col cols="5 text-center">
                         <span class="text-h5">{{ team1.name }}</span>
@@ -77,89 +79,107 @@
                       </v-col>
                     </v-row>
                     <v-row class="justify-space-between" dense>
-                      <v-col cols="5">
-                        <v-autocomplete 
-                          v-if="team1 && team1.player_by_season"
-                          v-model="newSeries_Player_1"
-                          :menu-props="{ scrollStrategy: 'close'}"
-                          :items="team1.player_by_season[match.season_id]"
-                          item-title="name"
-                          :item-value="item => item"
-                          :label="team1.name + ' Player'"
-                          >
-                          <template v-slot:selection="{ item }">
-                              {{ item.raw.name }}                      
-                          </template>
-                          <template v-slot:item="{ props: props, item }">
-                            <v-list-item
-                              v-bind="props"
-                              :title="item.raw.name"
-                              :subtitle="item.raw.mmr">                                
-                              <template v-slot:prepend>                         
-                                <span style="margin-right: 5px">{{ item.raw.race }}</span>
-                              </template>                      
-                            </v-list-item>
-                          </template>
-                        </v-autocomplete>                      
+                      <v-col cols="auto">
+                        <v-card flat>
+                          <v-data-table-virtual
+                            height="250px"
+                            v-model="newSeries_Player_1"                          
+                            item-value="name"
+                            :headers="tableHeader"
+                            :items="team1.player_by_season[match.season_id]"
+                            select-strategy="single"
+                            show-select
+                            fixed-header
+                            show-expand
+                            return-object>
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
+                              <v-btn
+                                :text="isExpanded(internalItem) ? '-' : '+'"
+                                class="text-none"
+                                color="medium-emphasis"
+                                size="small"
+                                variant="text"
+                                @click="toggleExpand(internalItem)"
+                              ></v-btn>
+                            </template>
+                            <template v-slot:expanded-row="{ columns, item }">
+                              <tr>
+                                <td :colspan="columns.length" class="py-2">
+                                  <ul>
+                                    <li>WR GNL: ??</li>
+                                    <li 
+                                      v-if="item.w3c_stats.find( ({ race }) => race === item.race )">
+                                      W3C:
+                                      <ul>
+                                        <li>MMR: {{ item.w3c_stats.find( ({ race }) => race === item.race ).mmr }}</li>
+                                        <li>WR: {{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate  * 100 ) + '%' }}</li>
+                                      </ul>
+                                    </li>
+                                  </ul>
+                                </td>
+                              </tr>                           
+                            </template>
+                            <template 
+                              v-slot:item.name="{ item }">
+                              {{ item.race }}
+                              {{ item.name }}
+                              {{ item.country }}
+                            </template>
+                          </v-data-table-virtual>
+                          <pre v-if="newSeries_Player_1 !== null">{{ newSeries_Player_1[0].id }}</pre>
+                        </v-card>                    
                       </v-col>
-                      <v-col cols="5">
-                        <v-autocomplete 
-                          v-if="team2 && team2.player_by_season"
-                          v-model="newSeries_Player_2"
-                          :menu-props="{ scrollStrategy: 'close'}"
-                          :items="team2.player_by_season[match.season_id]"
-                          item-title="name"
-                          :item-value="item => item"
-                          :label="team2.name + ' Player'"
-                          >
-                          <template v-slot:selection="{ item }">
-                              {{ item.raw.name }}                      
-                          </template>
-                          <template v-slot:item="{ props: props, item }">
-                            <v-list-item
-                              v-bind="props"
-                              :title="item.raw.name"
-                              :subtitle="item.raw.mmr">                                                           
-                              <template v-slot:prepend>                         
-                                <span style="margin-right: 5px">{{ item.raw.race }}</span>
-                              </template>                     
-                            </v-list-item>
-                          </template>
-                        </v-autocomplete>
+                      <v-spacer cols="1"></v-spacer>
+                      <v-col cols="auto">
+                        <v-card flat>
+                          <v-data-table-virtual
+                            height="250px"
+                            v-model="newSeries_Player_2"
+                            item-value="name"
+                            :headers="tableHeader"
+                            :items="team2.player_by_season[match.season_id]"
+                            select-strategy="single"
+                            show-select
+                            fixed-header
+                            show-expand
+                            return-object>
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
+                              <v-btn
+                                :text="isExpanded(internalItem) ? '-' : '+'"
+                                class="text-none"
+                                color="medium-emphasis"
+                                size="small"
+                                variant="text"
+                                @click="toggleExpand(internalItem)"
+                              ></v-btn>
+                            </template>
+                            <template v-slot:expanded-row="{ columns, item }">
+                              <tr>
+                                <td :colspan="columns.length" class="py-2">
+                                  <ul>
+                                    <li>WR GNL: ??</li>
+                                    <li 
+                                      v-if="item.w3c_stats.find( ({ race }) => race === item.race )">
+                                      W3C:
+                                      <ul>
+                                        <li>MMR: {{ item.w3c_stats.find( ({ race }) => race === item.race ).mmr }}</li>
+                                        <li>WR: {{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate  * 100 ) + '%' }}</li>
+                                      </ul>
+                                    </li>
+                                  </ul>
+                                </td>
+                              </tr>                           
+                            </template>
+                            <template 
+                              v-slot:item.name="{ item }">
+                              {{ item.race }}
+                              {{ item.name }}
+                              {{ item.country }}
+                            </template>
+                          </v-data-table-virtual>
+                        </v-card> 
                       </v-col>
-                    </v-row>
-                    <v-row class="justify-space-between">                    
-                      <v-col cols="5">
-                        <div v-if="newSeries_Player_1">
-                          <p>Additional informations</p>
-                          <ul>
-                            <li>Race: {{ newSeries_Player_1.race }}</li>
-                            <li>MMR: {{ newSeries_Player_1.mmr }}</li>
-                            <li>Country: {{ newSeries_Player_1.country }}</li>
-                            <li>WR: </li>
-                            <!--
-                            <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
-                            <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
-                            -->
-                          </ul>
-                        </div>
-                      </v-col>
-                      <v-col cols="5">
-                        <div  v-if="newSeries_Player_2">
-                          <p>Additional informations</p>
-                          <ul>
-                            <li>Race: {{ newSeries_Player_2.race }}</li>
-                            <li>MMR: {{ newSeries_Player_2.mmr }}</li>
-                            <li>Country: {{ newSeries_Player_2.country }}</li>
-                            <li>WR: </li>
-                            <!--
-                            <li>W3C MMR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ) }}</li>                          
-                            <li v-if="team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ) !== null">W3C WR: {{ team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).w3c_stats.find( ({ race }) => race === team1.player_by_season[match.season_id].find( ({ id }) => id === newSeries.player1_id ).race ).winrate * 100 + '%' }}</li>
-                            -->
-                          </ul>
-                        </div>
-                      </v-col>
-                    </v-row>   
+                    </v-row> 
                   </v-container>    
                 </template>       
                     
@@ -292,7 +312,14 @@ import { ref, onMounted, computed } from 'vue';
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
 
+const tableHeader = [
+  { title: 'Name', value: 'name', sortable: true },     
+  { title: 'MMR', value: 'mmr', sortable: true, align: 'end' }, 
+]
+
+
 const showNewSeriesModal = ref(false)
+const search = ref('')
 
 export default {
   name: 'MatchDetailsView',
@@ -372,14 +399,14 @@ export default {
 
     const createSeries = async () => {
       const newSeries = {}
+    
       newSeries.match_id = matchStore.match.id
       newSeries.season_id = matchStore.match.season_id
-      newSeries.host_player_id = newSeries_Player_1.value.id
+      newSeries.host_player_id = newSeries_Player_1[0].id
       newSeries.player1_score = 0
       newSeries.player2_score = 0
-      newSeries.player1_id = newSeries_Player_1.value.id
-      newSeries.player2_id = newSeries_Player_2.value.id
-      console.debug(newSeries)
+      newSeries.player1_id = newSeries_Player_1[0].id
+      newSeries.player2_id = newSeries_Player_2[0].id
       try {
         await seriesStore.createSeries(newSeries);
         await fetchMatchSeries(); // Refresh match details after creation
@@ -421,6 +448,8 @@ export default {
       formateDate,
       showNewSeriesModal,
       cancelCreateSeries,
+      search,
+      tableHeader,
     };
   }
 };
