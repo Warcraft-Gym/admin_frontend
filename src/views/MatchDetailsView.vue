@@ -68,7 +68,7 @@
                     <!-- Header modal -->
                     <v-row class="align-center justify-center">
                       <v-col cols="5 text-center">
-                        <span class="text-h5">{{ team1.name }}</span>
+                        <p class="text-h5">{{ team1.name }}</p>
                       </v-col>        
                       <v-col cols="2 text-center">
                         <span class="text-h4">
@@ -76,7 +76,7 @@
                         </span>
                       </v-col>        
                       <v-col cols="5 text-center">
-                        <span class="text-h5">{{ team2.name }}</span>
+                        <p class="text-h5">{{ team2.name }}</p>
                       </v-col>
                     </v-row>
                     <v-row class="justify-space-between" dense>
@@ -84,14 +84,15 @@
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
-                            v-model="newSeries_Player_1"                          
-                            item-value="name"
+                            v-model="newSeries_Player_1"
                             :headers="tableHeader"
                             :items="team1.player_by_season[match.season_id]"
                             select-strategy="single"
+                            density="compact"
                             show-select
                             fixed-header
                             show-expand
+                            multi-sort
                             return-object>
                             <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
                               <v-btn
@@ -103,9 +104,80 @@
                                 @click="toggleExpand(internalItem)"
                               ></v-btn>
                             </template>
+                            <!-- Expanded pannel -->
                             <template v-slot:expanded-row="{ columns, item }">
                               <tr>
                                 <td :colspan="columns.length" class="py-2">
+                                  <!-- GNL Stats -->
+                                  <v-sheet rounded="lg" border class="mb-4">
+                                    <v-table density="compact" class="pb-2">
+                                      <template v-slot:top>
+                                        <v-toolbar density="compact" flat>
+                                          <v-toolbar-title>                                            
+                                            <span class="text-overline">{{ item.gnl_stats[0].season.name }} Stats</span>
+                                          </v-toolbar-title>
+                                        </v-toolbar>
+                                      </template>
+                                      <tbody>
+                                        <tr>
+                                          <th class="text-center">Race</th>
+                                          <th class="text-center">Games</th>
+                                          <th class="text-center">Wins/Losses</th>
+                                        </tr>
+                                      </tbody>
+                                      <tbody>
+                                        <tr>
+                                          <td class="text-center">
+                                            <RaceIcon :raceIdentifier="item.race" />
+                                          </td>
+                                          <td class="text-center">{{ item.gnl_stats[0].games }}</td>
+                                          <td class="text-center">
+                                            <span style="display: block;">
+                                              <span class="text-green">{{ item.gnl_stats[0].wins }}</span>
+                                               -
+                                              <span class="text-red">{{ item.gnl_stats[0].losses }}</span>
+                                            </span>
+                                            <span style="display: block;" class="text-caption grey-lighten-2">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</span>
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </v-table>
+                                  </v-sheet>
+                                  <!-- W3C Stats -->
+                                  <v-sheet rounded="lg" border class="mb-4">
+                                    <v-table density="compact" class="pb-2">
+                                      <template v-slot:top>
+                                        <v-toolbar flat density="compact">
+                                          <v-toolbar-title>                                            
+                                            <span class="text-overline">W3C Stats</span>
+                                          </v-toolbar-title>
+                                        </v-toolbar>
+                                      </template>
+                                      <tbody>
+                                        <tr>
+                                          <th class="text-center">Race</th>
+                                          <th class="text-center">Games</th>
+                                          <th class="text-center">Wins/Losses</th>
+                                        </tr>
+                                      </tbody>
+                                      <tbody>
+                                        <tr>
+                                          <td class="text-center">
+                                            <RaceIcon :raceIdentifier="item.race" />
+                                          </td>
+                                          <td class="text-center">{{ item.gnl_stats[0].games }}</td>
+                                          <td class="text-center">
+                                            <span style="display: block;">
+                                              <span class="text-green">{{ item.gnl_stats[0].wins }}</span>
+                                               -
+                                              <span class="text-red">{{ item.gnl_stats[0].losses }}</span>
+                                            </span>
+                                            <span style="display: block;" class="text-caption grey-lighten-2">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</span>
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </v-table>
+                                  </v-sheet>
                                   <ul>
                                     <li>WR GNL: ??</li>
                                     <li 
@@ -120,9 +192,9 @@
                                 </td>
                               </tr>                           
                             </template>
+                            <!-- Table content -->
                             <template 
                               v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
                               {{ item.name }}
                               <FlagIcon :countryIdentifier="item.country" />
                             </template>
@@ -254,12 +326,6 @@
                   >  
                     <v-btn 
                       class="table-action" 
-                      density="compact" 
-                      color="yellow" 
-                      icon="mdi-page-next"                         
-                    ></v-btn>
-                    <v-btn 
-                      class="table-action" 
                       density="compact"
                       icon="mdi-file-edit"                         
                     ></v-btn>                  
@@ -318,6 +384,7 @@ import FlagIcon from '../components/FlagIcon.vue';
 
 const tableHeader = [
   { title: 'Name', value: 'name', sortable: true },     
+  { title: 'Games', key: 'gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'MMR', value: 'mmr', sortable: true, align: 'end' }, 
 ]
 
@@ -406,11 +473,11 @@ export default {
     
       newSeries.match_id = matchStore.match.id
       newSeries.season_id = matchStore.match.season_id
-      newSeries.host_player_id = newSeries_Player_1[0].id
+      newSeries.host_player_id = newSeries_Player_1.value[0].id
       newSeries.player1_score = 0
       newSeries.player2_score = 0
-      newSeries.player1_id = newSeries_Player_1[0].id
-      newSeries.player2_id = newSeries_Player_2[0].id
+      newSeries.player1_id = newSeries_Player_1.value[0].id
+      newSeries.player2_id = newSeries_Player_2.value[0].id
       try {
         await seriesStore.createSeries(newSeries);
         await fetchMatchSeries(); // Refresh match details after creation

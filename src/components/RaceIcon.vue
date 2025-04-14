@@ -8,7 +8,7 @@
             v-bind="props" 
             :image="currentRace.icon"
             rounded="0" 
-            size="28">
+            size="x-small">
             </v-avatar>                                                   
         </template>
     </v-tooltip> 
