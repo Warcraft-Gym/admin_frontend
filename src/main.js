@@ -17,6 +17,12 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { createVuetify } from 'vuetify';
 
+//Components
+import RaceIcon from '@/components/RaceIcon.vue'
+import RaceSelect from '@/components/RaceSelect.vue'
+import FlagIcon from '@/components/FlagIcon.vue'
+import CountrySelect from '@/components/CountrySelect.vue'
+
 const vuetify = new createVuetify ({
     theme: {
         defaultTheme: 'light',
@@ -38,8 +44,14 @@ import { router } from './helpers';
 
 const app = createApp(App);
 
-app.use(pinia);
-app.use(vuetify);
-app.use(router);
+app
+.component('RaceIcon', RaceIcon )
+.component('RaceSelect', RaceSelect )
+.component('FlagIcon', FlagIcon )
+.component('CountrySelect', CountrySelect)
 
-app.mount('#app');
+app.use(pinia)
+app.use(vuetify)
+app.use(router)
+
+app.mount('#app')

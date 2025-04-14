@@ -39,9 +39,10 @@
             <h2>Series</h2>
           </v-col>
         </v-row>
-        <v-row>
+        
+        <!-- Add New Series Modal -->
+        <v-row>          
           <v-col cols="auto">
-            <!-- Add New Series Modal -->
             <v-btn
               @click="showNewSeriesModal = true"
               class="toolbar-btn"
@@ -79,7 +80,7 @@
                       </v-col>
                     </v-row>
                     <v-row class="justify-space-between" dense>
-                      <v-col cols="auto">
+                      <v-col cols="5">
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
@@ -121,16 +122,16 @@
                             </template>
                             <template 
                               v-slot:item.name="{ item }">
-                              {{ item.race }}
+                              <RaceIcon :raceIdentifier="item.race" />
                               {{ item.name }}
-                              {{ item.country }}
+                              <FlagIcon :countryIdentifier="item.country" />
                             </template>
                           </v-data-table-virtual>
                           <pre v-if="newSeries_Player_1 !== null">{{ newSeries_Player_1[0].id }}</pre>
                         </v-card>                    
                       </v-col>
                       <v-spacer cols="1"></v-spacer>
-                      <v-col cols="auto">
+                      <v-col cols="5">
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
@@ -172,9 +173,9 @@
                             </template>
                             <template 
                               v-slot:item.name="{ item }">
-                              {{ item.race }}
+                              <RaceIcon :raceIdentifier="item.race" />
                               {{ item.name }}
-                              {{ item.country }}
+                              <FlagIcon :countryIdentifier="item.country" />
                             </template>
                           </v-data-table-virtual>
                         </v-card> 
@@ -203,6 +204,8 @@
             </v-dialog>
           </v-col>
         </v-row>
+
+        <!-- Series List -->
         <v-row>
           <v-col 
             v-for="item in series"
@@ -224,7 +227,7 @@
                     </v-row>
                     <v-row class="align-center justify-center">
                       <v-col cols="5 text-center">
-                        <h3 class="text-h6">{{ item.player1.name + ' ' }}<span>{{ item.player1.race }}</span></h3>
+                        <h3 class="text-h6">{{ item.player1.name + ' ' }}<RaceIcon :raceIdentifier="item.player1.race" /></h3>
                         <p>{{ item.player1.mmr }}</p>
                         <p class="text-h3">{{ item.player1_score }}</p>
                       </v-col>        
@@ -236,7 +239,7 @@
                         </span>
                       </v-col>        
                       <v-col cols="5 text-center">
-                        <h3 class="text-h6">{{ item.player2.name + ' ' }}<span>{{ item.player2.race }}</span></h3>
+                        <h3 class="text-h6">{{ item.player2.name + ' ' }}<RaceIcon :raceIdentifier="item.player2.race" /></h3>
                         <p>{{ item.player2.mmr }}</p>
                         <p class="text-h3">{{ item.player2_score }}</p>
                       </v-col>
@@ -311,6 +314,7 @@ import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
+import FlagIcon from '../components/FlagIcon.vue';
 
 const tableHeader = [
   { title: 'Name', value: 'name', sortable: true },     
