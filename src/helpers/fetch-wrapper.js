@@ -4,20 +4,28 @@ export const fetchWrapper = {
     get: request('GET'),
     post: request('POST'),
     put: request('PUT'),
-    delete: request('DELETE')
+    delete: request('DELETE'),
+    fileUpload: request('FILE_UPLOAD')
 };
 
 function request(method) {
     return (url, body) => {
-        console.log("Method: ", method);
-        
+        let fileUpload = false;
+        if (method == "FILE_UPLOAD") {
+            method = "POST"
+            fileUpload = true
+        }
         const requestOptions = {
             method,
             headers: authHeader(method, url)
         };
         if (body) {
-            requestOptions.headers['Content-Type'] = 'application/json';
-            requestOptions.body = JSON.stringify(body);
+            if (fileUpload) {
+                requestOptions.body = body;
+            } else {
+                requestOptions.headers['Content-Type'] = 'application/json';
+                requestOptions.body = JSON.stringify(body);
+            }
         }
         console.log("Send request to url : ", url, requestOptions)
         return fetch(url, requestOptions).then(handleResponse);
