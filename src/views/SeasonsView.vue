@@ -3,6 +3,27 @@
       <h1>Seasons Information</h1>   
       <!-- Seasons -->
       <div id="seasonList">
+        <div>
+          <h1>Import Excel File</h1>
+          <label for="seasonName">Season Name:</label>
+          <input
+            type="text"
+            v-model="seasonName"
+            placeholder="Enter season name"
+          />
+
+          <label for="seasonId">Season ID:</label>
+          <input
+            type="number"
+            v-model="seasonId"
+            placeholder="Enter season ID"
+          />
+
+          <input type="file" @change="handleFileUpload" />
+          <button @click="uploadFile">Upload File</button>
+          <p v-if="uploadMessage">{{ uploadMessage }}</p>
+        </div>
+
           <!-- Error Message -->
           <v-row justify="center" v-if="errorMessage" class="error-message">
             <v-col cols="auto">
@@ -136,6 +157,11 @@ const newSeason = ref({
       pick_ban: '',
       series_per_week: 0,
     });
+  
+let file = null
+const uploadMessage = ref(null)
+const seasonId = ref(null)
+const seasonName = ref(null)
 
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
@@ -227,12 +253,44 @@ export default {
           };
         };
         
+      const handleFileUpload = (event)=> {
+        console.log("File Selected")
+        file = event.target.files[0];
+      };
+
+      const uploadFile = async () => {
+        console.log("Uploading file")
+        if (!file) {
+          uploadMessage.value = "Please select a file before uploading!";
+          return;
+        }
+        try {
+          const success = seasonStore.uploadSeasonFile(seasonId.value, seasonName.value, file)
+          // Include season data in the request
+          if (success) {
+            uploadMessage.value = "File uploaded successfully!";
+          } else {
+            uploadMessage.value = `Upload failed!.`;
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          uploadMessage.value = "An error occurred during file upload.";
+        }
+      }
+
         return {
             isLoading: computed(() => seasonStore.isLoading),
             seasons: computed(() => seasonStore.seasons),
-
+            
             //table
             tableHeader,
+            seasonName,
+            seasonId,
+            uploadMessage: "",
+            uploadFile,
+            handleFileUpload,
+
+
 
             selectedSeason,
             editSeason,
