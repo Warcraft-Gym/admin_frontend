@@ -32,6 +32,9 @@ export const usePlayerStore = defineStore({
         async deletePlayer(player_id) {
             await fetchWrapper.delete(`${backendUrl}/users/${player_id}`);
         },
+        async syncW3CPlayer(player_id) {
+            await fetchWrapper.post(`${backendUrl}/users/w3c_sync/${player_id}`);
+        },
         async searchPlayer( name, race, minMMR, maxMMR ) {
             let queryString = ''
             let queryADD = false

@@ -74,10 +74,11 @@
                         <span class="text-h4">
                           <v-icon icon="mdi-sword-cross"></v-icon>
                         </span>
+                        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
                       </v-col>        
                       <v-col cols="5 text-center">
                         <p class="text-h5">{{ team2.name }}</p>
-                      </v-col>
+                        </v-col>
                     </v-row>
                     <v-row class="justify-space-between" dense>
                       <v-col cols="5">
@@ -448,12 +449,24 @@ export default {
         console.log("Match " + matchStore.match)
         console.log("Team_id " + matchStore.match.team1_id)
         
-        team1.value = await teamStore.getTeamDetails(matchStore.match.team1_id);
-        team2.value = await teamStore.getTeamDetails(matchStore.match.team2_id);
+        team1.value = await teamStore.getTeamDetailsSeason(matchStore.match.team1_id, matchStore.match.season_id);
+        team2.value = await teamStore.getTeamDetailsSeason(matchStore.match.team2_id, matchStore.match.season_id);
       } catch (error) {
         console.error('Failed to fetch match details:', error);
       } finally {
         isLoading.value = false;
+      }
+    };
+
+    const syncW3CTeams = async () => {
+      try {
+        console.log("Sync Team 1")
+        team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id)
+        
+        console.log("Sync Team 2")
+        team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id)
+      } catch (error) {
+        console.error('Failed to sync teams with w3c details:', error);
       }
     };
 
@@ -510,6 +523,7 @@ export default {
       fetchMatchDetails,
       createSeries,
       removeSeries,
+      syncW3CTeams,
 
       newSeries_Player_1,
       newSeries_Player_2,
