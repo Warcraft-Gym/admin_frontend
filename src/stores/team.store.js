@@ -35,6 +35,9 @@ export const useTeamStore = defineStore({
         async getTeamDetails(team_id) {
             return await fetchWrapper.get(`${backendUrl}/teams/${team_id}`);
         },
+        async getTeamDetailsSeason(team_id, season_id) {
+            return await fetchWrapper.get(`${backendUrl}/teams/${team_id}/seasons/${season_id}`);
+        },
         async fetchTeamBySeason(team_id, season_id) {
             try{
                 this.isLoading = true; // Set loading to true
@@ -68,6 +71,9 @@ export const useTeamStore = defineStore({
         },
         async removePlayersFromTeamForSeason(team_id, season_id, player_ids) {
             const updatedTeam = await fetchWrapper.post(`${backendUrl}/teams/removePlayers/${team_id}/seasons/${season_id}`, {'player_ids': player_ids});
-        }
+        },
+        async syncPlayersW3C(team_id, season_id) {
+            return await fetchWrapper.post(`${backendUrl}/teams/w3c_sync/${team_id}/seasons/${season_id}`);
+        },
     }
 });

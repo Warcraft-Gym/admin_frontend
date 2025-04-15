@@ -131,7 +131,7 @@
                     <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
                     <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(item.id)"></v-btn>
                     <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
-                    <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>                      
+                    <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CPlayer(item.id)"></v-btn>                      
                   </td>
                 </tr>
               </template>
@@ -454,6 +454,15 @@ export default {
           }
         };
 
+        const syncW3CPlayer = async (playerId) => {
+          try {
+            await playerStore.syncW3CPlayer(playerId);
+            await fetchPlayers(); // Refresh the list after deletion
+          } catch (error) {
+            console.error('Error deleting player:', error);
+          }
+        };
+
         const cancelAddNewPlayer = () => {
           showNewPlayerModal.value = false;
           newPlayer.value = {
@@ -491,6 +500,7 @@ export default {
             cancelAddNewPlayer,
             removePlayer,       
             fetchPlayers,
+            syncW3CPlayer,
 
             CountryCodes,
             countries,
