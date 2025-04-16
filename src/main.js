@@ -47,12 +47,12 @@ const app = createApp(App);
 app
 .mixin({
     methods: {
-        isArray: function ( array ){
-            if( typeof array !== 'undefined' && array.length > 0 && array !== null ) {
+        isArrayEmpty: function ( array ){
+            if( typeof array == 'undefined' && array.length === 0 && array == null ) {
                 return true
-            } else {
-                return false
             }
+
+            return array.keys().length === 0
         },
         isObjectEmpty: function ( object ){
 

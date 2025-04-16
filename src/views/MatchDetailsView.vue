@@ -56,161 +56,192 @@
               v-model="showNewSeriesModal"
               max-width="95vw"
               max-height="95vh">
-              <v-card>
-                <template v-slot:title>
-                  <span class="modal-title">
-                    <v-icon icon="mdi-account-plus"></v-icon>
-                    Add New Series
-                  </span>
-                </template>
-                <template v-slot:text>
-                  <v-container>
-                    <!-- Header modal -->
-                    <v-row class="align-center justify-center">
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team1.name }}</p>
-                      </v-col>        
-                      <v-col cols="2 text-center">
-                        <span class="text-h4">
-                          <v-icon icon="mdi-sword-cross"></v-icon>
-                        </span>
-                        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
-                      </v-col>        
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team2.name }}</p>
-                        </v-col>
-                    </v-row>
-                    <v-row class="justify-space-between" dense>
-                      <v-col cols="5">
-                        <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="newSeries_Player_1"                            
-                            v-model:expanded="rowsExpanded"
-                            :headers="tableHeader"
-                            :items="team1.player_by_season[match.season_id]"
-                            select-strategy="single"
-                            density="compact"
-                            show-select
-                            fixed-header
-                            show-expand
-                            multi-sort
-                            return-object
-                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
-                              <v-btn
-                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
-                                class="text-none"
-                                size="x-small"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                            <!-- Expanded pannel -->
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr v-if="isArray( item.gnl_stats )">
-                                <td :colspan="columns.length" class="py-2">
-                                  <!-- GNL Stats -->
-                                  <v-sheet>
-                                    <v-table border density="compact" class="pb-2">
-                                      <tbody>
-                                        <tr>
-                                          <th class="text-left"><RaceIcon :raceIdentifier="item.race" /></th>
-                                          <th class="text-right">Wins</th>
-                                          <th class="text-right">Losses</th>
-                                          <th class="text-right">Total</th>
-                                          <th class="text-right">Winrate</th>
-                                        </tr>
-                                      </tbody>
-                                      <tbody>
-                                        <tr>
-                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
-                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
-                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
-                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
-                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
-                                        </tr>
-                                        <tr v-if="!isObjectEmpty( item.w3c_stats.find( ({ race }) => race === item.race ) )">
-                                          <td class="text-left text-overline">W3C</td>
-                                          <td class="text-right text-green">{{ item.w3c_stats.find( ({ race }) => race === item.race ).wins }}</td>
-                                          <td class="text-right text-red">{{ item.w3c_stats.find( ({ race }) => race === item.race ).losses }}</td>
-                                          <td class="text-right">{{ item.w3c_stats.find( ({ race }) => race === item.race ).games }}</td>
-                                          <td class="text-right">{{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate * 100 )  + '%' }}</td>
-                                        </tr>
-                                      </tbody>
-                                    </v-table>
-                                  </v-sheet>
-                                </td>
-                              </tr>    
-                              <tr v-else>
-                                <td :colspan="columns.length" class="py-2">
-                                  <td>No stats found.</td>
-                                </td>                                
-                              </tr>                       
-                            </template>
-                            <!-- Table content -->
-                            <template 
-                              v-slot:item.name="{ item }">
-                              {{ item.name }}
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
+              <v-card
+              prepend-icon="mdi-account-plus"
+              title="Add New Series"
+              :subtitle="team1.name + ' | VS | ' + team2.name">
+                <template v-slot:text>                  
+                    <!-- Player tables -->
+                    <v-row>
+                      <!-- Left Table -->
+                      <v-col cols="6">
+                        <v-card
+                        border
+                        flat>
+                          <v-card-title class="bg-surface-light">
+                              {{ team1.name }}                              
+                          </v-card-title>
+                          <v-card-subtitle class="bg-surface-light pt-1 pb-1">
+                            {{ (isObjectEmpty( newSeries_Player_1 ) ) ? 'Please select a player' : 'Selected player: ' + newSeries_Player_1[0].name }}
+                          </v-card-subtitle>
+                          <v-card-text>                          
+                            <v-data-table-virtual
+                              height="250px"
+                              v-model="newSeries_Player_1"                            
+                              v-model:expanded="rowsExpanded_1"
+                              :headers="tableHeader"
+                              :items="team1.player_by_season[match.season_id]"
+                              select-strategy="single"
+                              density="compact"
+                              show-select
+                              fixed-header
+                              show-expand
+                              multi-sort
+                              return-object
+                              @click:row="(item, slot) => toggleRows( rowsExpanded_1, slot )">
+                              <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
+                                <v-btn
+                                  :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
+                                  class="text-none"
+                                  size="x-small"
+                                  variant="plain"
+                                ></v-btn>
+                              </template>
+                              <!-- Expanded pannel -->
+                              <template v-slot:expanded-row="{ columns, item }">
+                                <tr v-if="!isArrayEmpty( item.gnl_stats )">
+                                  <td :colspan="columns.length" class="py-2">
+                                    <!-- GNL Stats -->
+                                    <v-sheet>
+                                      <v-table border density="compact" class="pb-2">
+                                        <tbody>
+                                          <tr class="bg-surface-light">
+                                            <th class="text-left"><RaceIcon :raceIdentifier="item.race" /></th>
+                                            <th class="text-right">Wins</th>
+                                            <th class="text-right">Losses</th>
+                                            <th class="text-right">Total</th>
+                                            <th class="text-right">Winrate</th>
+                                          </tr>
+                                        </tbody>
+                                        <tbody>
+                                          <tr>
+                                            <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                            <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
+                                            <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
+                                            <td class="text-right">{{ item.gnl_stats[0].games }}</td>
+                                            <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
+                                          </tr>
+                                          <tr v-if="!isObjectEmpty( item.w3c_stats.find( ({ race }) => race === item.race ) )">
+                                            <td class="text-left text-overline">W3C</td>
+                                            <td class="text-right text-green">{{ item.w3c_stats.find( ({ race }) => race === item.race ).wins }}</td>
+                                            <td class="text-right text-red">{{ item.w3c_stats.find( ({ race }) => race === item.race ).losses }}</td>
+                                            <td class="text-right">{{ item.w3c_stats.find( ({ race }) => race === item.race ).games }}</td>
+                                            <td class="text-right">{{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate * 100 )  + '%' }}</td>
+                                          </tr>
+                                        </tbody>
+                                      </v-table>
+                                    </v-sheet>
+                                  </td>
+                                </tr>    
+                                <tr v-else>
+                                  <td :colspan="columns.length" class="py-2">
+                                    <td>No stats found.</td>
+                                  </td>                                
+                                </tr>                       
+                              </template>
+                              <!-- Table content -->
+                              <template 
+                                v-slot:item.name="{ item }">
+                                {{ item.name }}
+                                <FlagIcon :countryIdentifier="item.country" />
+                              </template>
+                            </v-data-table-virtual>
+                          </v-card-text>
                         </v-card>                    
                       </v-col>
-                      <v-spacer cols="1"></v-spacer>
-                      <v-col cols="5">
-                        <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="newSeries_Player_2"
-                            item-value="name"
-                            :headers="tableHeader"
-                            :items="team2.player_by_season[match.season_id]"
-                            select-strategy="single"
-                            show-select
-                            fixed-header
-                            show-expand
-                            return-object>
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
-                              <v-btn
-                                :text="isExpanded(internalItem) ? '-' : '+'"
-                                class="text-none"
-                                color="medium-emphasis"
-                                size="small"
-                                variant="text"
-                                @click="toggleExpand(internalItem)"
-                              ></v-btn>
-                            </template>
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr>
-                                <td :colspan="columns.length" class="py-2">
-                                  <ul>
-                                    <li>WR GNL: ??</li>
-                                    <li 
-                                      v-if="item.w3c_stats.find( ({ race }) => race === item.race )">
-                                      W3C:
-                                      <ul>
-                                        <li>MMR: {{ item.w3c_stats.find( ({ race }) => race === item.race ).mmr }}</li>
-                                        <li>WR: {{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate  * 100 ) + '%' }}</li>
-                                      </ul>
-                                    </li>
-                                  </ul>
-                                </td>
-                              </tr>                           
-                            </template>
-                            <template 
-                              v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
-                              {{ item.name }}
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
+                      <!-- Right Table -->
+                      <v-col cols="6">
+                        <v-card
+                        border 
+                        flat>                          
+                          <v-card-title class="bg-surface-light">
+                              {{ team2.name }}                              
+                          </v-card-title>
+                          <v-card-subtitle class="bg-surface-light pt-1 pb-1">
+                            {{ ( isObjectEmpty( newSeries_Player_2 ) ) ? 'Please select a player' : 'Selected player: ' + newSeries_Player_2[0].name }}
+                          </v-card-subtitle>
+                          <v-card-text>
+                            <v-data-table-virtual
+                              height="250px"
+                              v-model="newSeries_Player_2"                            
+                              v-model:expanded="rowsExpanded_2"
+                              :headers="tableHeader"
+                              :items="team2.player_by_season[match.season_id]"
+                              select-strategy="single"
+                              density="compact"
+                              show-select
+                              fixed-header
+                              show-expand
+                              multi-sort
+                              return-object
+                              @click:row="(item, slot) => toggleRows( rowsExpanded_2, slot )">
+                              <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
+                                <v-btn
+                                  :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
+                                  class="text-none"
+                                  size="x-small"
+                                  variant="plain"
+                                ></v-btn>
+                              </template>
+                              <!-- Expanded pannel -->
+                              <template v-slot:expanded-row="{ columns, item }">
+                                <tr v-if="!isArrayEmpty( item.gnl_stats )">
+                                  <td :colspan="columns.length" class="py-2">
+                                    <!-- GNL Stats -->
+                                    <v-sheet>
+                                      <v-table border density="compact" class="pb-2">
+                                        <tbody>
+                                          <tr class="bg-surface-light">
+                                            <th class="text-left"><RaceIcon :raceIdentifier="item.race" /></th>
+                                            <th class="text-right">Wins</th>
+                                            <th class="text-right">Losses</th>
+                                            <th class="text-right">Total</th>
+                                            <th class="text-right">Winrate</th>
+                                          </tr>
+                                        </tbody>
+                                        <tbody>
+                                          <tr>
+                                            <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                            <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
+                                            <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
+                                            <td class="text-right">{{ item.gnl_stats[0].games }}</td>
+                                            <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
+                                          </tr>
+                                          <tr v-if="!isObjectEmpty( item.w3c_stats.find( ({ race }) => race === item.race ) )">
+                                            <td class="text-left text-overline">W3C</td>
+                                            <td class="text-right text-green">{{ item.w3c_stats.find( ({ race }) => race === item.race ).wins }}</td>
+                                            <td class="text-right text-red">{{ item.w3c_stats.find( ({ race }) => race === item.race ).losses }}</td>
+                                            <td class="text-right">{{ item.w3c_stats.find( ({ race }) => race === item.race ).games }}</td>
+                                            <td class="text-right">{{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate * 100 )  + '%' }}</td>
+                                          </tr>
+                                        </tbody>
+                                      </v-table>
+                                    </v-sheet>
+                                  </td>
+                                </tr>    
+                                <tr v-else>
+                                  <td :colspan="columns.length" class="py-2">
+                                    <td>No stats found.</td>
+                                  </td>                                
+                                </tr>                       
+                              </template>
+                              <!-- Table content -->
+                              <template 
+                                v-slot:item.name="{ item }">
+                                {{ item.name }}
+                                <FlagIcon :countryIdentifier="item.country" />
+                              </template>
+                            </v-data-table-virtual>
+                          </v-card-text>
                         </v-card> 
                       </v-col>
                     </v-row> 
-                  </v-container>    
                 </template>       
                     
-                <v-card-actions>
+                <v-card-actions>                  
+                  <v-btn color="green" prepend-icon="mdi-sync" @click="syncW3CTeams">
+                    W3C
+                  </v-btn>
                   <v-btn 
                     prepend-icon="mdi-plus"
                     @click="createSeries"
@@ -342,7 +373,8 @@ const tableHeader = [
   { title: 'MMR', value: 'mmr', sortable: true, align: 'end' }, 
 ]
 
-const rowsExpanded = ref([])
+const rowsExpanded_1 = ref([])
+const rowsExpanded_2 = ref([])
 
 const showNewSeriesModal = ref(false)
 const search = ref('')
@@ -360,7 +392,18 @@ export default {
     const team2 = ref({});    
     const date = useDate();
     const newSeries_Player_1 = ref(null)
-    const newSeries_Player_2 = ref(null)
+    const newSeries_Player_2 = ref(null)    
+    const newSeries_caster = ref(null)
+    const newSeries_date = ref(null)
+
+    const toggleRows = ( rowsTable, item ) => {
+      if( rowsTable.findIndex( v => v.name === item.item.name ) === -1 ){
+        rowsTable.shift();
+        item.toggleExpand( item.internalItem )
+      } else {
+        rowsTable.shift();
+      }      
+    }
 
     const formateDate = ( dateToFormat ) => {
       const formatedDate = {
@@ -445,6 +488,8 @@ export default {
       newSeries.player2_score = 0
       newSeries.player1_id = newSeries_Player_1.value[0].id
       newSeries.player2_id = newSeries_Player_2.value[0].id
+      newSeries.date_time = newSeries_date
+
       try {
         await seriesStore.createSeries(newSeries);
         await fetchMatchSeries(); // Refresh match details after creation
@@ -481,6 +526,8 @@ export default {
 
       newSeries_Player_1,
       newSeries_Player_2,
+      newSeries_caster,
+      newSeries_date,
 
       bannerImg,
       date,
@@ -490,7 +537,9 @@ export default {
       search,
       tableHeader,
 
-      rowsExpanded,
+      rowsExpanded_1,
+      rowsExpanded_2,
+      toggleRows,
     };
   }
 };
