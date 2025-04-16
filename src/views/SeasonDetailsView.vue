@@ -18,6 +18,41 @@
         Week {{ week }}
       </v-btn>
     </div>
+    <!-- Add Match Button -->
+    <div>
+          <v-btn @click="openTeamSelectionModal(plainTeams)">
+            Add Match for Week {{ selectedWeek }}
+          </v-btn>
+        </div>
+
+        <!-- Team Selection Modal -->
+        <v-dialog v-model="isModalOpen" max-width="600px">
+          <v-card>
+            <v-card-title>Select Teams for the Match</v-card-title>
+            <v-card-text>
+              <!-- Team Selection -->
+              <v-select
+                :items="plainTeams"
+                item-value="id"
+                item-text="name"
+                label="Select Team 1"
+                v-model="selectedTeam1"
+              >
+            </v-select>
+              <v-select
+                :items="teams"
+                item-text="name"
+                item-value="id"
+                label="Select Team 2"
+                v-model="selectedTeam2"
+              ></v-select>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn color="primary" @click="confirmSelection">Confirm</v-btn>
+              <v-btn color="secondary" @click="closeTeamSelectionModal">Cancel</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
     <!-- Matches for Selected Week -->
     <v-row v-if="matches && matches.length > 0">
       <v-col
@@ -74,9 +109,49 @@
     const matchStore = useMatchStore();
     const teamStore = useTeamStore();
     const selectedWeek = ref(null);
+    const isModalOpen = ref(false);
+    const selectedTeam1 = ref(null);
+    const selectedTeam2 = ref(null);
+
+
+    const openTeamSelectionModal = (teams) => {
+      console.log(teams)
+      isModalOpen.value = true;
+    };
+
+    const closeTeamSelectionModal = () => {
+      isModalOpen.value = false;
+      selectedTeam1.value = null;
+      selectedTeam2.value = null;
+    };
+
+    const confirmSelection = async () => {
+      if (!selectedTeam1.value || !selectedTeam2.value) {
+        alert("Please select two teams.");
+        return;
+      }
+
+      try {
+        const newMatch = {
+          playday: selectedWeek.value,
+          season_id: seasonId,
+          team1_id: selectedTeam1.value,
+          team2_id: selectedTeam2.value,
+        };
+        console.log(newMatch)
+        await matchStore.createMatch(newMatch); // Assuming a createMatch method exists
+        console.log("Match added successfully!");
+        fetchMatches(selectedWeek.value); // Refresh matches for the week
+      } catch (error) {
+        console.error("Failed to add match:", error);
+      } finally {
+        closeTeamSelectionModal();
+      }
+    };
+
 
     const fetchMatches = async (week) => {
-        self.selectedWeek = week
+        selectedWeek.value = week
         try {
             await matchStore.searchMatchesBySeasonAndPlayday(seasonId, week);
         } catch (error) {
@@ -84,10 +159,12 @@
         }
     };
 
+
     // Fetch teams for the season
     const fetchTeams = async () => {
       try {
         await teamStore.fetchTeamsBySeason(seasonId);
+      
       } catch (error) {
         console.error('Failed to fetch teams for the season:', error);
       }
@@ -111,9 +188,23 @@
         season: computed(() => seasonStore.current_season),
         matches: computed(() => matchStore.matches),
         teams: computed(() => teamStore.teams),
+        plainTeams: computed(() =>
+          teamStore.teams.map(team => ({
+            id: team.id,
+            name: team.name,
+          }))
+        ),
+
         fetchMatches,
         fetchTeams,
         selectedWeek,
+        isModalOpen,
+        selectedTeam1,
+        selectedTeam2,
+        openTeamSelectionModal,
+        closeTeamSelectionModal,
+        confirmSelection,
+
         };
     },
   };

@@ -1,5 +1,6 @@
 <template>
     <div>
+      <raceIcon />
       <h1>Player Information</h1>
       <!-- Filters -->
       <div id="playerFilters">
@@ -23,29 +24,7 @@
                       </v-text-field>
                     </v-col>
                     <v-col cols="6">
-                      <v-select 
-                        v-model="searchRace"
-                        clearable
-                        label="Races"
-                        :menu-props="{ scrollStrategy: 'close'}"
-                        :item-props="itemProps"
-                        :items="races">
-                        <template v-slot:selection="{ item }">            
-                          <span>
-                            <v-avatar :image="item.raw.icon" rounded="0" size="20"></v-avatar>
-                            {{ item.raw.name }}
-                          </span>     
-                        </template>
-                        <template v-slot:item="{ props: itemProps, item }">
-                          <v-list-item
-                            v-bind="itemProps"
-                            :title="item.raw.name">  
-                            <template v-slot:prepend>
-                              <v-avatar :image="item.raw.icon" rounded="0" size="28"></v-avatar>
-                            </template>                         
-                          </v-list-item>
-                        </template>
-                      </v-select>
+                      <RaceSelect v-model="searchRace" />
                     </v-col>
                   </v-row>
                   <v-row>
@@ -134,32 +113,15 @@
                   <td>{{ item.name }}</td>
                   <td>{{ item.battleTag }}</td>
                   <td>
-                    <div v-if="item.country !== null && item.country !== ''">
-                      <v-tooltip 
-                        location="top"
-                        :text="CountryCodes.findCountry({'a2': item.country}).name">
-                        <template v-slot:activator="{ props }">                          
-                          <span v-bind="props" :class="'fp '+ item.country.toLowerCase()"></span>
-                        </template>
-                      </v-tooltip>
+                    <div v-if="item.country">
+                      <FlagIcon :countryIdentifier="item.country" />
                     </div>
                   </td>
                   <td>{{ item.discordTag }}</td>
                   <td>{{ item.mmr }}</td>
                   <td>
-                    <div v-if="item.race !== null && item.race !== ''">
-                      <v-tooltip 
-                        location="top"
-                        :text="retrieveRaceInfo( item.race ).name">
-                        <template v-slot:activator="{ props }"> 
-                          <v-avatar 
-                            v-bind="props" 
-                            :image="retrieveRaceInfo( item.race ).icon" 
-                            rounded="0" 
-                            size="28">
-                          </v-avatar>                                                   
-                        </template>
-                      </v-tooltip>                      
+                    <div v-if="item.race">
+                      <RaceIcon :raceIdentifier="item.race" />                                          
                     </div>
                   </td>     
                   <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
@@ -169,7 +131,7 @@
                     <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
                     <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(item.id)"></v-btn>
                     <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
-                    <v-btn density="compact" color="green" icon="mdi-sync"></v-btn>                      
+                    <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CPlayer(item.id)"></v-btn>                      
                   </td>
                 </tr>
               </template>
@@ -213,28 +175,7 @@
             </v-row>
             <v-row dense="true">
               <v-col cols="6">
-                <v-autocomplete 
-                  v-model="newPlayer.country"
-                  :menu-props="{ scrollStrategy: 'close'}"
-                  :items="countries"
-                  item-title="name"
-                  item-value="a2"
-                  label="Player Country"
-                  >
-                  <template v-slot:selection="{ item }">
-                      <span style="margin-right: 5px" v-if="item.raw.a2" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
-                      {{ item.raw.name }}                      
-                  </template>
-                  <template v-slot:item="{ props: props, item }">
-                    <v-list-item
-                      v-bind="props"
-                      :title="item.raw.name">  
-                      <template v-slot:prepend>                         
-                        <span style="margin-right: 5px" :class="'fp '+ item.raw.a2.toLowerCase()"></span>
-                      </template>                         
-                    </v-list-item>
-                  </template>
-                </v-autocomplete>
+                <CountrySelect v-model="newPlayer.country" />
               </v-col>
               <v-col cols="6">
                 <v-text-field
@@ -254,28 +195,7 @@
                 ></v-number-input>
               </v-col>
               <v-col cols="6">
-                <v-select 
-                  v-model="newPlayer.race"
-                  label="Races"
-                  :menu-props="{ scrollStrategy: 'close'}"
-                  :item-props="itemProps"
-                  :items="races">
-                  <template v-slot:selection="{ item }">            
-                    <span>
-                      <v-avatar :image="item.raw.icon" rounded="0" size="20"></v-avatar>
-                      {{ item.raw.name }}
-                    </span>     
-                  </template>
-                  <template v-slot:item="{ props: itemProps, item }">
-                    <v-list-item
-                      v-bind="itemProps"
-                      :title="item.raw.name">  
-                      <template v-slot:prepend>
-                        <v-avatar :image="item.raw.icon" rounded="0" size="28"></v-avatar>
-                      </template>                         
-                    </v-list-item>
-                  </template>
-                </v-select>
+                <RaceSelect v-model="newPlayer.race" />
               </v-col>
             </v-row> 
             <v-row dense="true">
@@ -307,42 +227,87 @@
         </v-card>
       </v-dialog>
 
-        <!-- Popup Modal -->
-        <div v-if="selectedPlayer" :class="['modal', selectedPlayer ? 'modal-active' : '']" class="modal">
-          <div class="modal-content">
-            <h2>Edit User: {{ selectedPlayer.name }}</h2>
-            <form @submit.prevent="updatePlayer">
-              <div>
-                <label for="name">Name:</label>
-                <input id="name" v-model="selectedPlayer.name" />
-              </div>
-              <div>
-                <label for="battleTag">BattleTag:</label>
-                <input id="battleTag" v-model="selectedPlayer.battleTag" />
-              </div>
-              <div>
-                <label for="country">Country:</label>
-                <input id="country" v-model="selectedPlayer.country" />
-              </div>
-              <div>
-                <label for="discordTag">Discord Tag:</label>
-                <input id="discordTag" v-model="selectedPlayer.discordTag" />
-              </div>
-              <div>
-                <label for="mmr">MMR:</label>
-                <input id="mmr" type="number" v-model="selectedPlayer.mmr" />
-              </div>
-              <div>
-                <label for="race">Race:</label>
-                <input id="race" v-model="selectedPlayer.race" />
-              </div>
-              <button type="submit">Save</button>
-              <button @click="cancelEdit">Cancel</button>
-            </form>
-          </div>
-        </div>
-        <!-- Modal Overlay -->
-        <div v-if="selectedPlayer" class="overlay" @click="cancelEdit"></div>
+      <!-- Edit Player Modal -->
+      <v-dialog
+        id="EditPlayerModal"
+        v-if="selectedPlayer"
+        v-model="selectedPlayer"
+        max-width="65vw">
+        <v-card>
+          <template v-slot:title>
+            <span class="modal-title">
+              <v-icon icon="mdi-account-edit"></v-icon>
+              {{ selectedPlayer.name }}
+            </span>
+          </template>
+          <template v-slot:text>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.name" 
+                  label="Player name">
+                </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.battleTag" 
+                  label="Player BattleTag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">                
+                <CountrySelect v-model="selectedPlayer.country" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.discordTag" 
+                  label="Player Discord Tag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-number-input
+                  v-model="selectedPlayer.mmr" 
+                  control-variant="hidden"
+                  label="Player MMR"
+                  :hideInput="false"
+                  :inset="false"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <RaceSelect v-model="selectedPlayer.race" />
+              </v-col>
+            </v-row> 
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.fantasyTier" 
+                  label="Player Fantasy Tier">
+                </v-text-field>
+              </v-col>
+            </v-row>           
+          </template>       
+              
+          <v-card-actions>
+            <v-btn 
+              prepend-icon="mdi-pencil"
+              @click="updatePlayer"
+              color="light-green"
+              variant="tonal">
+              Edit
+            </v-btn>
+            <v-btn 
+              prepend-icon="mdi-close" 
+              @click="cancelEdit"
+              color="orange"
+              variant="tonal">
+              Cancel
+            </v-btn>
+          </v-card-actions>        
+        </v-card>
+      </v-dialog>
     </div>
 </template>
 <script>
@@ -401,51 +366,10 @@ const tableHeader = [
 import CountryCodes from 'country-code-info'
 import countries from 'country-code-info/data/countries.json'
 
-//RACES
-import HUicon from '@/assets/raceIcons/HUMAN.png'
-import OCicon from '@/assets/raceIcons/ORC.png'
-import UDicon from '@/assets/raceIcons/UNDEAD.png'
-import NEicon from '@/assets/raceIcons/NIGHT_ELF.png'
-import RAicon from '@/assets/raceIcons/RANDOM.png'
-
-const races = [
-  {
-    value: 'HU',
-    name: 'Human',
-    icon: HUicon
-  },
-  {
-    value: 'OC',
-    name: 'Orc',
-    icon: OCicon
-  },
-  {
-    value :'UD',
-    name: 'Undead',
-    icon: UDicon
-  },
-  {
-    value :'NE',
-    name: 'Nightelf',
-    icon: NEicon
-  },
-  {
-    value :'RANDOM',
-    name: 'Random',
-    icon: RAicon
-  },
-]
-
-const retrieveRaceInfo = ( raceName ) => {
-  const currentRace = races.find( ({ value }) => value === raceName );
-  return currentRace
-}
-
 export default {
 
     name: 'PlayersView',
     setup(){
-        console.log(countries)
         const playerStore = usePlayerStore();
         // Fetch data when the page is loaded
 
@@ -530,6 +454,15 @@ export default {
           }
         };
 
+        const syncW3CPlayer = async (playerId) => {
+          try {
+            await playerStore.syncW3CPlayer(playerId);
+            await fetchPlayers(); // Refresh the list after deletion
+          } catch (error) {
+            console.error('Error deleting player:', error);
+          }
+        };
+
         const cancelAddNewPlayer = () => {
           showNewPlayerModal.value = false;
           newPlayer.value = {
@@ -565,10 +498,9 @@ export default {
             newPlayer,
             createNewPlayer,
             cancelAddNewPlayer,
-            removePlayer,
-            races,     
-            retrieveRaceInfo,       
+            removePlayer,       
             fetchPlayers,
+            syncW3CPlayer,
 
             CountryCodes,
             countries,

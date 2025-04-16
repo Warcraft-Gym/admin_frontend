@@ -16,6 +16,7 @@
 
     <!-- Players -->
     <div id="playerList">
+          <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeam"></v-btn>
           <!-- Error Message -->
           <v-row justify="center" v-if="errorMessage" class="error-message">
             <v-col cols="auto">
@@ -322,6 +323,15 @@ export default {
           }
         };
 
+        const syncW3CTeam = async () => {
+          try {
+            await teamStore.syncPlayersW3C(teamId, seasonId)// Fetch user data
+            fetchTeam(); 
+          } catch (error) {
+            console.error('Error deleting player:', error);
+          }
+        };
+
         // Function to disable rows where MMR is below 1000
         const isRowDisabled = (item) => {
           console.log("Evaluating player:", item);
@@ -372,6 +382,7 @@ export default {
             removePlayerFromTeam,
             races,            
             fetchTeam,
+            syncW3CTeam,
             showNewPlayerModal,
             fetchAllPlayers,
             saveSelectedPlayers,
