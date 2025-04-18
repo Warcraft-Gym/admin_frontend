@@ -14,10 +14,8 @@ export const useAuthStore = defineStore({
     }),
     actions: {
         async login(token) {
-            console.log(`Send Login request to: ${backendUrl}/login`)
             const user = await fetchWrapper.post(`${backendUrl}/login`, { token: token });
-            console.log("User response: " + JSON.stringify(user))
-            // update pinia state
+           // update pinia state
             this.user = user;
 
             // store user details and jwt in local storage to keep user logged in between page refreshes
@@ -27,9 +25,6 @@ export const useAuthStore = defineStore({
             router.push(this.returnUrl || '/');
         },
         async refresh() {
-            console.log(`Send Login request to: ${backendUrl}/refresh`)
-            const user = await fetchWrapper.post(`${backendUrl}/refresh`);
-            console.log("User response: " + JSON.stringify(user))
             // update pinia state
             this.user = user;
 

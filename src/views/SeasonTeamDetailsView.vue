@@ -255,7 +255,6 @@ export default {
 
         const fetchAllPlayers = async () => {
           try {
-            console.log("FetchingAll players")
             await playerStore.fetchPlayers();
           } catch (error) {
             console.error('Failed to fetch players:', error);
@@ -272,7 +271,6 @@ export default {
         };
 
         const saveSelectedPlayers = async () => {
-          console.log(selectedPlayers)
           try {
             await teamStore.addPlayersToTeamForSeason(
               teamId, seasonId, selectedPlayers.value
@@ -292,14 +290,13 @@ export default {
           isLoading.value = true;
           errorMessage.value = null; // Reset error message
           try {
-            await teamStore.fetchTeamBySeason(teamId, seasonId)// Fetch user data
-            console.log(teamStore.team)
+            await teamStore.fetchTeamBySeason(teamId, seasonId)
             if (!teamStore.team) {
               errorMessage.value = 'No team information found.';
             }
             players.value = teamStore.team.player_by_season[seasonId]
           } catch (error) {
-            console.log(error)
+            console.error(error)
             errorMessage.value = 'Failed to load team. Please try again later.';
           }
         };
@@ -334,7 +331,6 @@ export default {
 
         // Function to disable rows where MMR is below 1000
         const isRowDisabled = (item) => {
-          console.log("Evaluating player:", item);
           let playerAlreadyInTeam = false;
           for (const player in players.value){
             if (player == item.id){
@@ -352,7 +348,6 @@ export default {
           isLoading.value = true;
 
           try {
-            console.log( rangeValues.value[0] )
             await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
           } finally {
             isLoading.value = false;            

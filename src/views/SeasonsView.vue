@@ -254,7 +254,6 @@ export default {
         };
         
       const handleFileUpload = (event)=> {
-        console.log("File Selected")
         file = event.target.files[0];
       };
 

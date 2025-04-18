@@ -408,7 +408,6 @@ export default {
         const searchPlayer = async () => {
           isLoading.value = true;
           try {
-            console.log( searchRace )
             await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
           } finally {
             isLoading.value = false;            

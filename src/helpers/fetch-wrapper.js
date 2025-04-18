@@ -27,13 +27,11 @@ function request(method) {
                 requestOptions.body = JSON.stringify(body);
             }
         }
-        console.log("Send request to url : ", url, requestOptions)
         return fetch(url, requestOptions).then(handleResponse);
     }
 }
 
 function authHeader(method, url) {
-    console.log("use authHeader")
     // return auth header with jwt if user is logged in and request is to the api url
     const authstore = useAuthStore();
     const user = authstore.user;
@@ -56,7 +54,6 @@ function authHeader(method, url) {
 function handleResponse(response) {
     return response.text().then(text => {
         const data = text && JSON.parse(text);
-        console.log(response);
         if (!response.ok) {
             const { user, logout } = useAuthStore();
             if ([401, 403].includes(response.status) && user) {

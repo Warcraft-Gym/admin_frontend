@@ -400,8 +400,6 @@ export default {
     const fetchTeamDetails = async () => {
       isLoading.value = true;
       try {
-        console.log("Match " + matchStore.match)
-        console.log("Team_id " + matchStore.match.team1_id)
         
         team1.value = await teamStore.getTeamDetailsSeason(matchStore.match.team1_id, matchStore.match.season_id);
         team2.value = await teamStore.getTeamDetailsSeason(matchStore.match.team2_id, matchStore.match.season_id);
@@ -414,10 +412,8 @@ export default {
 
     const syncW3CTeams = async () => {
       try {
-        console.log("Sync Team 1")
         team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id)
         
-        console.log("Sync Team 2")
         team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id)
       } catch (error) {
         console.error('Failed to sync teams with w3c details:', error);

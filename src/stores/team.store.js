@@ -26,7 +26,6 @@ export const useTeamStore = defineStore({
             try{
                 this.isLoading = true; // Set loading to true
                 const resp = await fetchWrapper.get(`${backendUrl}/teams/season/${season_id}`);
-                console.log(resp)
                 this.teams =  resp
             } finally {
                 this.isLoading = false; // Set loading to false once complete

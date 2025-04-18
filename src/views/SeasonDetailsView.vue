@@ -115,7 +115,6 @@
 
 
     const openTeamSelectionModal = (teams) => {
-      console.log(teams)
       isModalOpen.value = true;
     };
 
@@ -138,7 +137,6 @@
           team1_id: selectedTeam1.value,
           team2_id: selectedTeam2.value,
         };
-        console.log(newMatch)
         await matchStore.createMatch(newMatch); // Assuming a createMatch method exists
         console.log("Match added successfully!");
         fetchMatches(selectedWeek.value); // Refresh matches for the week
