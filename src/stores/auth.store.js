@@ -24,7 +24,8 @@ export const useAuthStore = defineStore({
             // redirect to previous url or default to home page
             router.push(this.returnUrl || '/');
         },
-        async refresh() {
+        async refresh(token) {
+            const user = await fetchWrapper.post(`${backendUrl}/refresh`, { access_token: token });
             // update pinia state
             this.user = user;
 

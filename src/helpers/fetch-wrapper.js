@@ -43,7 +43,7 @@ function authHeader(method, url) {
         return { Authorization: `Bearer ${user.refresh_token}` };
     } else if (isRestricted && isLoggedIn && isApiUrl) {
         if(authstore.isTokenExpired(user.access_token)) {
-            authstore.refresh()
+            authstore.refresh(user.refresh_token)
         }
         return { Authorization: `Bearer ${user.access_token}` };
     } else {

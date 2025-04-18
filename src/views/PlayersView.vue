@@ -140,9 +140,9 @@
         </v-row>          
         <!-- No User Found -->
         <v-row v-else justify="center">
-          <v-cols cols="auto">
+          <v-col cols="auto">
             <p>No users found.</p>
-          </v-cols>
+          </v-col>
         </v-row>
       </div>
       <!-- Add New Player Modal -->
