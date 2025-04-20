@@ -165,23 +165,24 @@
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
-                            v-model="newSeries_Player_2"
-                            item-value="name"
+                            v-model="newSeries_Player_2"                            
+                            v-model:expanded="rowsExpanded"
                             :headers="tableHeader"
                             :items="team2.player_by_season[match.season_id]"
                             select-strategy="single"
+                            density="compact"
                             show-select
                             fixed-header
                             show-expand
-                            return-object>
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
+                            multi-sort
+                            return-object
+                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
                               <v-btn
-                                :text="isExpanded(internalItem) ? '-' : '+'"
+                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
                                 class="text-none"
-                                color="medium-emphasis"
-                                size="small"
-                                variant="text"
-                                @click="toggleExpand(internalItem)"
+                                size="x-small"
+                                variant="plain"
                               ></v-btn>
                             </template>
                             <template v-slot:expanded-row="{ columns, item }">
@@ -309,7 +310,7 @@
                       </v-col>
                     </v-row>
                     <v-row class="justify-space-between" dense>
-                      <v-col cols="5">
+                      <v-col cols="6">
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
@@ -388,25 +389,27 @@
                         </v-card>                    
                       </v-col>
                       <v-spacer cols="1"></v-spacer>
-                      <v-col cols="5">
+                      <v-col cols="6">
                         <v-card flat>
                           <v-data-table-virtual
                             height="250px"
                             v-model="proposePlayersTeam_2"
+                            v-model:expanded="rowsExpanded"
                             :headers="tableHeader"
                             :items="team2.player_by_season[match.season_id]"
+                            density="compact"
                             show-select
                             fixed-header
                             show-expand
-                            return-object>
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
+                            multi-sort
+                            return-object
+                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
                               <v-btn
-                                :text="isExpanded(internalItem) ? '-' : '+'"
+                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
                                 class="text-none"
-                                color="medium-emphasis"
-                                size="small"
-                                variant="text"
-                                @click="toggleExpand(internalItem)"
+                                size="x-small"
+                                variant="plain"
                               ></v-btn>
                             </template>
                             <template v-slot:expanded-row="{ columns, item }">
