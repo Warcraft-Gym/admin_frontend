@@ -1,195 +1,217 @@
 <template>
-    <div>
-      <h1>Seasons Information</h1>   
-      <!-- Seasons -->
-      <div id="seasonList">
-        <div>
-          <h1>Import Excel File</h1>
-          <label for="seasonName">Season Name:</label>
-          <input
-            type="text"
-            v-model="seasonName"
-            placeholder="Enter season name"
-          />
+  <div>
+    <h1>Seasons Information</h1>
+    <v-overlay v-model="isLoading" persistent absolute>
+        <v-progress-circular
+          indeterminate
+          size="64" 
+          width="8"
+          color="primary"
+        ></v-progress-circular>
+    </v-overlay>
 
-          <label for="seasonId">Season ID:</label>
-          <input
-            type="number"
-            v-model="seasonId"
-            placeholder="Enter season ID"
-          />
+    <!-- Import Excel File Section -->
+    <v-expansion-panels>
+      <v-expansion-panel>
+        <v-expansion-panel-title>
+          <v-icon left>mdi-file-upload</v-icon>
+          Import Excel File
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <v-form>
+            <v-row dense>
+              <!-- Season Name Input -->
+              <v-col cols="3">
+                <v-text-field
+                  v-model="seasonName"
+                  label="Season Name"
+                  placeholder="Enter season name"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="1">
+                <v-divider>OR</v-divider>
+              </v-col>
+              <!-- Season ID Input -->
+              <v-col cols="2">
+                <v-text-field
+                  v-model="seasonId"
+                  label="Season ID"
+                  type="number"
+                  placeholder="Enter season ID"
+                ></v-text-field>
+              </v-col>
 
-          <input type="file" @change="handleFileUpload" />
-          <button @click="uploadFile">Upload File</button>
-          <p v-if="uploadMessage">{{ uploadMessage }}</p>
-        </div>
+              <!-- File Selector -->
+              <v-col cols="6">
+                <v-file-input
+                  v-model="file"
+                  label="Upload Excel File"
+                  accept=".xlsx"
+                ></v-file-input>
+              </v-col>
+            </v-row>
+            <v-btn
+              :disabled="!isFileFormValid || isLoading.value"
+              @click="uploadFile"
+              color="primary"
+              class="mt-3"
+            >
+              Upload File
+            </v-btn>
 
-          <!-- Error Message -->
-          <v-row justify="center" v-if="errorMessage" class="error-message">
-            <v-col cols="auto">
-              <p>{{ errorMessage }}</p>
-            </v-col>
-          </v-row>  
-          <!-- Table -->
-          <v-row v-else-if="seasons.length > 0">
-            <v-col cols="12">
-              <v-data-table
-                :headers="tableHeader"
-                :loading="isLoading"
-                :items="seasons"
-                fixed-header
-                hover>
-                <template v-slot:loading>
-                  <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-                </template>
-                <template v-slot:top>
-                  <v-toolbar flat>
-                    <v-toolbar-title>
-                      <v-icon icon="mdi-account"></v-icon>
-                      Seasons list
-                    </v-toolbar-title>                    
-                    <v-btn 
-                      @click.stop="addNewSeason()"
-                      class="toolbar-btn"
-                      variant="tonal"
-                      prepend-icon="mdi-plus"
-                    >Add New Season</v-btn>
-                  </v-toolbar>
-                </template>
-                <template v-slot:item="{ item }">
-                  <tr class="text-no-wrap" @click="$router.push(`/seasons/${item.id}`)">
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.number_weeks }}</td>
-                    <td>{{ item.pick_ban }}</td>
-                    <td>{{ item.series_per_week }}</td> 
-                    <td>
-                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editSeason(item)"></v-btn>
-                      <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="removeSeason(item.id)"></v-btn>               
-                    </td>
-                  </tr>
-                </template>
-              </v-data-table>
-            </v-col>
-          </v-row>          
-          <!-- No Seasons Found -->
-          <v-row v-else justify="center">
-            <v-col cols="auto">
-              <p>No seasons found.</p>
-            </v-col>
-          </v-row>
-        </div>
+            <v-alert v-if="uploadMessage" type="success" class="mt-2">
+              {{ uploadMessage }}
+            </v-alert>
+          </v-form>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+
+
+
+    <!-- Error Message -->
+    <v-alert v-if="errorMessage" type="error" class="mt-4">
+      {{ errorMessage }}
+    </v-alert>
+
+    <!-- Seasons Table -->
+    <section id="seasons-table" v-else-if="seasons.length > 0">
+      <v-data-table
+        :headers="tableHeader"
+        :items="seasons"
+        fixed-header
+        hover
+      >
+        <template v-slot:loading>
+          <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+        </template>
+        <template v-slot:top>
+          <v-toolbar flat>
+            <v-toolbar-title>
+              <v-icon icon="mdi-account"></v-icon>
+              Seasons List
+            </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn
+              @click.stop="addNewSeason"
+              color="primary"
+              prepend-icon="mdi-plus"
+            >
+              Add New Season
+            </v-btn>
+          </v-toolbar>
+        </template>
+        <template v-slot:item="{ item }">
+          <tr @click="$router.push(`/seasons/${item.id}`)">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.number_weeks }}</td>
+            <td>{{ item.pick_ban }}</td>
+            <td>{{ item.series_per_week }}</td>
+            <td>
+              <v-btn
+                icon
+                @click.stop="editSeason(item)"
+                color="blue"
+              >
+                <v-icon>mdi-account-edit</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                @click.stop="removeSeason(item.id)"
+                color="red"
+              >
+                <v-icon>mdi-trash-can</v-icon>
+              </v-btn>
+            </td>
+          </tr>
+        </template>
+      </v-data-table>
+    </section>
+
+    <!-- No Seasons Found -->
+    <v-alert v-else type="info" class="mt-4">
+      No seasons found.
+    </v-alert>
 
     <!-- Add New Season Modal -->
-      <v-dialog id="NewPlayerModal"
-        v-if="newSeason"
-        v-model="addNewDialogOpen"
-        max-width="65vw">
-        <v-card>
-          <template v-slot:title>
-            <span class="modal-title">
-              Add New Season
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row dense:true>
-              <v-col cols="3">
+    <v-dialog v-model="addNewDialogOpen" max-width="65vw">
+      <v-card>
+        <v-card-title>Add New Season</v-card-title>
+        <v-card-text>
+          <v-form>
+            <v-row dense>
+              <v-col cols="6">
                 <v-text-field
-                  v-model="newSeason.name" 
-                  label="Season name">
-                </v-text-field>
+                  v-model="newSeason.name"
+                  label="Season Name"
+                ></v-text-field>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="6">
                 <v-text-field
-                  v-model="newSeason.number_weeks" 
-                  label="Number of Weeks">
-                </v-text-field>
+                  v-model="newSeason.number_weeks"
+                  label="Number of Weeks"
+                ></v-text-field>
               </v-col>
-            </v-row>
-            <v-row dense:true>
-              <v-col cols="3">
+              <v-col cols="6">
                 <v-text-field
-                  v-model="newSeason.pick_ban" 
-                  label="Pick Ban Order:">
-                </v-text-field>
+                  v-model="newSeason.pick_ban"
+                  label="Pick Ban Order"
+                ></v-text-field>
               </v-col>
             </v-row>
-          </template>       
-              
-          <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-pencil"
-              @click="createNewSeason"
-              color="light-green"
-              variant="tonal">
-              Save
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelAddNewSeason"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
-        </v-card>
-      </v-dialog>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="createNewSeason" color="green" prepend-icon="mdi-check">
+            Save
+          </v-btn>
+          <v-btn @click="cancelAddNewSeason" color="red" prepend-icon="mdi-close">
+            Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
-      
-      <v-dialog id="EditSeasonModal"
-        v-if="selectedSeason"
-        v-model="editDialogOpen"
-        max-width="65vw">
-        <v-card>
-          <template v-slot:title>
-            <span class="modal-title">
-              Edit Season: {{ selectedSeason.name }}
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row dense:true>
-              <v-col cols="3">
+    <!-- Edit Season Modal -->
+    <v-dialog v-model="editDialogOpen" max-width="65vw">
+      <v-card>
+        <v-card-title>Edit Season: {{ selectedSeason.name }}</v-card-title>
+        <v-card-text>
+          <v-form>
+            <v-row dense>
+              <v-col cols="6">
                 <v-text-field
-                  v-model="selectedSeason.name" 
-                  label="Season name">
-                </v-text-field>
+                  v-model="selectedSeason.name"
+                  label="Season Name"
+                ></v-text-field>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="6">
                 <v-text-field
-                  v-model="selectedSeason.number_weeks" 
-                  label="Number of Weeks">
-                </v-text-field>
+                  v-model="selectedSeason.number_weeks"
+                  label="Number of Weeks"
+                ></v-text-field>
               </v-col>
-            </v-row>
-            <v-row dense:true>
-              <v-col cols="3">
+              <v-col cols="6">
                 <v-text-field
-                  v-model="selectedSeason.pick_ban" 
-                  label="Pick Ban Order:">
-                </v-text-field>
+                  v-model="selectedSeason.pick_ban"
+                  label="Pick Ban Order"
+                ></v-text-field>
               </v-col>
             </v-row>
-          </template>       
-              
-          <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-pencil"
-              @click="updateSeason"
-              color="light-green"
-              variant="tonal">
-              Save
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelEdit"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
-        </v-card>
-      </v-dialog>
-    </div>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="updateSeason" color="green" prepend-icon="mdi-check">
+            Save
+          </v-btn>
+          <v-btn @click="cancelEdit" color="red" prepend-icon="mdi-close">
+            Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 <script>
 import '@/assets/base.css';
@@ -200,11 +222,12 @@ import { computed, onMounted, ref } from 'vue';
 const selectedSeason = ref(null);
 const editDialogOpen = ref(false);
 const isLoading  = ref(false); // State for selected season
+const isFileFormValid = computed(() => file.value != null && (seasonName.value!=null && seasonName.value.trim() !== "" || seasonId.value !== null));
 const errorMessage = ref(null);
 const newSeason = ref(null);
 const addNewDialogOpen = ref(false);
   
-let file = null
+const file = ref(null)
 const uploadMessage = ref(null)
 const seasonId = ref(null)
 const seasonName = ref(null)
@@ -304,45 +327,48 @@ export default {
           addNewDialogOpen.value = false;
         };
         
-      const handleFileUpload = (event)=> {
-        file = event.target.files[0];
-      };
-
-      const uploadFile = async () => {
-        console.log("Uploading file")
-        if (!file) {
-          uploadMessage.value = "Please select a file before uploading!";
+        const uploadFile = async () => {
+        if (!isFileFormValid.value) {
+          uploadMessage.value = "Please select a file and provide a Season Name or ID before uploading!";
           return;
         }
         try {
-          const success = seasonStore.uploadSeasonFile(seasonId.value, seasonName.value, file)
+          isLoading.value = true
+          uploadMessage.value = null
+          const success = await seasonStore.uploadSeasonFile(seasonId.value, seasonName.value, file.value)
           // Include season data in the request
           if (success) {
             uploadMessage.value = "File uploaded successfully!";
           } else {
             uploadMessage.value = `Upload failed!.`;
           }
+          await fetchSeasons(); 
         } catch (error) {
           console.error("Error uploading file:", error);
           uploadMessage.value = "An error occurred during file upload.";
+        } finally {
+          isLoading.value = false;
+          seasonId.value = null;
+          seasonName.value = null;
+          file.value = null;
         }
       }
 
         return {
-            isLoading: computed(() => seasonStore.isLoading),
+            isLoading,
             seasons: computed(() => seasonStore.seasons),
             
             //table
             tableHeader,
             seasonName,
             seasonId,
-            uploadMessage: "",
+            uploadMessage,
             uploadFile,
-            handleFileUpload,
-
+            isFileFormValid,
 
 
             selectedSeason,
+            file,
             editSeason,
             updateSeason,
             editDialogOpen,
@@ -359,58 +385,3 @@ export default {
     },
 };
 </script>
-
-<style>
-
-/* Table */
-.table-action {
-  margin-right: 15px;
-}
-
-/* Toolbar */
-.toolbar-btn {
-  margin-right : 15px !important;
-}
-
-/* pannel */
-.pannel-title {
-  margin: 0;
-}
-
-/* Modal styling */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-content div {
-  margin-bottom: 10px;
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-}
-
-.modal.modal-active {
-  display: block; /* Visible state */
-}
-
-</style>

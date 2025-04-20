@@ -9,18 +9,12 @@ export const useSeasonStore = defineStore({
     state: () => ({
         // initialize state from local storage to enable user to stay logged in
         seasons: [], // Store user data
-        isLoading: false, // Track loading state
         current_season: {}
     }),
     actions: {
         async fetchSeasons() {
-            try{
-                this.isLoading = true; // Set loading to true
-                const resp = await fetchWrapper.get(`${backendUrl}/seasons`);
-                this.seasons =  resp
-            } finally {
-                this.isLoading = false; // Set loading to false once complete
-            }
+            const resp = await fetchWrapper.get(`${backendUrl}/seasons`);
+            this.seasons =  resp
         },
         async fetchSeason(season_id){
             this.current_season = await fetchWrapper.get(`${backendUrl}/seasons/${season_id}`);

@@ -12,7 +12,7 @@ export default defineConfig({
         strictPort: true, // Ensures the port is available and does not auto-select another
         proxy: {
             '/api': {
-              target: 'http://host.docker.internal:5002',
+              target: 'http://localhost:5002',
               changeOrigin: true,
               secure: false,      
               rewrite: path => path.replace(/^\/api/, ''),

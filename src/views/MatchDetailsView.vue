@@ -8,8 +8,8 @@
       <v-container>
         <v-row class="justify-center">
           <v-col cols="auto text-center">
-            <h1>Match #?</h1>
-            <p>Week #?</p>
+            <h1>Match</h1>
+            <p>Week {{ match.playday }}</p>
             <p><v-icon icon="mdi-calendar-week"></v-icon>{{ match.date_frame }}</p>
           </v-col>
         </v-row>
@@ -114,7 +114,8 @@
                                     <v-table border density="compact" class="pb-2">
                                       <tbody>
                                         <tr>
-                                          <th class="text-left"><RaceIcon :raceIdentifier="item.race" /></th>
+                                          <th class="text-left"></th>
+                                          <th class="text-right">MMR</th>
                                           <th class="text-right">Wins</th>
                                           <th class="text-right">Losses</th>
                                           <th class="text-right">Total</th>
@@ -124,17 +125,19 @@
                                       <tbody>
                                         <tr>
                                           <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                          <td class="text-left text-overline">{{ item.mmr }}</td>
                                           <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
                                           <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
                                           <td class="text-right">{{ item.gnl_stats[0].games }}</td>
                                           <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
                                         </tr>
-                                        <tr v-if="!isObjectEmpty( item.w3c_stats.find( ({ race }) => race === item.race ) )">
-                                          <td class="text-left text-overline">W3C</td>
-                                          <td class="text-right text-green">{{ item.w3c_stats.find( ({ race }) => race === item.race ).wins }}</td>
-                                          <td class="text-right text-red">{{ item.w3c_stats.find( ({ race }) => race === item.race ).losses }}</td>
-                                          <td class="text-right">{{ item.w3c_stats.find( ({ race }) => race === item.race ).games }}</td>
-                                          <td class="text-right">{{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate * 100 )  + '%' }}</td>
+                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
+                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                                          <td class="text-right text-green">{{ stat.wins }}</td>
+                                          <td class="text-right text-red">{{ stat.losses }}</td>
+                                          <td class="text-right">{{ stat.games }}</td>
+                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0  + '%' }}</td>
                                         </tr>
                                       </tbody>
                                     </v-table>
@@ -150,6 +153,7 @@
                             <!-- Table content -->
                             <template 
                               v-slot:item.name="{ item }">
+                              <RaceIcon :raceIdentifier="item.race" />
                               {{ item.name }}
                               <FlagIcon :countryIdentifier="item.country" />
                             </template>
@@ -181,21 +185,48 @@
                               ></v-btn>
                             </template>
                             <template v-slot:expanded-row="{ columns, item }">
-                              <tr>
+                              <tr v-if="isArray( item.gnl_stats )">
                                 <td :colspan="columns.length" class="py-2">
-                                  <ul>
-                                    <li>WR GNL: ??</li>
-                                    <li 
-                                      v-if="item.w3c_stats.find( ({ race }) => race === item.race )">
-                                      W3C:
-                                      <ul>
-                                        <li>MMR: {{ item.w3c_stats.find( ({ race }) => race === item.race ).mmr }}</li>
-                                        <li>WR: {{ Math.round( item.w3c_stats.find( ({ race }) => race === item.race ).winrate  * 100 ) + '%' }}</li>
-                                      </ul>
-                                    </li>
-                                  </ul>
+                                  <!-- GNL Stats -->
+                                  <v-sheet>
+                                    <v-table border density="compact" class="pb-2">
+                                      <tbody>
+                                        <tr>
+                                          <th class="text-left"></th>
+                                          <th class="text-right">MMR</th>
+                                          <th class="text-right">Wins</th>
+                                          <th class="text-right">Losses</th>
+                                          <th class="text-right">Total</th>
+                                          <th class="text-right">Winrate</th>
+                                        </tr>
+                                      </tbody>
+                                      <tbody>
+                                        <tr>
+                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                          <td class="text-left text-overline">{{ item.mmr }}</td>
+                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
+                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
+                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
+                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
+                                        </tr>
+                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
+                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                                          <td class="text-right text-green">{{ stat.wins }}</td>
+                                          <td class="text-right text-red">{{ stat.losses }}</td>
+                                          <td class="text-right">{{ stat.games }}</td>
+                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
+                                        </tr>
+                                      </tbody>
+                                    </v-table>
+                                  </v-sheet>
                                 </td>
-                              </tr>                           
+                              </tr>    
+                              <tr v-else>
+                                <td :colspan="columns.length" class="py-2">
+                                  <td>No stats found.</td>
+                                </td>                                
+                              </tr>                     
                             </template>
                             <template 
                               v-slot:item.name="{ item }">
@@ -229,76 +260,328 @@
               </v-card>
             </v-dialog>
           </v-col>
-        </v-row>
-
-        <!-- Series List -->
-        <v-row>
-          <v-col 
-            v-for="item in series"
-            cols="6"
-          >
-            <v-item>
-              <v-hover v-slot="{ isHovering, props }">
-                <v-card v-bind="props">                
+          <!-- Add Propose Series Modal -->
+          <v-col cols="auto">
+            <v-btn
+              @click="showProposeSeriesModal = true"
+              class="toolbar-btn"
+              variant="tonal"
+              prepend-icon="mdi-plus">
+              Propose series
+            </v-btn>
+            <v-dialog
+              id="newSeriesModal"
+              v-if="showProposeSeriesModal"
+              v-model="showProposeSeriesModal"
+              max-width="95vw"
+              max-height="95vh">
+              <v-card>
+                <template v-slot:title>
+                  <span class="modal-title">
+                    <v-icon icon="mdi-account-plus"></v-icon>
+                    Add New Series
+                  </span>
+                </template>
+                <template v-slot:text>
                   <v-container>
-                    <v-row class="justify-space-between">
-                      <v-col cols="auto"> 
-                        <v-icon icon="mdi-calendar-today"></v-icon>                  
-                        <span>{{ formateDate( item.date_time ).fulldate }}</span>
-                      </v-col>
-                      <v-col v-if="item.caster !== 'string' && item.caster !== null" cols="auto">
-                        <v-icon icon="mdi-twitch"></v-icon>
-                        <span>{{ item.caster }}</span>
-                      </v-col>
+                    <!-- Header modal -->
+                    <v-row class="align-center justify-center">
+                      <v-col cols="5 text-center">
+                        <p class="text-h5">{{ team1.name }}</p>
+                      </v-col>        
+                      <v-col cols="2 text-center">
+                        <span class="text-h4">
+                          <v-icon icon="mdi-sword-cross"></v-icon>
+                        </span>
+                        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
+                      </v-col>        
+                      <v-col cols="5 text-center">
+                        <p class="text-h5">{{ team2.name }}</p>
+                        </v-col>
                     </v-row>
                     <v-row class="align-center justify-center">
                       <v-col cols="5 text-center">
-                        <h3 class="text-h6">{{ item.player1.name + ' ' }}<RaceIcon :raceIdentifier="item.player1.race" /></h3>
-                        <p>{{ item.player1.mmr }}</p>
-                        <p class="text-h3">{{ item.player1_score }}</p>
-                      </v-col>        
-                      <v-col cols="2 text-center">
-                        <span class="text-h5">
-                          <v-icon v-if="item.player1_score > item.player2_score" icon="mdi-arrow-left-bold"></v-icon>
-                          <v-icon v-else-if="item.player1_score < item.player2_score" icon="mdi-arrow-right-bold"></v-icon>
-                          <v-icon v-else icon="mdi-sword-cross"></v-icon>
-                        </span>
-                      </v-col>        
-                      <v-col cols="5 text-center">
-                        <h3 class="text-h6">{{ item.player2.name + ' ' }}<RaceIcon :raceIdentifier="item.player2.race" /></h3>
-                        <p>{{ item.player2.mmr }}</p>
-                        <p class="text-h3">{{ item.player2_score }}</p>
+                        <v-text-field
+                          v-model="proposeSeriesMMRDiff"
+                          label="MMR Differance"
+                          placeholder="Enter season name"
+                        ></v-text-field>
                       </v-col>
                     </v-row>
-                  </v-container>                  
-                  <v-overlay
-                    :model-value="!!isHovering"
-                    class="align-center justify-center"
-                    contained
-                    location="bottom center" 
-                    origin="bottom center"
-                  >  
-                    <v-btn 
-                      class="table-action" 
-                      density="compact"
-                      icon="mdi-file-edit"                         
-                    ></v-btn>                  
-                    <v-btn 
-                      class="table-action" 
-                      density="compact" 
-                      color="red" 
-                      icon="mdi-trash-can" 
-                      @click="removeSeries(item.id)"
-                    ></v-btn>
-                  </v-overlay>
-                </v-card>
-              </v-hover>
-            </v-item>
+                    <v-row class="justify-space-between" dense>
+                      <v-col cols="5">
+                        <v-card flat>
+                          <v-data-table-virtual
+                            height="250px"
+                            v-model="proposePlayersTeam_1"
+                            v-model:expanded="rowsExpanded"
+                            :headers="tableHeader"
+                            :items="team1.player_by_season[match.season_id]"
+                            density="compact"
+                            show-select
+                            fixed-header
+                            show-expand
+                            multi-sort
+                            return-object
+                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
+                              <v-btn
+                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
+                                class="text-none"
+                                size="x-small"
+                                variant="plain"
+                              ></v-btn>
+                            </template>
+                            <!-- Expanded pannel -->
+                            <template v-slot:expanded-row="{ columns, item }">
+                              <tr v-if="isArray( item.gnl_stats )">
+                                <td :colspan="columns.length" class="py-2">
+                                  <!-- GNL Stats -->
+                                  <v-sheet>
+                                    <v-table border density="compact" class="pb-2">
+                                      <tbody>
+                                        <tr>
+                                          <th class="text-left"></th>
+                                          <th class="text-right">MMR</th>
+                                          <th class="text-right">Wins</th>
+                                          <th class="text-right">Losses</th>
+                                          <th class="text-right">Total</th>
+                                          <th class="text-right">Winrate</th>
+                                        </tr>
+                                      </tbody>
+                                      <tbody>
+                                        <tr>
+                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                          <td class="text-left text-overline">{{ item.mmr }}</td>
+                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
+                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
+                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
+                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
+                                        </tr>
+                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
+                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                                          <td class="text-right text-green">{{ stat.wins }}</td>
+                                          <td class="text-right text-red">{{ stat.losses }}</td>
+                                          <td class="text-right">{{ stat.games }}</td>
+                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0  + '%' }}</td>
+                                        </tr>
+                                      </tbody>
+                                    </v-table>
+                                  </v-sheet>
+                                </td>
+                              </tr>    
+                              <tr v-else>
+                                <td :colspan="columns.length" class="py-2">
+                                  <td>No stats found.</td>
+                                </td>                                
+                              </tr>                       
+                            </template>
+                            <!-- Table content -->
+                            <template 
+                              v-slot:item.name="{ item }">
+                              <RaceIcon :raceIdentifier="item.race" />
+                              {{ item.name }}({{ item.discordTag }})
+                              <FlagIcon :countryIdentifier="item.country" />
+                            </template>
+                          </v-data-table-virtual>
+                        </v-card>                    
+                      </v-col>
+                      <v-spacer cols="1"></v-spacer>
+                      <v-col cols="5">
+                        <v-card flat>
+                          <v-data-table-virtual
+                            height="250px"
+                            v-model="proposePlayersTeam_2"
+                            :headers="tableHeader"
+                            :items="team2.player_by_season[match.season_id]"
+                            show-select
+                            fixed-header
+                            show-expand
+                            return-object>
+                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded, toggleExpand }">
+                              <v-btn
+                                :text="isExpanded(internalItem) ? '-' : '+'"
+                                class="text-none"
+                                color="medium-emphasis"
+                                size="small"
+                                variant="text"
+                                @click="toggleExpand(internalItem)"
+                              ></v-btn>
+                            </template>
+                            <template v-slot:expanded-row="{ columns, item }">
+                              <tr v-if="isArray( item.gnl_stats )">
+                                <td :colspan="columns.length" class="py-2">
+                                  <!-- GNL Stats -->
+                                  <v-sheet>
+                                    <v-table border density="compact" class="pb-2">
+                                      <tbody>
+                                        <tr>
+                                          <th class="text-left"></th>
+                                          <th class="text-right">MMR</th>
+                                          <th class="text-right">Wins</th>
+                                          <th class="text-right">Losses</th>
+                                          <th class="text-right">Total</th>
+                                          <th class="text-right">Winrate</th>
+                                        </tr>
+                                      </tbody>
+                                      <tbody>
+                                        <tr>
+                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
+                                          <td class="text-left text-overline">{{ item.mmr }}</td>
+                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
+                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
+                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
+                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
+                                        </tr>
+                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
+                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                                          <td class="text-right text-green">{{ stat.wins }}</td>
+                                          <td class="text-right text-red">{{ stat.losses }}</td>
+                                          <td class="text-right">{{ stat.games }}</td>
+                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
+                                        </tr>
+                                      </tbody>
+                                    </v-table>
+                                  </v-sheet>
+                                </td>
+                              </tr>    
+                              <tr v-else>
+                                <td :colspan="columns.length" class="py-2">
+                                  <td>No stats found.</td>
+                                </td>                                
+                              </tr>                     
+                            </template>
+                            <template 
+                              v-slot:item.name="{ item }">
+                              <RaceIcon :raceIdentifier="item.race" />
+                              {{ item.name }}({{ item.discordTag }})
+                              <FlagIcon :countryIdentifier="item.country" />
+                            </template>
+                          </v-data-table-virtual>
+                        </v-card> 
+                      </v-col>
+                    </v-row> 
+                  </v-container>    
+                </template>       
+                    
+                <v-card-actions>
+                  <v-btn 
+                    prepend-icon="mdi-plus"
+                    @click="proposeSeries"
+                    color="light-green"
+                    variant="tonal">
+                    Propose Series
+                  </v-btn>
+                  <v-btn 
+                    prepend-icon="mdi-close" 
+                    @click="cancelProposeSeries"
+                    color="orange"
+                    variant="tonal">
+                    Cancel
+                  </v-btn>
+                </v-card-actions>        
+              </v-card>
+            </v-dialog>
+          </v-col>
+        </v-row>
+
+        <!-- Series List -->
+        
+        <v-row>
+          
+          <v-col >
+          <section id="series-table" v-if="series.length > 0">
+            <v-data-table
+              :headers="seriesTableHeader"
+              :items="series"
+              fixed-header
+              hover
+            >
+              <template v-slot:loading>
+                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+              </template>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-toolbar-title>
+                    <v-icon icon="mdi-account"></v-icon>
+                    Series List
+                  </v-toolbar-title>
+                  <v-spacer></v-spacer>
+                </v-toolbar>
+              </template>
+              <template v-slot:item="{ item }">
+                <tr>
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.date_time }}</td>
+                  <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
+                  <td>{{ item.player1.mmr }}</td>
+                  <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
+                  <td>{{ item.player2.mmr }}</td>
+                  <td>
+                    <v-btn
+                      icon
+                      @click.stop=""
+                      color="blue"
+                    >
+                      <v-icon>mdi-account-edit</v-icon>
+                    </v-btn>
+                    <v-btn
+                      icon
+                      @click.stop="removeSeries(item.id)"
+                      color="red"
+                    >
+                      <v-icon>mdi-trash-can</v-icon>
+                    </v-btn>
+                  </td>
+                </tr>
+              </template>
+            </v-data-table>
+        </section>  
           </v-col>
         </v-row>
       </v-container>
     </v-item-group>
   </div>
+
+  <v-dialog v-model="showPlayerDetails" max-width="65vw">
+      <v-card>
+        <v-card-title>Player Details</v-card-title>
+        <v-card-text>
+          <v-table border density="compact" class="pb-2">
+            <tbody>
+              <tr>
+                <th class="text-left"></th>
+                <th class="text-right">MMR</th>
+                <th class="text-right">Wins</th>
+                <th class="text-right">Losses</th>
+                <th class="text-right">Total</th>
+                <th class="text-right">Winrate</th>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <td class="text-left text-overline">{{ playerDetails.gnl_stats[0].season.name }}</td>
+                <td class="text-left text-overline">{{ playerDetails.mmr }}</td>
+                <td class="text-right text-green">{{ playerDetails.gnl_stats[0].wins }}</td>
+                <td class="text-right text-red">{{ playerDetails.gnl_stats[0].losses }}</td>
+                <td class="text-right">{{ playerDetails.gnl_stats[0].games }}</td>
+                <td class="text-right">{{ Math.round( playerDetails.gnl_stats[0].wins / playerDetails.gnl_stats[0].games * 100 ) + '%' }}</td>
+              </tr>
+              <tr v-for="stat in playerDetails.w3c_stats" v-if="!isObjectEmpty( playerDetails.w3c_stats )">
+                <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                <td class="text-right text-green">{{ stat.wins }}</td>
+                <td class="text-right text-red">{{ stat.losses }}</td>
+                <td class="text-right">{{ stat.games }}</td>
+                <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
   <!-- Team Details-->
   <div id="teamDetails">
@@ -331,10 +614,20 @@
 <script>
 import bannerImg from '@/assets/media/match-banner.jpg'
 import { useRouter } from 'vue-router';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, unref } from 'vue';
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
 import FlagIcon from '../components/FlagIcon.vue';
+
+const seriesTableHeader = [
+  
+  { title: 'ID', value: 'id', sortable: true },   
+  { title: 'Date/Time', value: 'date_time', sortable: true }, 
+  { title: 'Player 1', value: 'player1.name', sortable: true },
+  { title: 'MMR', value: 'player1.mmr', sortable: true },
+  { title: 'Player 2', value: 'player2.name', sortable: true },
+  { title: 'MMR', value: 'player2.mmr', sortable: true },    
+]
 
 const tableHeader = [
   { title: 'Name', value: 'name', sortable: true },     
@@ -345,6 +638,7 @@ const tableHeader = [
 const rowsExpanded = ref([])
 
 const showNewSeriesModal = ref(false)
+const showProposeSeriesModal = ref(false)
 const search = ref('')
 
 export default {
@@ -361,6 +655,11 @@ export default {
     const date = useDate();
     const newSeries_Player_1 = ref(null)
     const newSeries_Player_2 = ref(null)
+    const proposePlayersTeam_1 = ref(null)
+    const proposePlayersTeam_2 = ref(null)
+    const proposeSeriesMMRDiff = ref(null)
+    const showPlayerDetails = ref(false)
+    const playerDetails = ref(null)
 
     const formateDate = ( dateToFormat ) => {
       const formatedDate = {
@@ -420,6 +719,11 @@ export default {
       }
     };
 
+    const showStats = async(player) => {
+      showPlayerDetails.value = true;
+      playerDetails.value = player;
+    }
+
     const fetchMatchSeries = async () => {
       isLoading.value = true;
       try {
@@ -429,6 +733,76 @@ export default {
       } finally {
         isLoading.value = false;
       }
+    };
+
+    const proposeSeries = async () => {
+      isLoading.value = true;
+      try {
+        let t1_player = proposePlayersTeam_1.value;
+        let t2_player = proposePlayersTeam_2.value;
+        let existing_series_count = 0;
+          
+        for(let i = 0; i< t1_player.length; i++) {
+          let p1 = t1_player[i];
+          let p1_mmr = 0;
+          for(let j = 0; j < p1.w3c_stats.length; j++){
+            let w3cStats = p1.w3c_stats[j];
+            if(w3cStats.race == p1.race){
+              p1_mmr = w3cStats.mmr;
+              break;
+            }
+          }
+          for(let k=0;k< t2_player.length; k++) {
+            let p2_mmr = 0;
+            let p2 = t2_player[k];
+            if(seriesStore.series!=null) {
+              for (let n = 0; n < seriesStore.series.length; n++){
+                let s = seriesStore.series[n];
+                if(p1.id == s.player1_id && p2.id == s.player2_id){
+                  console.log("Skip Series already exists!");
+                  continue;
+                }
+              }
+            }
+
+            for(let z = 0; z < p2.w3c_stats.length; z++){
+              let w3cStats = p2.w3c_stats[z];
+              if(w3cStats.race == p2.race){
+                p2_mmr = w3cStats.mmr
+                break;
+              }
+            }
+            console.log(p1_mmr,p2_mmr,p1_mmr-p2_mmr)
+            let mmr_diff = p1_mmr - p2_mmr;
+            if (mmr_diff<0){
+              mmr_diff*=-1
+            }
+            console.log(mmr_diff, proposeSeriesMMRDiff.value,mmr_diff <= proposeSeriesMMRDiff.value)
+            if(mmr_diff <= proposeSeriesMMRDiff.value){
+              console.log("create Series for", p1.name, p2.name)
+              const newSeries = {}
+      
+              newSeries.match_id = matchStore.match.id
+              newSeries.season_id = matchStore.match.season_id
+              newSeries.host_player_id = p1.id
+              newSeries.player1_score = 0
+              newSeries.player2_score = 0
+              newSeries.player1_id = p1.id
+              newSeries.player2_id = p2.id
+              await seriesStore.createSeries(newSeries)
+            }
+          }
+        }
+        await fetchMatchSeries();
+      } catch (error) {
+        console.error('Failed to fetch match details:', error);
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    const cancelProposeSeries = () => {
+      showProposeSeriesModal.value = false;
     };
 
     const createSeries = async () => {
@@ -474,9 +848,20 @@ export default {
       createSeries,
       removeSeries,
       syncW3CTeams,
+      seriesTableHeader,
+      showPlayerDetails,
+      playerDetails,
+      showStats,
 
       newSeries_Player_1,
       newSeries_Player_2,
+
+      proposePlayersTeam_1,
+      proposePlayersTeam_2,
+      proposeSeries,
+      proposeSeriesMMRDiff,
+      showProposeSeriesModal,
+      cancelProposeSeries,
 
       bannerImg,
       date,

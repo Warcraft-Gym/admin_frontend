@@ -10,14 +10,15 @@ export const fetchWrapper = {
 
 function request(method) {
     return (url, body) => {
+        let requestMethod = method
         let fileUpload = false;
-        if (method == "FILE_UPLOAD") {
-            method = "POST"
+        if (requestMethod == "FILE_UPLOAD") {
+            requestMethod = "POST"
             fileUpload = true
         }
         const requestOptions = {
-            method,
-            headers: authHeader(method, url)
+            method: requestMethod,
+            headers: authHeader(requestMethod, url)
         };
         if (body) {
             if (fileUpload) {
