@@ -16,6 +16,8 @@ import 'vuetify/styles'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { createVuetify } from 'vuetify';
+import { VTimePicker } from 'vuetify/labs/VTimePicker'
+
 
 //Components
 import RaceIcon from '@/components/RaceIcon.vue'
@@ -34,7 +36,10 @@ const vuetify = new createVuetify ({
             mdi,
         },
     },
-    components,
+    components :{
+        ...components,
+        VTimePicker,
+    },
     directives
 });
 

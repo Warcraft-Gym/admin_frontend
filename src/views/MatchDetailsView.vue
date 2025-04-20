@@ -146,7 +146,7 @@
                               </tr>    
                               <tr v-else>
                                 <td :colspan="columns.length" class="py-2">
-                                  <td>No stats found.</td>
+                                  No stats found.
                                 </td>                                
                               </tr>                       
                             </template>
@@ -224,7 +224,7 @@
                               </tr>    
                               <tr v-else>
                                 <td :colspan="columns.length" class="py-2">
-                                  <td>No stats found.</td>
+                                  No stats found.
                                 </td>                                
                               </tr>                     
                             </template>
@@ -373,7 +373,7 @@
                               </tr>    
                               <tr v-else>
                                 <td :colspan="columns.length" class="py-2">
-                                  <td>No stats found.</td>
+                                  No stats found.
                                 </td>                                
                               </tr>                       
                             </template>
@@ -449,7 +449,7 @@
                               </tr>    
                               <tr v-else>
                                 <td :colspan="columns.length" class="py-2">
-                                  <td>No stats found.</td>
+                                  No stats found.
                                 </td>                                
                               </tr>                     
                             </template>
@@ -514,15 +514,32 @@
               <template v-slot:item="{ item }">
                 <tr>
                   <td>{{ item.id }}</td>
-                  <td>{{ item.date_time }}</td>
+                  <td>{{ item.caster }}</td>
+                  <td>
+                    <span v-if="item.date_time">
+                      {{ formateDate(item.date_time) }}
+                    </span>
+                  </td>
                   <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
                   <td>{{ item.player1.mmr }}</td>
+                  <td>{{ item.player1_score }}</td>
+                  <td>{{ item.player2_score }}</td>
                   <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
                   <td>{{ item.player2.mmr }}</td>
                   <td>
+                    <span v-if="item.host_player_id === item.player1.id">
+                      {{ item.player1.name }}
+                    </span>
+                    <span v-else-if="item.host_player_id === item.player2.id">
+                      {{ item.player2.name }}
+                    </span>
+                    <span v-else>
+                    </span>
+                  </td>
+                  <td>
                     <v-btn
                       icon
-                      @click.stop=""
+                      @click.stop="editSeries(item)"
                       color="blue"
                     >
                       <v-icon>mdi-account-edit</v-icon>
@@ -583,6 +600,75 @@
       </v-card>
     </v-dialog>
 
+    <!-- Edit Series Modal -->
+    <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistend>
+      <v-card>
+        <v-card-title>Edit Series</v-card-title>
+        <v-card-text>
+          <v-form>
+            <v-row dense>
+              <v-col cols="6">
+                    <v-date-picker
+                      v-model="selectedDate"
+                      label="Scheduled Date:"
+                    ></v-date-picker>
+              </v-col>
+              <v-col cols="6">
+                <v-time-picker
+                  v-model="selectedTime"
+                  label="Scheduled Time HH:mm"
+                  format="24hr"
+                >
+                </v-time-picker>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedSeries.caster"
+                  label="Caster:"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-number-input
+                  v-model="selectedSeries.player1_score"
+                  :label="`${selectedSeries.player1.name} Score`"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <v-number-input
+                  v-model="selectedSeries.player2_score"
+                  :label="`${selectedSeries.player2.name} Score`"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <v-select
+                  :items="hostPlayers"
+                  label="Choose a Host"
+                  v-model="selectedSeries.host_player_id"
+                  item-title="battleTag"
+                  item-value="id"
+                  outlined
+                ></v-select>
+              </v-col>
+              <v-col cols="6">
+                <v-checkbox
+                  v-model="selectedSeries.is_fantasy_match"
+                  label="Is Fantasy Match"
+                ></v-checkbox>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="updateSeries" color="green" prepend-icon="mdi-check">
+            Save
+          </v-btn>
+          <v-btn @click="cancelEditSeries" color="red" prepend-icon="mdi-close">
+            Cancel
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   <!-- Team Details-->
   <div id="teamDetails">
     <v-row class="justify-center">
@@ -614,19 +700,25 @@
 <script>
 import bannerImg from '@/assets/media/match-banner.jpg'
 import { useRouter } from 'vue-router';
-import { ref, onMounted, computed, unref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { DateTime } from "luxon";
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
 import FlagIcon from '../components/FlagIcon.vue';
 
 const seriesTableHeader = [
   
-  { title: 'ID', value: 'id', sortable: true },   
-  { title: 'Date/Time', value: 'date_time', sortable: true }, 
+  { title: 'ID', value: 'id', sortable: true },  
+  { title: 'Caster'},  
+  { title: 'Date/Time'}, 
   { title: 'Player 1', value: 'player1.name', sortable: true },
   { title: 'MMR', value: 'player1.mmr', sortable: true },
+  { title: 'P1 Score' },
+  { title: 'P2 Score' },
   { title: 'Player 2', value: 'player2.name', sortable: true },
-  { title: 'MMR', value: 'player2.mmr', sortable: true },    
+  { title: 'MMR', value: 'player2.mmr', sortable: true },
+  { title: 'Host' },
+  { title: 'Fantasy Match'},    
 ]
 
 const tableHeader = [
@@ -660,12 +752,22 @@ export default {
     const proposeSeriesMMRDiff = ref(null)
     const showPlayerDetails = ref(false)
     const playerDetails = ref(null)
+    const editSeriesDialogOpen = ref(false)
+    const selectedSeries = ref(null)
+    const hostPlayers = ref(null)
+    const selectedDate = ref(null);
+    const selectedTime = ref(null);
+
 
     const formateDate = ( dateToFormat ) => {
-      const formatedDate = {
-        fulldate: date.format( dateToFormat, 'normalDateWithWeekday' ),
-        hour: date.format( dateToFormat, 'fullTime' )
+      if (!dateToFormat) {
+        return dateToFormat;
       }
+      const formatedDate = DateTime.fromISO(
+        dateToFormat,{
+          zone: "America/New_York"
+        }
+      ).setZone("local").toLocaleString(DateTime.DATETIME_MED);
       return formatedDate
     }
 
@@ -735,13 +837,56 @@ export default {
       }
     };
 
+    const editSeries = async (series) => {
+      const copy_series =  { ...series };
+      selectedSeries.value = copy_series;
+      if (copy_series.date_time) {
+        const initialDateTime = DateTime.fromISO(
+          copy_series.date_time,{
+            zone: "America/New_York"
+          }
+        ).setZone("local");
+        selectedDate.value = initialDateTime.toJSDate(); // Date only
+        selectedTime.value = initialDateTime.toFormat("HH:mm"); // Time only
+      }
+
+      hostPlayers.value = [copy_series.player1, copy_series.player2];
+      editSeriesDialogOpen.value = true;
+    };
+    const cancelEditSeries = async () => {
+      editSeriesDialogOpen.value = false;
+    }
+
+    const updateSeries = async () => {
+      isLoading.value = true;
+      try{
+        // Combine selected date and time into a single ISO datetime string
+        const localDate = DateTime.fromJSDate(selectedDate.value).setZone("local");
+        const combinedDateTime = DateTime.fromISO(`${localDate.toISODate()}T${selectedTime.value}`,
+        { zone: "local" });
+        // Convert local time to Eastern Time (ET)
+        const etDateTime = combinedDateTime.setZone("America/New_York");
+        // Update series.date_time with the formatted ISO datetime in ET
+        selectedSeries.value.date_time = etDateTime.toISO();
+        await seriesStore.updateSeries(selectedSeries.value);
+        await fetchMatchSeries(); // Refresh match details after creation
+        cancelEditSeries();
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
     const proposeSeries = async () => {
       isLoading.value = true;
       try {
         let t1_player = proposePlayersTeam_1.value;
         let t2_player = proposePlayersTeam_2.value;
-        let existing_series_count = 0;
           
+        t1_player.sort((a, b) => b.mmr - a.mmr);
+        t2_player.sort((a, b) => b.mmr - a.mmr);
+
+
+
         for(let i = 0; i< t1_player.length; i++) {
           let p1 = t1_player[i];
           let p1_mmr = 0;
@@ -772,14 +917,11 @@ export default {
                 break;
               }
             }
-            console.log(p1_mmr,p2_mmr,p1_mmr-p2_mmr)
             let mmr_diff = p1_mmr - p2_mmr;
             if (mmr_diff<0){
               mmr_diff*=-1
             }
-            console.log(mmr_diff, proposeSeriesMMRDiff.value,mmr_diff <= proposeSeriesMMRDiff.value)
             if(mmr_diff <= proposeSeriesMMRDiff.value){
-              console.log("create Series for", p1.name, p2.name)
               const newSeries = {}
       
               newSeries.match_id = matchStore.match.id
@@ -855,6 +997,17 @@ export default {
 
       newSeries_Player_1,
       newSeries_Player_2,
+
+      editSeriesDialogOpen,
+      editSeries,
+      updateSeries,
+      cancelEditSeries,
+      selectedSeries,
+      hostPlayers,
+      selectedDate,
+      selectedTime,
+      
+
 
       proposePlayersTeam_1,
       proposePlayersTeam_2,
