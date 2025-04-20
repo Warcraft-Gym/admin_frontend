@@ -881,11 +881,6 @@ export default {
       try {
         let t1_player = proposePlayersTeam_1.value;
         let t2_player = proposePlayersTeam_2.value;
-          
-        t1_player.sort((a, b) => b.mmr - a.mmr);
-        t2_player.sort((a, b) => b.mmr - a.mmr);
-
-
 
         for(let i = 0; i< t1_player.length; i++) {
           let p1 = t1_player[i];
