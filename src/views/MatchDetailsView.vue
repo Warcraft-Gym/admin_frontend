@@ -1,11 +1,29 @@
 <template>
-
+    <v-overlay v-model="isLoading" persistent absolute>
+        <v-progress-circular
+          indeterminate
+          size="64" 
+          width="8"
+          color="primary"
+        ></v-progress-circular>
+    </v-overlay>
   <!-- Match Header -->
   <div id="matchHeader">
     <v-parallax class="banner-image" :src="bannerImg"></v-parallax>
     <div class="banner-overlay"></div>
     <div class="banner-content h-100">
       <v-container>
+        <v-row class="justify-space-between align-center">
+          <!-- New Button to Navigate Back to Season -->
+          <v-btn
+            outlined
+            color="primary"
+            @click="$router.push(`/seasons/${match.season_id}`)"
+          >
+            <v-icon left>mdi-arrow-left</v-icon> Back to Season
+          </v-btn>
+        </v-row>
+
         <v-row class="justify-center">
           <v-col cols="auto text-center">
             <h1>Match</h1>
@@ -261,239 +279,10 @@
               </v-card>
             </v-dialog>
           </v-col>
-          <!-- Add Propose Series Modal -->
-          <v-col cols="auto">
-            <v-btn
-              @click="showProposeSeriesModal = true"
-              class="toolbar-btn"
-              variant="tonal"
-              prepend-icon="mdi-plus">
-              Propose series
-            </v-btn>
-            <v-dialog
-              id="newSeriesModal"
-              v-if="showProposeSeriesModal"
-              v-model="showProposeSeriesModal"
-              max-width="95vw"
-              max-height="95vh">
-              <v-card>
-                <template v-slot:title>
-                  <span class="modal-title">
-                    <v-icon icon="mdi-account-plus"></v-icon>
-                    Add New Series
-                  </span>
-                </template>
-                <template v-slot:text>
-                  <v-container>
-                    <!-- Header modal -->
-                    <v-row class="align-center justify-center">
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team1.name }}</p>
-                      </v-col>        
-                      <v-col cols="2 text-center">
-                        <span class="text-h4">
-                          <v-icon icon="mdi-sword-cross"></v-icon>
-                        </span>
-                        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
-                      </v-col>        
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team2.name }}</p>
-                        </v-col>
-                    </v-row>
-                    <v-row class="align-center justify-center">
-                      <v-col cols="5 text-center">
-                        <v-text-field
-                          v-model="proposeSeriesMMRDiff"
-                          label="MMR Differance"
-                          placeholder="Enter season name"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                    <v-row class="justify-space-between" dense>
-                      <v-col cols="6">
-                        <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="proposePlayersTeam_1"
-                            v-model:expanded="rowsExpanded"
-                            :headers="tableHeader"
-                            :items="team1.player_by_season[match.season_id]"
-                            density="compact"
-                            show-select
-                            fixed-header
-                            show-expand
-                            multi-sort
-                            return-object
-                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
-                              <v-btn
-                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
-                                class="text-none"
-                                size="x-small"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                            <!-- Expanded pannel -->
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr v-if="isArray( item.gnl_stats )">
-                                <td :colspan="columns.length" class="py-2">
-                                  <!-- GNL Stats -->
-                                  <v-sheet>
-                                    <v-table border density="compact" class="pb-2">
-                                      <tbody>
-                                        <tr>
-                                          <th class="text-left"></th>
-                                          <th class="text-right">MMR</th>
-                                          <th class="text-right">Wins</th>
-                                          <th class="text-right">Losses</th>
-                                          <th class="text-right">Total</th>
-                                          <th class="text-right">Winrate</th>
-                                        </tr>
-                                      </tbody>
-                                      <tbody>
-                                        <tr>
-                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
-                                          <td class="text-left text-overline">{{ item.mmr }}</td>
-                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
-                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
-                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
-                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
-                                        </tr>
-                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
-                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                                          <td class="text-right text-green">{{ stat.wins }}</td>
-                                          <td class="text-right text-red">{{ stat.losses }}</td>
-                                          <td class="text-right">{{ stat.games }}</td>
-                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0  + '%' }}</td>
-                                        </tr>
-                                      </tbody>
-                                    </v-table>
-                                  </v-sheet>
-                                </td>
-                              </tr>    
-                              <tr v-else>
-                                <td :colspan="columns.length" class="py-2">
-                                  No stats found.
-                                </td>                                
-                              </tr>                       
-                            </template>
-                            <!-- Table content -->
-                            <template 
-                              v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
-                              {{ item.name }}({{ item.discordTag }})
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
-                        </v-card>                    
-                      </v-col>
-                      <v-spacer cols="1"></v-spacer>
-                      <v-col cols="6">
-                        <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="proposePlayersTeam_2"
-                            v-model:expanded="rowsExpanded"
-                            :headers="tableHeader"
-                            :items="team2.player_by_season[match.season_id]"
-                            density="compact"
-                            show-select
-                            fixed-header
-                            show-expand
-                            multi-sort
-                            return-object
-                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
-                              <v-btn
-                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
-                                class="text-none"
-                                size="x-small"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr v-if="isArray( item.gnl_stats )">
-                                <td :colspan="columns.length" class="py-2">
-                                  <!-- GNL Stats -->
-                                  <v-sheet>
-                                    <v-table border density="compact" class="pb-2">
-                                      <tbody>
-                                        <tr>
-                                          <th class="text-left"></th>
-                                          <th class="text-right">MMR</th>
-                                          <th class="text-right">Wins</th>
-                                          <th class="text-right">Losses</th>
-                                          <th class="text-right">Total</th>
-                                          <th class="text-right">Winrate</th>
-                                        </tr>
-                                      </tbody>
-                                      <tbody>
-                                        <tr>
-                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
-                                          <td class="text-left text-overline">{{ item.mmr }}</td>
-                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
-                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
-                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
-                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
-                                        </tr>
-                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
-                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                                          <td class="text-right text-green">{{ stat.wins }}</td>
-                                          <td class="text-right text-red">{{ stat.losses }}</td>
-                                          <td class="text-right">{{ stat.games }}</td>
-                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
-                                        </tr>
-                                      </tbody>
-                                    </v-table>
-                                  </v-sheet>
-                                </td>
-                              </tr>    
-                              <tr v-else>
-                                <td :colspan="columns.length" class="py-2">
-                                  No stats found.
-                                </td>                                
-                              </tr>                     
-                            </template>
-                            <template 
-                              v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
-                              {{ item.name }}({{ item.discordTag }})
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
-                        </v-card> 
-                      </v-col>
-                    </v-row> 
-                  </v-container>    
-                </template>       
-                    
-                <v-card-actions>
-                  <v-btn 
-                    prepend-icon="mdi-plus"
-                    @click="proposeSeries"
-                    color="light-green"
-                    variant="tonal">
-                    Propose Series
-                  </v-btn>
-                  <v-btn 
-                    prepend-icon="mdi-close" 
-                    @click="cancelProposeSeries"
-                    color="orange"
-                    variant="tonal">
-                    Cancel
-                  </v-btn>
-                </v-card-actions>        
-              </v-card>
-            </v-dialog>
-          </v-col>
         </v-row>
 
         <!-- Series List -->
-        
         <v-row>
-          
           <v-col >
           <section id="series-table" v-if="series.length > 0">
             <v-data-table
@@ -512,6 +301,13 @@
                     Series List
                   </v-toolbar-title>
                   <v-spacer></v-spacer>
+                  <v-btn
+                      icon
+                      @click.stop="removeAllSeries()"
+                      color="red"
+                    >
+                      <v-icon>mdi-trash-can</v-icon>
+                </v-btn>
                 </v-toolbar>
               </template>
               <template v-slot:item="{ item }">
@@ -677,24 +473,228 @@
     <v-row class="justify-center">
       <v-col cols="auto text-center">
         <h2>Team Details</h2>
+        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
+      </v-col>
+      <v-col>
+        <v-btn
+          @click="openProposeSeries"
+          :disabled="!isProposeValid"
+          class="toolbar-btn"
+          variant="tonal"
+          prepend-icon="mdi-plus">
+          Propose series
+        </v-btn>
+        
+      </v-col>
+      <v-col cols="5 text-center">
+        <v-text-field
+          v-model="proposeSeriesMMRDiff"
+          label="MMR Differance"
+          placeholder="Enter season name"
+        ></v-text-field>
+      </v-col>
+      <v-col cols="auto">
+        <v-dialog
+          id="proposeSeriesModal"
+          v-if="showProposeSeriesModal"
+          v-model="showProposeSeriesModal"
+          max-width="95vw"
+          max-height="95vh">
+          <v-card>
+            <template v-slot:title>
+              <span class="modal-title">
+                <v-icon icon="mdi-account-plus"></v-icon>
+                  Proposed Series
+              </span>
+            </template>
+            <template v-slot:text>
+              <v-container>
+                <!-- Header modal -->
+                <v-row class="align-center justify-center">
+                  <v-col cols="5 text-center">
+                    <p class="text-h5">{{ team1.name }}</p>
+                  </v-col>        
+                  <v-col cols="2 text-center">
+                    <span class="text-h4">
+                      <v-icon icon="mdi-sword-cross"></v-icon>
+                    </span>
+                  </v-col>        
+                  <v-col cols="5 text-center">
+                    <p class="text-h5">{{ team2.name }}</p>
+                  </v-col>
+                </v-row>
+                <v-row class="justify-space-between" dense>
+                </v-row> 
+              </v-container>    
+            </template>       
+            <v-row>
+          <v-col >
+          <section id="proposed-series-table" v-if="proposedSeries.length > 0">
+            <v-data-table
+              :headers="proposedSeriesTableHeader"
+              :items="proposedSeries"
+              select-strategy="all"
+              density="compact"
+              v-model="selectedProposedSeries"
+              multi-sort
+              fixed-header
+              hover
+              return-object
+              show-select
+            >
+              <template v-slot:loading>
+                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+              </template>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-toolbar-title>
+                    <v-icon icon="mdi-account"></v-icon>
+                    Series List
+                  </v-toolbar-title>
+                  <v-spacer></v-spacer>
+                </v-toolbar>
+              </template>
+              <template v-slot:[`item.player1`]="{ item }">
+                  <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
+              </template>
+              <template v-slot:[`item.player2`]="{ item }">
+                  <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
+              </template>
+              <template v-slot:[`item.actions`]="{ item }">
+                  <td>
+                    <v-btn
+                      icon
+                      @click.stop="removeProposedSeries(item.proposedId)"
+                      color="red"
+                    >
+                      <v-icon>mdi-trash-can</v-icon>
+                    </v-btn>
+                  </td>
+              </template>
+            </v-data-table>
+        </section>  
+          </v-col>
+        </v-row>  
+            <v-card-actions>
+              <v-btn 
+                prepend-icon="mdi-plus"
+                @click="createSelectedProposedSeries"
+                color="light-green"
+                variant="tonal">
+                Create Selected Series
+              </v-btn>
+              <v-btn 
+                prepend-icon="mdi-close" 
+                @click="cancelProposeSeries"
+                color="orange"
+                variant="tonal">
+                Cancel
+              </v-btn>
+            </v-card-actions>        
+          </v-card>
+        </v-dialog>
       </v-col>
     </v-row>
     <v-row>
       <v-col cols="6">
-        <h3>{{ team1.name }}</h3>
-        <ul v-if="team1.player_by_season && match.season_id">
-          <li v-for="player in team1.player_by_season[match.season_id]" :key="player.id">
-            {{ player.name }}
-          </li>
-        </ul>
+        <section id="player-table-T1"  v-if="team1.player_by_season && match.season_id">
+          <v-data-table
+            :headers="tablePlayerHeader"
+            :items="team1.player_by_season[match.season_id]"
+            :custom-filter="customFilter"
+            :search="searchQueryT1"
+            select-strategy="all"
+            density="compact"
+            v-model="proposePlayersTeam_1"
+            multi-sort
+            fixed-header
+            hover
+            return-object
+            show-select
+          >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          </template>
+          <template v-slot:top>
+            <v-toolbar flat>
+              <v-toolbar-title>
+                <v-icon icon="mdi-account"></v-icon>
+                {{ team1.name }}
+              </v-toolbar-title>
+              <v-spacer></v-spacer>
+              <!-- Search Input -->
+              <v-text-field
+                v-model="searchQueryT1"
+                placeholder="Search by name"
+                append-icon="mdi-magnify"
+                single-line
+                hide-details
+              ></v-text-field>
+            </v-toolbar>
+          </template>
+          <template v-slot:[`item.name`]="{ item }">
+            <FlagIcon :countryIdentifier="item.country" />
+            <span @click="showStats(item)">
+              <strong>{{ item.name }}</strong> ({{ item.battleTag }})
+            </span>
+          </template>
+          <template v-slot:[`item.race`]="{ item }">
+            <div v-if="item.race">
+              <RaceIcon :raceIdentifier="item.race" />                                          
+            </div>
+          </template>
+          </v-data-table>
+        </section>  
       </v-col>
       <v-col cols="6">
-        <h3>{{ team2.name }}</h3>
-        <ul v-if="team2.player_by_season && match.season_id">
-          <li v-for="player in team2.player_by_season[match.season_id]" :key="player.id">
-            {{ player.name }}
-          </li>
-        </ul>
+        <section id="player-table-T2"  v-if="team2.player_by_season && match.season_id">
+          <v-data-table
+            :headers="tablePlayerHeader"
+            :items="team2.player_by_season[match.season_id]"
+            :custom-filter="customFilter"
+            :search="searchQueryT2"
+            select-strategy="all"
+            density="compact"
+            v-model="proposePlayersTeam_2"
+            multi-sort
+            fixed-header
+            hover
+            return-object
+            show-select
+          >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          </template>
+          <template v-slot:top>
+            <v-toolbar flat>
+              <v-toolbar-title>
+                <v-icon icon="mdi-account"></v-icon>
+                {{ team2.name }}
+              </v-toolbar-title>
+              <v-spacer></v-spacer>
+              <!-- Search Input -->
+              <v-text-field
+                v-model="searchQueryT2"
+                placeholder="Search by name"
+                append-icon="mdi-magnify"
+                single-line
+                hide-details
+              ></v-text-field>
+            </v-toolbar>
+          </template>
+          <template v-slot:[`item.name`]="{ item }">
+            <FlagIcon :countryIdentifier="item.country" />
+            <span @click="showStats(item)">
+              <strong>{{ item.name }}</strong> ({{ item.battleTag }})
+            </span>
+          </template>
+          <template v-slot:[`item.race`]="{ item }">
+            <div v-if="item.race">
+              <RaceIcon :raceIdentifier="item.race" />                                          
+            </div>
+          </template>
+          </v-data-table>
+        </section>  
       </v-col>
     </v-row>
   </div>
@@ -724,10 +724,26 @@ const seriesTableHeader = [
   { title: 'Fantasy Match'},    
 ]
 
+const proposedSeriesTableHeader = [
+  { title: 'Player 1', value: 'player1', sortable: true },
+  { title: 'MMR', value: 'player1.mmr', sortable: true },
+  { title: 'Player 2', value: 'player2', sortable: true },
+  { title: 'MMR', value: 'player2.mmr', sortable: true }, 
+  { title: '', value: 'actions', sortable: true }, 
+]
+
 const tableHeader = [
   { title: 'Name', value: 'name', sortable: true },     
   { title: 'Games', key: 'gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'MMR', value: 'mmr', sortable: true, align: 'end' }, 
+]
+
+const tablePlayerHeader = [
+  { title: 'Name', value: 'name', sortable: true },     
+  { title: 'Discord', value: 'discordTag' },
+  { title: 'GNL Games', key: 'gnl_stats[0].games', sortable: true },
+  { title: 'MMR', value: 'mmr', sortable: true }, 
+  { title: 'Race', value: 'race' }, 
 ]
 
 const rowsExpanded = ref([])
@@ -753,6 +769,8 @@ export default {
     const proposePlayersTeam_1 = ref(null)
     const proposePlayersTeam_2 = ref(null)
     const proposeSeriesMMRDiff = ref(null)
+    const proposedSeries = ref([])
+    const selectedProposedSeries = ref(null)
     const showPlayerDetails = ref(false)
     const playerDetails = ref(null)
     const editSeriesDialogOpen = ref(false)
@@ -760,6 +778,10 @@ export default {
     const hostPlayers = ref(null)
     const selectedDate = ref(null);
     const selectedTime = ref(null);
+    const searchQueryT1 = ref('');
+    const searchQueryT2 = ref('');
+    const isProposeValid = computed(() => proposePlayersTeam_1.value != null && proposePlayersTeam_2.value != null && proposeSeriesMMRDiff.value != null);
+
 
 
     const formateDate = ( dateToFormat ) => {
@@ -773,6 +795,18 @@ export default {
       ).setZone("local").toLocaleString(DateTime.DATETIME_MED);
       return formatedDate
     }
+
+    const customFilter = (value, search, item) => {
+      console.log(item)
+      if (!search) return true;
+      search = search.toLowerCase();
+      // Check if the search query matches the name or Discord fields
+      return (
+        item.raw.name.toLowerCase().includes(search) ||
+        item.raw.discordTag.toLowerCase().includes(search)
+      );
+    }
+
 
     const seriesHeaders = [
       { title: 'ID', value: 'id' },
@@ -815,12 +849,16 @@ export default {
     };
 
     const syncW3CTeams = async () => {
+
+      isLoading.value = true;
       try {
         team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id)
         
         team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id)
       } catch (error) {
         console.error('Failed to sync teams with w3c details:', error);
+      } finally {
+        isLoading.value = false;
       }
     };
 
@@ -879,9 +917,15 @@ export default {
       }
     }
 
+    const removeProposedSeries = (proposedId) => {
+      proposedSeries.value = proposedSeries.value.filter(series => series.proposedId !== proposedId);
+
+    }
+
     const proposeSeries = async () => {
       isLoading.value = true;
       try {
+        proposedSeries.value = []
         let t1_player = proposePlayersTeam_1.value;
         let t2_player = proposePlayersTeam_2.value;
 
@@ -890,7 +934,9 @@ export default {
           let p1_mmr = 0;
           for(let j = 0; j < p1.w3c_stats.length; j++){
             let w3cStats = p1.w3c_stats[j];
+              console.log(w3cStats.race, p1.race, p1_mmr);
             if(w3cStats.race == p1.race){
+              console.log(w3cStats.race, p1.race, p1_mmr);
               p1_mmr = w3cStats.mmr;
               break;
             }
@@ -910,30 +956,38 @@ export default {
 
             for(let z = 0; z < p2.w3c_stats.length; z++){
               let w3cStats = p2.w3c_stats[z];
+              console.log(w3cStats.race, p2.race, p2_mmr);
               if(w3cStats.race == p2.race){
+                console.log(w3cStats.race, p2.race, p2_mmr);
                 p2_mmr = w3cStats.mmr
                 break;
               }
             }
             let mmr_diff = p1_mmr - p2_mmr;
+            console.log(p1_mmr, p2_mmr)
             if (mmr_diff<0){
               mmr_diff*=-1
             }
             if(mmr_diff <= proposeSeriesMMRDiff.value){
               const newSeries = {}
-      
+              newSeries.proposedId = proposedSeries.value.length+1
               newSeries.match_id = matchStore.match.id
               newSeries.season_id = matchStore.match.season_id
               newSeries.host_player_id = p1.id
               newSeries.player1_score = 0
               newSeries.player2_score = 0
               newSeries.player1_id = p1.id
+              newSeries.player1 = p1
               newSeries.player2_id = p2.id
-              await seriesStore.createSeries(newSeries)
+              newSeries.player2 = p2
+              console.log("New Series", newSeries)
+              //await seriesStore.createSeries(newSeries)
+              proposedSeries.value.push(newSeries)
             }
           }
         }
-        await fetchMatchSeries();
+        //await fetchMatchSeries();
+        //cancelProposeSeries();
       } catch (error) {
         console.error('Failed to fetch match details:', error);
       } finally {
@@ -941,8 +995,31 @@ export default {
       }
     };
 
+    const openProposeSeries = () => {
+      console.log("Check Proposed Series")
+      proposeSeries();
+      console.log("Show modal")
+      showProposeSeriesModal.value = true;
+    };
     const cancelProposeSeries = () => {
       showProposeSeriesModal.value = false;
+    };
+
+    const createSelectedProposedSeries = async () => {
+      
+      isLoading.value = true;
+      try {
+        for (const series of selectedProposedSeries.value) {
+          await seriesStore.createSeries(series);
+        }
+
+        await fetchMatchSeries(); // Refresh match details after creation
+        cancelProposeSeries();
+      } catch (error) {
+        console.error('Failed to create series:', error);
+      } finally {
+        isLoading.value = false;
+      }
     };
 
     const createSeries = async () => {
@@ -955,21 +1032,40 @@ export default {
       newSeries.player2_score = 0
       newSeries.player1_id = newSeries_Player_1.value[0].id
       newSeries.player2_id = newSeries_Player_2.value[0].id
+      
+      isLoading.value = true;
       try {
         await seriesStore.createSeries(newSeries);
         await fetchMatchSeries(); // Refresh match details after creation
         cancelCreateSeries();
       } catch (error) {
         console.error('Failed to create series:', error);
+      } finally {
+        isLoading.value = false;
       }
     };
 
     const removeSeries = async (seriesId) => {
+      isLoading.value = true;
       try {
         await seriesStore.deleteSeries(seriesId);
         await fetchMatchDetails(); // Refresh match details after removal
       } catch (error) {
         console.error('Failed to remove series:', error);
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    const removeAllSeries = async () => {
+      isLoading.value = true;
+      try {
+        await seriesStore.deleteAllSeries()
+        await fetchMatchDetails(); // Refresh match details after removal
+      } catch (error) {
+        console.error('Failed to remove series:', error);
+      } finally {
+        isLoading.value = false;
       }
     };
 
@@ -987,11 +1083,15 @@ export default {
       fetchMatchDetails,
       createSeries,
       removeSeries,
+      removeAllSeries,
       syncW3CTeams,
       seriesTableHeader,
       showPlayerDetails,
       playerDetails,
       showStats,
+      searchQueryT1,
+      searchQueryT2,
+      customFilter,
 
       newSeries_Player_1,
       newSeries_Player_2,
@@ -1004,6 +1104,7 @@ export default {
       hostPlayers,
       selectedDate,
       selectedTime,
+      tablePlayerHeader,
       
 
 
@@ -1011,8 +1112,16 @@ export default {
       proposePlayersTeam_2,
       proposeSeries,
       proposeSeriesMMRDiff,
+      proposedSeries,
       showProposeSeriesModal,
+      proposedSeriesTableHeader,
+      selectedProposedSeries,
       cancelProposeSeries,
+      openProposeSeries,
+      createSelectedProposedSeries,
+      removeProposedSeries,
+      isProposeValid,
+      
 
       bannerImg,
       date,

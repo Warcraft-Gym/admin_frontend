@@ -22,6 +22,11 @@ export const useSeriesStore = defineStore({
         async deleteSeries(series_id) {
             await fetchWrapper.delete(`${backendUrl}/series/${series_id}`);
         },
+        async deleteAllSeries() {
+            this.series.forEach(async(s) => {
+                await fetchWrapper.delete(`${backendUrl}/series/${s.id}`);                
+            });
+        },
         async searchSeries(search) {
             try{
                 this.isLoading = true; // Set loading to true
