@@ -378,7 +378,7 @@
             </tbody>
             <tbody>
               <tr>
-                <td class="text-left text-overline">{{ playerDetails.gnl_stats[0].season.name }}</td>
+                <td class="text-left text-overline">{{ playerDetails.gnl_stats[0].season.name }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
                 <td class="text-left text-overline">{{ playerDetails.mmr }}</td>
                 <td class="text-right text-green">{{ playerDetails.gnl_stats[0].wins }}</td>
                 <td class="text-right text-red">{{ playerDetails.gnl_stats[0].losses }}</td>
@@ -934,9 +934,9 @@ export default {
           let p1_mmr = 0;
           for(let j = 0; j < p1.w3c_stats.length; j++){
             let w3cStats = p1.w3c_stats[j];
-              console.log(w3cStats.race, p1.race, p1_mmr);
+              console.log(p1.name, w3cStats.race, p1.race, p1_mmr);
             if(w3cStats.race == p1.race){
-              console.log(w3cStats.race, p1.race, p1_mmr);
+              console.log(p1.name, w3cStats.race, p1.race, p1_mmr);
               p1_mmr = w3cStats.mmr;
               break;
             }
@@ -956,19 +956,20 @@ export default {
 
             for(let z = 0; z < p2.w3c_stats.length; z++){
               let w3cStats = p2.w3c_stats[z];
-              console.log(w3cStats.race, p2.race, p2_mmr);
+              console.log(p2.name, w3cStats.race, p2.race, p2_mmr);
               if(w3cStats.race == p2.race){
-                console.log(w3cStats.race, p2.race, p2_mmr);
+                console.log(p2.name, w3cStats.race, p2.race, p2_mmr);
                 p2_mmr = w3cStats.mmr
                 break;
               }
             }
             let mmr_diff = p1_mmr - p2_mmr;
-            console.log(p1_mmr, p2_mmr)
+            console.log(p1.name, p1_mmr, p2.name, p2_mmr)
             if (mmr_diff<0){
               mmr_diff*=-1
             }
             if(mmr_diff <= proposeSeriesMMRDiff.value){
+              console.log("match", mmr_diff, proposeSeriesMMRDiff.value)
               const newSeries = {}
               newSeries.proposedId = proposedSeries.value.length+1
               newSeries.match_id = matchStore.match.id
