@@ -27,15 +27,15 @@ export const useAuthStore = defineStore({
         async refresh(token) {
             const user = await fetchWrapper.post(`${backendUrl}/refresh`, { access_token: token });
             // update pinia state
-            this.user = user;
+            this.user.access_token = user.access_token;
 
             // store user details and jwt in local storage to keep user logged in between page refreshes
             localStorage.setItem('user', JSON.stringify(user));
-
-            // redirect to previous url or default to home page
-            router.push(this.returnUrl || '/');
         },
     	isTokenExpired(token) {
+            if (!token) {
+                return false;
+            }
             const payload = jwtDecode(token);
             const currentTime = Math.floor(Date.now() / 1000);
             return payload.exp && payload.exp < currentTime;

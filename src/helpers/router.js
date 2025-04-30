@@ -24,8 +24,16 @@ router.beforeEach(async (to) => {
     const authRequired = !publicPages.includes(to.path);
     const auth = useAuthStore();
 
-    if (authRequired && (!auth.user || auth.isTokenExpired(auth.user.access_token))) {
+    if (authRequired && !auth.user) {
         auth.returnUrl = to.fullPath;
         return '/login';
+    }
+    if(authRequired && auth.isTokenExpired(auth.user.access_token)) {
+        if (auth.isTokenExpired(auth.user.refresh_token)) {
+            auth.returnUrl = to.fullPath;
+            return '/login';
+        } else {
+            auth.refresh(auth.user.refresh_token);
+        }
     }
 });

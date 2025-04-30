@@ -40,7 +40,10 @@ function authHeader(method, url) {
     const isLoggedIn = !!user?.access_token;
     const isApiUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL);
     const isRefreshUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL+"/refresh");
-    if (isRefreshUrl){
+    const isLoginUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL+"/login");
+    if (isLoginUrl){
+        return {};
+    }if (isRefreshUrl){
         return { Authorization: `Bearer ${user.refresh_token}` };
     } else if (isRestricted && isLoggedIn && isApiUrl) {
         if(authstore.isTokenExpired(user.access_token)) {
