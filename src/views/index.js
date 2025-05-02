@@ -5,3 +5,4 @@ export { default as PlayersView } from './PlayersView.vue';
 export { default as SeasonDetailsView } from './SeasonDetailsView.vue';
 export { default as MatchDetailsView } from './MatchDetailsView.vue';
 export { default as SeasonTeamDetailsView } from './SeasonTeamDetailsView.vue';
+export { default as MapsView } from './MapsView.vue';

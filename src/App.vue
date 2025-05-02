@@ -23,6 +23,9 @@ const { user: authUser } = storeToRefs(authStore);
                         <RouterLink to="/players">Players</RouterLink>
                     </v-list-item>
                     <v-list-item>
+                        <RouterLink to="/maps">Maps</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
                         <v-btn 
                             append-icon="mdi-logout"
                             @click="authStore.logout()"
