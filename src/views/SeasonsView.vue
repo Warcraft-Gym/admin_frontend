@@ -135,7 +135,7 @@
     </v-alert>
 
     <!-- Add New Season Modal -->
-    <v-dialog v-model="addNewDialogOpen" max-width="65vw">
+    <v-dialog v-if="newSeason" v-model="addNewDialogOpen" max-width="65vw">
       <v-card>
         <v-card-title>Add New Season</v-card-title>
         <v-card-text>

@@ -5,16 +5,22 @@ export const fetchWrapper = {
     post: request('POST'),
     put: request('PUT'),
     delete: request('DELETE'),
-    fileUpload: request('FILE_UPLOAD')
+    fileUpload: request('FILE_UPLOAD'),
+    getFile: request('GET_FILE')
 };
 
 function request(method) {
     return (url, body) => {
         let requestMethod = method
         let fileUpload = false;
+        let receiveBinary = false;
         if (requestMethod == "FILE_UPLOAD") {
             requestMethod = "POST"
             fileUpload = true
+        }
+        if (requestMethod == "GET_FILE") {
+            requestMethod = "GET"
+            receiveBinary = true
         }
         const requestOptions = {
             method: requestMethod,
@@ -28,7 +34,7 @@ function request(method) {
                 requestOptions.body = JSON.stringify(body);
             }
         }
-        return fetch(url, requestOptions).then(handleResponse);
+        return fetch(url, requestOptions).then(response => handleResponse(response, receiveBinary));
     }
 }
 
@@ -55,20 +61,22 @@ function authHeader(method, url) {
     }
 }
 
-function handleResponse(response) {
+function handleResponse(response, receiveBinary) {
+    if (!response.ok) {
+        const { user, logout } = useAuthStore();
+        if ([401, 403].includes(response.status) && user) {
+            // auto logout if 401 Unauthorized or 403 Forbidden response returned from api
+            logout();
+        }
+        const data = response.text;
+        const error = (data && data.message) || response.statusText;
+        return Promise.reject(error);
+    }
+    if(receiveBinary) {
+        return response;
+    }
     return response.text().then(text => {
         const data = text && JSON.parse(text);
-        if (!response.ok) {
-            const { user, logout } = useAuthStore();
-            if ([401, 403].includes(response.status) && user) {
-                // auto logout if 401 Unauthorized or 403 Forbidden response returned from api
-                logout();
-            }
-
-            const error = (data && data.message) || response.statusText;
-            return Promise.reject(error);
-        }
-
         return data;
     });
 }    

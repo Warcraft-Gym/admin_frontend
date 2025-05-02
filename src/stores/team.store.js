@@ -31,11 +31,20 @@ export const useTeamStore = defineStore({
                 this.isLoading = false; // Set loading to false once complete
             }
         },
+        async fetchTeams() {
+            this.teams = await fetchWrapper.get(`${backendUrl}/teams`);
+        },
+        async getTeams() {
+            return await fetchWrapper.get(`${backendUrl}/teams`);
+        },
         async getTeamDetails(team_id) {
             return await fetchWrapper.get(`${backendUrl}/teams/${team_id}`);
         },
         async getTeamDetailsSeason(team_id, season_id) {
             return await fetchWrapper.get(`${backendUrl}/teams/${team_id}/seasons/${season_id}`);
+        },
+        async getTeamImage(team_id) {
+            return await fetchWrapper.getFile(`${backendUrl}/teams/${team_id}/image`);
         },
         async fetchTeamBySeason(team_id, season_id) {
             try{
