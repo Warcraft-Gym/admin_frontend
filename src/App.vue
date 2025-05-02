@@ -23,6 +23,9 @@ const { user: authUser } = storeToRefs(authStore);
                         <RouterLink to="/players">Players</RouterLink>
                     </v-list-item>
                     <v-list-item>
+                        <RouterLink to="/teams">Teams</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
                         <RouterLink to="/maps">Maps</RouterLink>
                     </v-list-item>
                     <v-list-item>

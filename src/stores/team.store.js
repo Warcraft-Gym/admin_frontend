@@ -46,6 +46,11 @@ export const useTeamStore = defineStore({
         async getTeamImage(team_id) {
             return await fetchWrapper.getFile(`${backendUrl}/teams/${team_id}/image`);
         },
+        async uploadTeamImage(team_id, file){
+            const formData = new FormData();
+            formData.append("image", file);
+            await fetchWrapper.fileUpload(`${backendUrl}/teams/${team_id}/image`, formData);
+        },
         async fetchTeamBySeason(team_id, season_id) {
             try{
                 this.isLoading = true; // Set loading to true
