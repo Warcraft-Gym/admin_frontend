@@ -17,7 +17,6 @@
             <p>Name: {{ season.name }}</p>
             <p>Number of Weeks: {{ season.number_weeks }}</p>
             <p>Pick Ban Order: {{ season.pick_ban }}</p>
-            <p>Number of Series per Week: {{ season.series_per_week }}</p>
           </v-col>
         </v-row>
       </v-container>
@@ -52,32 +51,59 @@
       </v-col>
 
         <!-- Team Selection Modal -->
-        <v-dialog v-model="isModalOpen" max-width="600px">
+        <v-dialog v-if="newMatch" v-model="isModalOpen" max-width="600px">
           <v-card>
-            <v-card-title>Select Teams for the Match</v-card-title>
-            <v-card-text>
-              <!-- Team Selection -->
-              <v-select
-                :items="plainTeams"
-                item-value="id"
-                item-text="name"
-                label="Select Team 1"
-                v-model="selectedTeam1"
-              >
-            </v-select>
-              <v-select
-                :items="teams"
-                item-text="name"
-                item-value="id"
-                label="Select Team 2"
-                v-model="selectedTeam2"
-              ></v-select>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn color="primary" @click="confirmSelection">Confirm</v-btn>
-              <v-btn color="secondary" @click="closeMatchCreationModal">Cancel</v-btn>
-            </v-card-actions>
-          </v-card>
+                      <template v-slot:title>
+                        <span class="modal-title">
+                          <v-icon icon="mdi-account-edit"></v-icon>
+                          Create Match
+                        </span>
+                      </template>
+                      <template v-slot:text>
+                        <v-row>
+                          <v-col cols="6">
+                            <v-text-field
+                              v-model="newMatch.date_frame" 
+                              label="Date Frame">
+                            </v-text-field>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-select
+                              :items="maps"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Fixed Map"
+                              v-model="newMatch.fixed_map_id"
+                            >
+                            </v-select>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-select
+                              :items="teams"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Team 1"
+                              v-model="newMatch.team1_id"
+                            >
+                            </v-select>
+                          </v-col>
+                          <v-col  cols="6">
+                            <v-select
+                              :items="teams"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Team 2"
+                              v-model="newMatch.team2_id"
+                            >
+                          </v-select>
+                          </v-col>
+                        </v-row>      
+                      </template>   
+                      <v-card-actions>
+                        <v-btn color="primary" @click="confirmSelection">Confirm</v-btn>
+                        <v-btn color="secondary" @click="closeMatchCreationModal">Cancel</v-btn>
+                      </v-card-actions>        
+                    </v-card>
         </v-dialog>
     </v-row>
     <!-- Matches for Selected Week -->
@@ -102,7 +128,7 @@
               </v-col>
 
               <!-- VS Icon -->
-              <v-col cols="2" class="text-center">
+              <v-col cols="1" class="text-center">
                 <v-icon large color="primary">mdi-sword-cross</v-icon>
               </v-col>
 
@@ -115,7 +141,86 @@
                 <h3 class="team-name">{{ match.team2.name }}</h3>
                 <span class="score">{{ match.team2_score }}</span>
               </v-col>
-
+              <v-col cols="1">
+                <v-row>
+                  <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editMatch(match)"></v-btn>
+                  <!-- Edit Map Modal -->
+                  <v-dialog
+                    id="editMatchModal"
+                    v-if="selectedMatch"
+                    v-model="selectedMatch"
+                    max-width="65vw">
+                    <v-card>
+                      <template v-slot:title>
+                        <span class="modal-title">
+                          <v-icon icon="mdi-account-edit"></v-icon>
+                          Edit Match
+                        </span>
+                      </template>
+                      <template v-slot:text>
+                        <v-row>
+                          <v-col cols="6">
+                            <v-text-field
+                              v-model="selectedMatch.date_frame" 
+                              label="Date Frame">
+                            </v-text-field>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-select
+                              :items="maps"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Fixed Map"
+                              v-model="selectedMatch.fixed_map_id"
+                            >
+                            </v-select>
+                          </v-col>
+                          <v-col cols="6">
+                            <v-select
+                              :items="teams"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Team 1"
+                              v-model="selectedMatch.team1_id"
+                            >
+                            </v-select>
+                          </v-col>
+                          <v-col  cols="6">
+                            <v-select
+                              :items="teams"
+                              item-title="name"
+                              item-value="id"
+                              label="Select Team 2"
+                              v-model="selectedMatch.team2_id"
+                            >
+                          </v-select>
+                          </v-col>
+                        </v-row>      
+                      </template>       
+                          
+                      <v-card-actions>
+                        <v-btn 
+                          prepend-icon="mdi-pencil"
+                          @click="updateMatch"
+                          color="light-green"
+                          variant="tonal">
+                          Save
+                        </v-btn>
+                        <v-btn 
+                          prepend-icon="mdi-close" 
+                          @click="cancelEdit"
+                          color="orange"
+                          variant="tonal">
+                          Cancel
+                        </v-btn>
+                      </v-card-actions>        
+                    </v-card>
+                  </v-dialog>
+                </v-row>
+                <v-row>
+                  <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="removeMatch(match.id)"></v-btn>
+                </v-row>
+              </v-col>
             </v-row>
           </v-card-text>
 
@@ -204,7 +309,7 @@
   <script>
   import { useRouter } from 'vue-router';
   import { ref, onMounted, computed } from 'vue';
-  import { useSeasonStore, useMatchStore, useTeamStore } from '@/stores';
+  import { useSeasonStore, useMatchStore, useTeamStore, useMapStore } from '@/stores';
   import  bannerImg from '@/assets/media/GNL_Banner.png';
   import  teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
   
@@ -222,10 +327,14 @@
     const seasonStore = useSeasonStore();
     const matchStore = useMatchStore();
     const teamStore = useTeamStore();
+    const mapStore = useMapStore();
     const isLoading = ref(true);
     const selectedWeek = ref(null);
     const isModalOpen = ref(false);
     const isTeamDialogOpen = ref(false);
+    const selectedMatch = ref(null);
+    const selectedMap = ref(null);
+    const newMatch = ref(null);
 
     const teamImages = ref({});
     const allTeams = ref(null);
@@ -255,7 +364,15 @@
 
     let isInitLoading = false;
 
-    const openMatchCreationModal = (teams) => {
+    const openMatchCreationModal = () => {
+      newMatch.value = {
+        date_frame:'',
+        fixed_map_id:null,
+        team1_id:null,
+        team2_id:null,
+        season_id:seasonId,
+        playday: selectedWeek.value
+      }
       isModalOpen.value = true;
     };
 
@@ -278,28 +395,46 @@
       }
     };
 
+    const editMatch = (match) => {
+      selectedMatch.value = { ...match }; // Clone the user object to avoid modifying the original object directly
+    };
+
+    const updateMatch = async () => {
+      try {
+        await matchStore.updateMatch(selectedMatch.value);
+        // Update the local state after a successful PUT request
+        await fetchMatches(selectedWeek.value);
+        cancelEdit(); // Reset the form
+      } catch (error) {
+        console.error('Error updating match:', error);
+      }
+    };
+
+    const removeMatch = async (matchId) => {
+      try {
+        await matchStore.deleteMatch(matchId);
+        await fetchMatches(selectedWeek.value); // Refresh the list after deletion
+      } catch (error) {
+        console.error('Error deleting match:', error);
+      }
+    };
+
+    const cancelEdit = () => {
+          selectedMatch.value = null; // Clear the selected user
+    };
+
 
     const confirmSelection = async () => {
-      if (!selectedTeam1.value || !selectedTeam2.value) {
-        alert("Please select two teams.");
-        return;
-      }
       isLoading.value = true;
       try {
-        const newMatch = {
-          playday: selectedWeek.value,
-          season_id: seasonId,
-          team1_id: selectedTeam1.value,
-          team2_id: selectedTeam2.value,
-        };
-        await matchStore.createMatch(newMatch); // Assuming a createMatch method exists
+        await matchStore.createMatch(newMatch.value); // Assuming a createMatch method exists
         console.log("Match added successfully!");
-        fetchMatches(selectedWeek.value); // Refresh matches for the week
+        await fetchMatches(selectedWeek.value); // Refresh matches for the week
+        closeMatchCreationModal();
       } catch (error) {
         console.error("Failed to add match:", error);
       } finally {
         isLoading.value = false;
-        closeMatchCreationModal();
       }
     };
 
@@ -318,6 +453,13 @@
         }
     };
 
+    const fetchMaps = async () => {
+      try {
+        await mapStore.fetchMaps();
+      } catch (error) {
+        console.error('Failed to fetch maps:', error);
+      }
+    };
 
     // Fetch teams for the season
     const fetchTeams = async () => {
@@ -371,7 +513,8 @@
             fetchSeasonDetails(),
             fetchTeams(),
             allTeams.value = await teamStore.getTeams(),
-            fetchMatches(1)
+            fetchMatches(1),
+            fetchMaps()
         ]);
 
         } finally {
@@ -383,12 +526,7 @@
         season: computed(() => seasonStore.current_season),
         matches: computed(() => matchStore.matches),
         teams: computed(() => teamStore.teams),
-        plainTeams: computed(() =>
-          teamStore.teams.map(team => ({
-            id: team.id,
-            name: team.name,
-          }))
-        ),
+        maps : computed(() => mapStore.maps),
 
         isLoading,
         bannerImg,
@@ -413,6 +551,13 @@
         closeTeamSelectionModal,
         addTeamsToSeason,
 
+        newMatch,
+        selectedMatch,
+        selectedMap,
+        editMatch,
+        updateMatch,
+        removeMatch,
+        cancelEdit,
         };
     },
   };
