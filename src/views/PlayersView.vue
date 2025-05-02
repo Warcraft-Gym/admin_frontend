@@ -33,7 +33,7 @@
                       <v-range-slider
                         v-model="rangeValues"
                         :min="0"
-                        :max="2000"
+                        :max="3000"
                         strict
                         step="10"
                         class="align-center"
@@ -334,7 +334,7 @@ const newPlayer = ref({
 const searchRace = ref(null)
 const searchName = ref(null)
 const searchEnabled = ref(false)
-const rangeValues = ref([500, 1500])
+const rangeValues = ref([0, 3000])
 
 //table header
 /*
@@ -395,8 +395,8 @@ export default {
             searchEnabled.value = false;
             searchName.value = ''
             searchRace.value = ''
-            rangeValues.value[0] = '500'
-            rangeValues.value[1] = '1500'
+            rangeValues.value[0] = '0'
+            rangeValues.value[1] = '3000'
           }
         };
 

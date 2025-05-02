@@ -16,66 +16,69 @@
 
     <!-- Players -->
     <div id="playerList">
-          <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeam"></v-btn>
-          <!-- Error Message -->
-          <v-row justify="center" v-if="errorMessage" class="error-message">
-            <v-col cols="auto">
-              <p>{{ errorMessage }}</p>
-            </v-col>
-          </v-row>  
-          <!-- Table -->
-          <v-row v-else-if="players && players.length > 0">
-            <v-col cols="12">
-              <v-data-table
-                :headers="tableHeader"
-                :loading="isLoading"
-                :items="players"
-                fixed-header
-                hover>
-                <template v-slot:loading>
-                  <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-                </template>
-                <template v-slot:top>
-                  <v-toolbar flat>
-                    <v-toolbar-title>
-                      <v-icon icon="mdi-account"></v-icon>
-                      Player list
-                    </v-toolbar-title>                    
-                    <v-btn 
+      <v-row>
+        <v-col>
+            <v-btn 
                       @click="showNewPlayerModal = true"
                       class="toolbar-btn"
                       variant="tonal"
                       prepend-icon="mdi-plus"
                     >Add New Player</v-btn>
-                  </v-toolbar>
-                </template>
-                <template v-slot:item="{ item }">
-                  <tr class="text-no-wrap">
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.battleTag }}</td>
-                    <td>{{ item.country }}</td>
-                    <td>{{ item.discordTag }}</td>
-                    <td>{{ item.mmr }}</td>
-                    <td>{{ item.race }}</td>     
-                    <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
-                    <td>stats</td>
-                    <td>fantasy</td>
-                    <td>
-                      <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayerFromTeam(item.id)"></v-btn>                   
-                    </td>
-                  </tr>
-                </template>
-              </v-data-table>
-            </v-col>
-          </v-row>          
-          <!-- No User Found -->
-          <v-row v-else justify="center">
-            <v-cols cols="auto">
-              <p>No users found.</p>
-            </v-cols>
-          </v-row>
-        </div>
+        </v-col>
+      </v-row>
+      <!-- Error Message -->
+      <v-row justify="center" v-if="errorMessage" class="error-message">
+        <v-col cols="auto">
+          <p>{{ errorMessage }}</p>
+        </v-col>
+      </v-row>  
+      <!-- Table -->
+      <v-row v-else-if="players && players.length > 0">
+        <v-col cols="12">
+          <v-data-table
+            :headers="tableHeader"
+            :loading="isLoading"
+            :items="players"
+            fixed-header
+            hover>
+            <template v-slot:loading>
+              <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+            </template>
+            <template v-slot:top>
+              <v-toolbar flat>
+                <v-toolbar-title>
+                  <v-icon icon="mdi-account"></v-icon>
+                  Player list
+                </v-toolbar-title>                    
+              </v-toolbar>
+            </template>
+            <template v-slot:item="{ item }">
+              <tr class="text-no-wrap">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.battleTag }}</td>
+                <td>{{ item.country }}</td>
+                <td>{{ item.discordTag }}</td>
+                <td>{{ item.mmr }}</td>
+                <td>{{ item.race }}</td>     
+                <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
+                <td>stats</td>
+                <td>fantasy</td>
+                <td>
+                  <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayerFromTeam(item.id)"></v-btn>                   
+                </td>
+              </tr>
+            </template>
+          </v-data-table>
+        </v-col>
+      </v-row>          
+      <!-- No User Found -->
+      <v-row v-else justify="center">
+        <v-cols cols="auto">
+          <p>No users found.</p>
+        </v-cols>
+      </v-row>
+    </div>
   </div>
   <!-- Add New Player Modal -->
   <v-dialog v-model="showNewPlayerModal" persistent max-width="600px">
@@ -121,7 +124,7 @@
                             <v-range-slider
                               v-model="rangeValues"
                               :min="0"
-                              :max="2000"
+                              :max="3000"
                               strict
                               step="10"
                               class="align-center"
@@ -243,7 +246,7 @@ export default {
         const searchRace = ref(null)
         const searchName = ref(null)
         const searchEnabled = ref(false)
-        const rangeValues = ref([500, 1500])
+        const rangeValues = ref([0, 3000])
 
         // Headers for the modal's player table
         const playerTableHeaders = [
@@ -265,8 +268,8 @@ export default {
             searchEnabled.value = false;
             searchName.value = ''
             searchRace.value = ''
-            rangeValues.value[0] = '500'
-            rangeValues.value[1] = '1500'
+            rangeValues.value[0] = '0'
+            rangeValues.value[1] = '3000'
           }
         };
 
