@@ -8,20 +8,55 @@ const { user: authUser } = storeToRefs(authStore);
 </script>
 
 <template>
-    <div class="app-container bg-light">
-        <nav v-show="authStore.user" class="navbar navbar-expand navbar-dark bg-dark">
-            <div class="navbar-nav">
-                <RouterLink to="/" class="nav-item nav-link">Home</RouterLink>
-                <RouterLink to="/players" class="nav-item nav-link">Players</RouterLink>
-                <a @click="authStore.logout()" class="nav-item nav-link">Logout</a>
-            </div>
-        </nav>
-        <div class="container pt-4 pb-4">
-            <RouterView />
-        </div>
-    </div>
+    <v-app> 
+        <v-app-bar v-show="authStore.user">
+            <v-app-bar-title>GNL APP</v-app-bar-title>
+            <template v-slot:append>
+                <v-list class="inline-nav" nav>
+                    <v-list-item>
+                        <RouterLink to="/">Home</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
+                        <RouterLink to="/seasons">Seasons</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
+                        <RouterLink to="/players">Players</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
+                        <RouterLink to="/teams">Teams</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
+                        <RouterLink to="/maps">Maps</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
+                        <v-btn 
+                            append-icon="mdi-logout"
+                            @click="authStore.logout()"
+                            color="black"
+                            variant="tonal">
+                            Logout
+                        </v-btn> 
+                    </v-list-item>
+                </v-list>               
+            </template>
+        </v-app-bar>  
+
+        <v-main>                  
+            <v-container>              
+                <RouterView />
+            </v-container>  
+        </v-main>   
+    </v-app>
 </template>
 
 <style>
 @import '@/assets/base.css';
+
+.inline-nav {
+    display: flex;
+}
+
+.inline-nav .v-list-item {
+    margin: 0 !important;
+}
 </style>

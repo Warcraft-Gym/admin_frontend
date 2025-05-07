@@ -16,7 +16,8 @@ export const usePlayerStore = defineStore({
             try{
                 this.isLoading = true; // Set loading to true
                 const resp = await fetchWrapper.get(`${backendUrl}/users`);
-                this.players =  resp
+                this.players = resp
+
             } finally {
                 this.isLoading = false; // Set loading to false once complete
             }
@@ -26,10 +27,38 @@ export const usePlayerStore = defineStore({
             const updatedPlayer = await fetchWrapper.put(`${backendUrl}/users/${playerId}`, player);
         },
         async createPlayer(player) {
-            const updatedPlayer = await fetchWrapper.post(`${backendUrl}/users`, player);
+            const createPlayer = await fetchWrapper.post(`${backendUrl}/users`, player);
         },
         async deletePlayer(player_id) {
             await fetchWrapper.delete(`${backendUrl}/users/${player_id}`);
+        },
+        async syncW3CPlayer(player_id) {
+            await fetchWrapper.post(`${backendUrl}/users/w3c_sync/${player_id}`);
+        },
+        async searchPlayer( name, race, minMMR, maxMMR ) {
+            let queryString = ''
+            let queryADD = false
+
+            //Name
+            if( name ) {
+                queryString += 'name ilike ' + name
+                queryADD = true
+            }
+            //Race
+            if ( race ) {
+                if( queryADD ) queryString += ' and '
+                queryString += 'race == ' + race                
+                queryADD = true
+            }
+            //MMR
+            if ( minMMR !== null && minMMR !== undefined &&  maxMMR !== null && maxMMR !== undefined) {
+                if( queryADD ) queryString += ' and '
+                queryString += 'mmr >= ' + minMMR + ' and ' + 'mmr <= ' + maxMMR 
+                queryADD = true
+            }
+
+            const resp = await fetchWrapper.post(`${backendUrl}/users/search?query=`+queryString);
+            this.players = resp
         }
     }
 });

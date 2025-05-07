@@ -1,153 +1,388 @@
 <template>
     <div>
+      <raceIcon />
       <h1>Player Information</h1>
-        <!-- Error Message -->
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+      <!-- Filters -->
+      <div id="playerFilters">
+        <v-row>
+          <v-col cols="12">
+            <v-expansion-panels>
+              <v-expansion-panel class="search-engine">
+                <v-expansion-panel-title>
+                    <v-row no-gutters>
+                      <v-col class="d-flex justify-start" cols="4">
+                        <h2 class="text-subtitle-2 pannel-title">Filters</h2>
+                      </v-col>
+                    </v-row>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-row>
+                    <v-col cols="6">
+                      <v-text-field
+                      v-model="searchName" 
+                      label="Search a player name...">
+                      </v-text-field>
+                    </v-col>
+                    <v-col cols="6">
+                      <RaceSelect v-model="searchRace" />
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col cols="12">
+                      <h3 class="text-subtitle-2 text-center">MMR range</h3>
+                      <v-range-slider
+                        v-model="rangeValues"
+                        :min="0"
+                        :max="3000"
+                        strict
+                        step="10"
+                        class="align-center"
+                        hide-details>
+                        <template v-slot:prepend>
+                          <v-text-field
+                            v-model="rangeValues[0]"
+                            density="compact"
+                            disabled
+                            type="number"
+                            hide-details
+                            single-line></v-text-field>
+                        </template>
+                        <template v-slot:append>
+                          <v-text-field
+                            v-model="rangeValues[1]"
+                            density="compact"
+                            disabled
+                            type="number"
+                            hide-details
+                            single-line></v-text-field>
+                        </template>
+                      </v-range-slider>
+                    </v-col>
+                  </v-row>
+                  <v-row justify="center">
+                    <v-col cols="auto">
+                      <v-btn @click="searchPlayer" prepend-icon="mdi-magnify" color="blue">Search</v-btn>
+                    </v-col>
+                    <v-col cols="auto">
+                      <v-btn v-if="searchEnabled" @click="fetchPlayers" variant="tonal" prepend-icon="mdi-refresh">Reset</v-btn>
+                    </v-col>
+                  </v-row>
+                </v-expansion-panel-text>              
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-col>
+        </v-row>   
       </div>
-      <!-- Loading State -->
-      <div v-if="isLoading">Loading Players...</div>
-      <table v-else-if="players.length > 0">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>BattleTag</th>
-            <th>Country</th>
-            <th>Discord Tag</th>
-            <th>MMR</th>
-            <th>Race</th>
-            <td>
-              <button @click="showNewPlayerModal = true">Add New Player</button>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="player in players" :key="player.id">
-            <td>{{ player.id }}</td>
-            <td>{{ player.name }}</td>
-            <td>{{ player.battleTag }}</td>
-            <td>{{ player.country }}</td>
-            <td>{{ player.discordTag }}</td>
-            <td>{{ player.mmr }}</td>
-            <td>{{ player.race }}</td>
-            <td>
-            <button @click="editPlayer(player)">Edit</button>
-            <button @click="removePlayer(player.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <!-- No Users Found Message -->
-      <div v-else>No users found.</div>
+      <!-- Players -->
+      <div id="playerList">
+        <!-- Error Message -->
+        <v-row justify="center" v-if="errorMessage" class="error-message">
+          <v-col cols="auto">
+            <p>{{ errorMessage }}</p>
+          </v-col>
+        </v-row>  
+        <!-- Table -->
+        <v-row v-else-if="players.length > 0">
+          <v-col cols="12">
+            <v-data-table
+              :headers="tableHeader"
+              :loading="isLoading"
+              :items="players"
+              fixed-header
+              hover>
+              <template v-slot:loading>
+                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+              </template>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-toolbar-title>
+                    <v-icon icon="mdi-account"></v-icon>
+                    <h2>Player list</h2>
+                  </v-toolbar-title>                    
+                  <v-btn 
+                    @click="showNewPlayerModal = true"
+                    class="toolbar-btn"
+                    variant="tonal"
+                    prepend-icon="mdi-plus"
+                  >Add New Player</v-btn>
+                </v-toolbar>
+              </template>
+              <template v-slot:item="{ item }">
+                <tr class="text-no-wrap">
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.battleTag }}</td>
+                  <td>
+                    <div v-if="item.country">
+                      <FlagIcon :countryIdentifier="item.country" />
+                    </div>
+                  </td>
+                  <td>{{ item.discordTag }}</td>
+                  <td>{{ item.mmr }}</td>
+                  <td>
+                    <div v-if="item.race">
+                      <RaceIcon :raceIdentifier="item.race" />                                          
+                    </div>
+                  </td>     
+                  <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
+                  <td>stats</td>
+                  <td>fantasy</td>
+                  <td>
+                    <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
+                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayer(item.id)"></v-btn>
+                    <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
+                    <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CPlayer(item.id)"></v-btn>                      
+                  </td>
+                </tr>
+              </template>
+            </v-data-table>
+          </v-col>
+        </v-row>          
+        <!-- No User Found -->
+        <v-row v-else justify="center">
+          <v-col cols="auto">
+            <p>No users found.</p>
+          </v-col>
+        </v-row>
+      </div>
+      <!-- Add New Player Modal -->
+      <v-dialog
+        id="newPlayerModal"
+        v-if="showNewPlayerModal"
+        v-model="showNewPlayerModal"
+        max-width="65vw">
+        <v-card>
+          <template v-slot:title>
+            <span class="modal-title">
+              <v-icon icon="mdi-account-plus"></v-icon>
+              Add New Player
+            </span>
+          </template>
+          <template v-slot:text>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.name" 
+                  label="Player name">
+                </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.battleTag" 
+                  label="Player BattleTag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <CountrySelect v-model="newPlayer.country" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.discordTag" 
+                  label="Player Discord Tag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-number-input
+                  v-model="newPlayer.mmr" 
+                  control-variant="hidden"
+                  label="Player MMR"
+                  :hideInput="false"
+                  :inset="false"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <RaceSelect v-model="newPlayer.race" />
+              </v-col>
+            </v-row> 
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.fantasyTier" 
+                  label="Player Fantasy Tier">
+                </v-text-field>
+              </v-col>
+            </v-row>           
+          </template>       
+              
+          <v-card-actions>
+            <v-btn 
+              prepend-icon="mdi-plus"
+              @click="createNewPlayer"
+              color="light-green"
+              variant="tonal">
+              Add
+            </v-btn>
+            <v-btn 
+              prepend-icon="mdi-close" 
+              @click="cancelAddNewPlayer"
+              color="orange"
+              variant="tonal">
+              Cancel
+            </v-btn>
+          </v-card-actions>        
+        </v-card>
+      </v-dialog>
 
-    <!-- Add New Player Modal -->
-        <div v-if="showNewPlayerModal" :class="['modal', showNewPlayerModal ? 'modal-active' : '']">
-          <div class="modal-content">
-            <h2>Add New Player</h2>
-            <form @submit.prevent="createNewPlayer">
-              <div>
-                <label for="name">Name:</label>
-                <input id="name" v-model="newPlayer.name" />
-              </div>
-              <div>
-                <label for="battleTag">BattleTag:</label>
-                <input id="battleTag" v-model="newPlayer.battleTag" />
-              </div>
-              <div>
-                <label for="country">Country:</label>
-                <input id="country" v-model="newPlayer.country" />
-              </div>
-              <div>
-                <label for="discordTag">Discord Tag:</label>
-                <input id="discordTag" v-model="newPlayer.discordTag" />
-              </div>
-              <div>
-                <label for="mmr">MMR:</label>
-                <input id="mmr" type="number" v-model="newPlayer.mmr" />
-              </div>
-              <div>
-                <label for="race">Race:</label>
-                <input id="race" v-model="newPlayer.race" />
-              </div>
-              <button type="submit">Save</button>
-              <button @click="cancelAddNewPlayer">Cancel</button>
-            </form>
-          </div>
-        </div>
-        <div v-if="showNewPlayerModal" class="overlay" @click="cancelAddNewPlayer"></div>
-
-
-        <!-- Popup Modal -->
-        <div v-if="selectedPlayer" :class="['modal', selectedPlayer ? 'modal-active' : '']" class="modal">
-          <div class="modal-content">
-            <h2>Edit User: {{ selectedPlayer.name }}</h2>
-            <form @submit.prevent="updatePlayer">
-              <div>
-                <label for="name">Name:</label>
-                <input id="name" v-model="selectedPlayer.name" />
-              </div>
-              <div>
-                <label for="battleTag">BattleTag:</label>
-                <input id="battleTag" v-model="selectedPlayer.battleTag" />
-              </div>
-              <div>
-                <label for="country">Country:</label>
-                <input id="country" v-model="selectedPlayer.country" />
-              </div>
-              <div>
-                <label for="discordTag">Discord Tag:</label>
-                <input id="discordTag" v-model="selectedPlayer.discordTag" />
-              </div>
-              <div>
-                <label for="mmr">MMR:</label>
-                <input id="mmr" type="number" v-model="selectedPlayer.mmr" />
-              </div>
-              <div>
-                <label for="race">Race:</label>
-                <input id="race" v-model="selectedPlayer.race" />
-              </div>
-              <button type="submit">Save</button>
-              <button @click="cancelEdit">Cancel</button>
-            </form>
-          </div>
-        </div>
-        <!-- Modal Overlay -->
-        <div v-if="selectedPlayer" class="overlay" @click="cancelEdit"></div>
+      <!-- Edit Player Modal -->
+      <v-dialog
+        id="EditPlayerModal"
+        v-if="selectedPlayer"
+        v-model="selectedPlayer"
+        max-width="65vw">
+        <v-card>
+          <template v-slot:title>
+            <span class="modal-title">
+              <v-icon icon="mdi-account-edit"></v-icon>
+              {{ selectedPlayer.name }}
+            </span>
+          </template>
+          <template v-slot:text>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.name" 
+                  label="Player name">
+                </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.battleTag" 
+                  label="Player BattleTag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">                
+                <CountrySelect v-model="selectedPlayer.country" />
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.discordTag" 
+                  label="Player Discord Tag">
+                </v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-number-input
+                  v-model="selectedPlayer.mmr" 
+                  control-variant="hidden"
+                  label="Player MMR"
+                  :hideInput="false"
+                  :inset="false"
+                ></v-number-input>
+              </v-col>
+              <v-col cols="6">
+                <RaceSelect v-model="selectedPlayer.race" />
+              </v-col>
+            </v-row> 
+            <v-row dense="true">
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.fantasyTier" 
+                  label="Player Fantasy Tier">
+                </v-text-field>
+              </v-col>
+            </v-row>           
+          </template>       
+              
+          <v-card-actions>
+            <v-btn 
+              prepend-icon="mdi-pencil"
+              @click="updatePlayer"
+              color="light-green"
+              variant="tonal">
+              Edit
+            </v-btn>
+            <v-btn 
+              prepend-icon="mdi-close" 
+              @click="cancelEdit"
+              color="orange"
+              variant="tonal">
+              Cancel
+            </v-btn>
+          </v-card-actions>        
+        </v-card>
+      </v-dialog>
     </div>
 </template>
-
 <script>
 import '@/assets/base.css';
 import { usePlayerStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
+
 // State for editing
 const selectedPlayer = ref(null);
 const isLoading  = ref(false); // State for selected user
 const errorMessage = ref(null);
 const showNewPlayerModal = ref(false);
 const newPlayer = ref({
-      name: '',
-      battleTag: '',
-      country: '',
-      discordTag: '',
-      mmr: 0,
-      race: '',
-    });
+  name: '',
+  battleTag: '',
+  country: '',
+  discordTag: '',
+  mmr: 0,
+  race: '',
+  fantasyTier: '',
+});
 
+//research models
+const searchRace = ref(null)
+const searchName = ref(null)
+const searchEnabled = ref(false)
+const rangeValues = ref([0, 3000])
+
+//table header
+/*
+ID
+Name
+BattleTag
+Country
+Discord Tag
+GNL MMR
+Main Race
+W3C Stats
+Fantasy Tier
+Actions
+*/
+const tableHeader = [
+  { title: 'ID', value: 'id', align: 'start', sortable: true },
+  { title: 'Name', value: 'name', sortable: true },  
+  { title: 'Battletag', value: 'battleTag', sortable: true },    
+  { title: 'Country', value: 'country', sortable: true },
+  { title: 'Discord Name', value: 'discordTag', sortable: true }, 
+  { title: 'GNL MMR', value: 'mmr', sortable: true }, 
+  { title: 'Main Race', value: 'race', sortable: true },  
+  { title: 'W3C Stats', value: 'w3c_stats', sortable: false },  
+  { title: 'Fantasy Tier', value: 'fantasy_tier', sortable: false },    
+  { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
+]
+
+//Countries
+import CountryCodes from 'country-code-info'
+import countries from 'country-code-info/data/countries.json'
 
 export default {
+
     name: 'PlayersView',
     setup(){
         const playerStore = usePlayerStore();
         // Fetch data when the page is loaded
 
+
         // Fetch users when the component is mounted
         const fetchPlayers = async () => {
+          
           isLoading.value = true;
           errorMessage.value = null; // Reset error message
           try {
             await playerStore.fetchPlayers(); // Fetch user data
+
+
             if (playerStore.players.length === 0) {
               errorMessage.value = 'No users found.';
             }
@@ -155,14 +390,31 @@ export default {
             errorMessage.value = 'Failed to load users. Please try again later.';
           } finally {
             isLoading.value = false;
+
+            //reset placeholders
+            searchEnabled.value = false;
+            searchName.value = ''
+            searchRace.value = ''
+            rangeValues.value[0] = '0'
+            rangeValues.value[1] = '3000'
           }
         };
 
-        onMounted(() => {
-          fetchPlayers();
+        onMounted( () => {
+          fetchPlayers(); 
         });
 
         // Methods
+        const searchPlayer = async () => {
+          isLoading.value = true;
+          try {
+            await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
+          } finally {
+            isLoading.value = false;            
+            searchEnabled.value = true;
+          }
+        }
+
         const editPlayer = (player) => {
           selectedPlayer.value = { ...player }; // Clone the user object to avoid modifying the original object directly
         };
@@ -201,6 +453,14 @@ export default {
           }
         };
 
+        const syncW3CPlayer = async (playerId) => {
+          try {
+            await playerStore.syncW3CPlayer(playerId);
+            await fetchPlayers(); // Refresh the list after deletion
+          } catch (error) {
+            console.error('Error deleting player:', error);
+          }
+        };
 
         const cancelAddNewPlayer = () => {
           showNewPlayerModal.value = false;
@@ -213,11 +473,21 @@ export default {
             race: '',
           };
         };
-
-
+        
         return {
             isLoading: computed(() => playerStore.isLoading),
             players: computed(() => playerStore.players),
+
+            //table
+            tableHeader,
+
+            //search variables
+            searchPlayer,
+            searchName,
+            searchRace,
+            rangeValues,
+            searchEnabled,
+
             selectedPlayer,
             editPlayer,
             updatePlayer,
@@ -227,7 +497,12 @@ export default {
             newPlayer,
             createNewPlayer,
             cancelAddNewPlayer,
-            removePlayer,
+            removePlayer,       
+            fetchPlayers,
+            syncW3CPlayer,
+
+            CountryCodes,
+            countries,
         }
     },
 };
@@ -235,62 +510,19 @@ export default {
 
 <style>
 
-/* Table styling */
-table {
-  width: 100%;
-  border-collapse: collapse;
+/* Table */
+.table-action {
+  margin-right: 15px;
 }
 
-thead th {
-  background-color: #f2f2f2;
-  padding: 10px;
-  border: 1px solid #ddd;
+/* Toolbar */
+.toolbar-btn {
+  margin-right : 15px !important;
 }
 
-tbody td {
-  padding: 10px;
-  border: 1px solid #ddd;
-}
-
-/* Modal styling */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-content div {
-  margin-bottom: 10px;
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-}
-
-/* Buttons */
-button {
-  margin-right: 10px;
-}
-
-.modal.modal-active {
-  display: block; /* Visible state */
+/* pannel */
+.pannel-title {
+  margin: 0;
 }
 
 </style>
