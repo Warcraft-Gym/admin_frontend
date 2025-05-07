@@ -1,10 +1,10 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
 import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, MapsView, TeamsView } from '@/views';
 
 export const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHashHistory(),
     linkActiveClass: 'active',
     routes: [
         { path: '/', component: HomeView },
