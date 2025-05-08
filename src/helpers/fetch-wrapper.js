@@ -10,22 +10,24 @@ export const fetchWrapper = {
 };
 
 function request(method) {
-    return (url, body) => {
-        let requestMethod = method
+    return async (url, body) => {  // Mark as async
+        let requestMethod = method;
         let fileUpload = false;
         let receiveBinary = false;
-        if (requestMethod == "FILE_UPLOAD") {
-            requestMethod = "POST"
-            fileUpload = true
+
+        if (requestMethod === "FILE_UPLOAD") {
+            requestMethod = "POST";
+            fileUpload = true;
         }
-        if (requestMethod == "GET_FILE") {
-            requestMethod = "GET"
-            receiveBinary = true
+        if (requestMethod === "GET_FILE") {
+            requestMethod = "GET";
+            receiveBinary = true;
         }
-        const requestOptions = {
-            method: requestMethod,
-            headers: authHeader(requestMethod, url)
-        };
+
+        // **Wait for headers to be resolved before passing them**
+        const headers = await authHeader(requestMethod, url);
+        const requestOptions = { method: requestMethod, headers };
+
         if (body) {
             if (fileUpload) {
                 requestOptions.body = body;
@@ -34,49 +36,66 @@ function request(method) {
                 requestOptions.body = JSON.stringify(body);
             }
         }
-        return fetch(url, requestOptions).then(response => handleResponse(response, receiveBinary));
-    }
+
+        // **Await the fetch response**
+        const response = await fetch(url, requestOptions);
+        return handleResponse(response, receiveBinary); // Awaiting inside handleResponse
+    };
 }
 
-function authHeader(method, url) {
-    // return auth header with jwt if user is logged in and request is to the api url
+async function authHeader(method, url) {
     const authstore = useAuthStore();
     const user = authstore.user;
-    const isRestricted = ['POST','PUT','DELETE'].includes(method);
+    const isRestricted = ['POST', 'PUT', 'DELETE'].includes(method);
     const isLoggedIn = !!user?.access_token;
     const isApiUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL);
-    const isRefreshUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL+"/refresh");
-    const isLoginUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL+"/login");
-    if (isLoginUrl){
-        return {};
-    }if (isRefreshUrl){
-        return { Authorization: `Bearer ${user.refresh_token}` };
-    } else if (isRestricted && isLoggedIn && isApiUrl) {
-        if(authstore.isTokenExpired(user.access_token)) {
-            authstore.refresh(user.refresh_token)
-        }
-        return { Authorization: `Bearer ${user.access_token}` };
-    } else {
+    const isRefreshUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL + "/refresh");
+    const isLoginUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL + "/login");
+
+    if (isLoginUrl) {
         return {};
     }
+    if (isRefreshUrl) {
+        return { Authorization: `Bearer ${user.refresh_token}` };
+    } 
+    if (isRestricted && isLoggedIn && isApiUrl) {
+        if (authstore.isTokenExpired(user.access_token)) {
+            await authstore.refresh(user.refresh_token); // Ensuring refresh completes before proceeding
+        }
+        return { Authorization: `Bearer ${authstore.user.access_token}` };
+    } 
+    return {};
 }
 
-function handleResponse(response, receiveBinary) {
+async function handleResponse(response, receiveBinary) {
     if (!response.ok) {
         const { user, logout } = useAuthStore();
+
         if ([401, 403].includes(response.status) && user) {
-            // auto logout if 401 Unauthorized or 403 Forbidden response returned from api
-            logout();
+            logout(); // Logout on unauthorized access
         }
-        const data = response.text;
-        const error = (data && data.message) || response.statusText;
+
+        // **Properly await the response before rejecting**
+        const text = await response.text();
+        let error;
+
+        try {
+            error = text ? JSON.parse(text) : text;
+        } catch (parseError) {
+            error = text; // Fallback if parsing fails
+        }
+        
         return Promise.reject(error);
     }
-    if(receiveBinary) {
+
+    if (receiveBinary) {
         return response;
     }
-    return response.text().then(text => {
-        const data = text && JSON.parse(text);
-        return data;
-    });
-}    
+
+    const text = await response.text();
+    try {
+        return text ? JSON.parse(text) : text;
+    } catch (parseError) {
+        return text;
+    }
+}

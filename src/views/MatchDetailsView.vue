@@ -74,7 +74,7 @@
               v-model="showNewSeriesModal"
               max-width="95vw"
               max-height="95vh">
-              <v-card>
+              <v-card style="display: flex; flex-direction: column; height: 95vh;">
                 <template v-slot:title>
                   <span class="modal-title">
                     <v-icon icon="mdi-account-plus"></v-icon>
@@ -83,184 +83,116 @@
                 </template>
                 <template v-slot:text>
                   <v-container>
-                    <!-- Header modal -->
-                    <v-row class="align-center justify-center">
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team1.name }}</p>
-                      </v-col>        
-                      <v-col cols="2 text-center">
-                        <span class="text-h4">
-                          <v-icon icon="mdi-sword-cross"></v-icon>
-                        </span>
-                        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
-                      </v-col>        
-                      <v-col cols="5 text-center">
-                        <p class="text-h5">{{ team2.name }}</p>
-                        </v-col>
-                    </v-row>
                     <v-row class="justify-space-between" dense>
                       <v-col cols="5">
                         <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="newSeries_Player_1"                            
-                            v-model:expanded="rowsExpanded"
-                            :headers="tableHeader"
+                          <v-data-table
+                            :headers="tablePlayerHeader"
+                            :custom-filter="customFilter"
+                            :search="searchQueryT1"
+                            v-model="newSeries_Player_1"
                             :items="team1.player_by_season[match.season_id]"
                             select-strategy="single"
                             density="compact"
-                            show-select
-                            fixed-header
-                            show-expand
                             multi-sort
+                            fixed-header
+                            hover
                             return-object
-                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
-                              <v-btn
-                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
-                                class="text-none"
-                                size="x-small"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                            <!-- Expanded pannel -->
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr v-if="isArray( item.gnl_stats )">
-                                <td :colspan="columns.length" class="py-2">
-                                  <!-- GNL Stats -->
-                                  <v-sheet>
-                                    <v-table border density="compact" class="pb-2">
-                                      <tbody>
-                                        <tr>
-                                          <th class="text-left"></th>
-                                          <th class="text-right">MMR</th>
-                                          <th class="text-right">Wins</th>
-                                          <th class="text-right">Losses</th>
-                                          <th class="text-right">Total</th>
-                                          <th class="text-right">Winrate</th>
-                                        </tr>
-                                      </tbody>
-                                      <tbody>
-                                        <tr>
-                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
-                                          <td class="text-left text-overline">{{ item.mmr }}</td>
-                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
-                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
-                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
-                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
-                                        </tr>
-                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
-                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                                          <td class="text-right text-green">{{ stat.wins }}</td>
-                                          <td class="text-right text-red">{{ stat.losses }}</td>
-                                          <td class="text-right">{{ stat.games }}</td>
-                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0  + '%' }}</td>
-                                        </tr>
-                                      </tbody>
-                                    </v-table>
-                                  </v-sheet>
-                                </td>
-                              </tr>    
-                              <tr v-else>
-                                <td :colspan="columns.length" class="py-2">
-                                  No stats found.
-                                </td>                                
-                              </tr>                       
-                            </template>
-                            <!-- Table content -->
-                            <template 
-                              v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
-                              {{ item.name }}
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
+                            show-select
+                            height="350"
+                          >
+                          <template v-slot:loading>
+                            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                          </template>
+                          <template v-slot:top>
+                            <v-toolbar flat height="30">
+                              <v-toolbar-title>
+                                <v-icon icon="mdi-account"></v-icon>
+                                {{ team1.name }}
+                              </v-toolbar-title>
+                              <v-spacer></v-spacer>
+                              <!-- Search Input -->
+                              <v-text-field
+                                v-model="searchQueryT1"
+                                placeholder="Search by name"
+                                append-icon="mdi-magnify"
+                                single-line
+                                hide-details
+                              ></v-text-field>
+                            </v-toolbar>
+                          </template>
+                          <template v-slot:[`item.name`]="{ item }">
+                            <FlagIcon :countryIdentifier="item.country" />
+                            <span @click="showStats(item)">
+                              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
+                            </span>
+                          </template>
+                          </v-data-table>
                         </v-card>                    
                       </v-col>
-                      <v-spacer cols="1"></v-spacer>
+                      <v-col cols="1 text-center">
+                        <v-row>
+                          <v-col>
+                            <span class="text-h4">
+                              <v-icon icon="mdi-sword-cross"></v-icon>
+                            </span>
+                          </v-col>
+                          <v-col>
+                            <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
+                          </v-col>
+                        </v-row>
+                      </v-col> 
                       <v-col cols="5">
                         <v-card flat>
-                          <v-data-table-virtual
-                            height="250px"
-                            v-model="newSeries_Player_2"                            
-                            v-model:expanded="rowsExpanded"
-                            :headers="tableHeader"
+                          <v-data-table
+                            :headers="tablePlayerHeader"
+                            :custom-filter="customFilter"
+                            :search="searchQueryT2"
+                            v-model="newSeries_Player_2"
                             :items="team2.player_by_season[match.season_id]"
                             select-strategy="single"
                             density="compact"
-                            show-select
-                            fixed-header
-                            show-expand
                             multi-sort
+                            fixed-header
+                            hover
                             return-object
-                            @click:row="(item, slot) => { rowsExpanded.shift(); slot.toggleExpand( slot.internalItem ); }">
-                            <template v-slot:item.data-table-expand="{ internalItem, isExpanded }">
-                              <v-btn
-                                :icon="isExpanded(internalItem) ? 'mdi-minus' : 'mdi-plus'"
-                                class="text-none"
-                                size="x-small"
-                                variant="plain"
-                              ></v-btn>
-                            </template>
-                            <template v-slot:expanded-row="{ columns, item }">
-                              <tr v-if="isArray( item.gnl_stats )">
-                                <td :colspan="columns.length" class="py-2">
-                                  <!-- GNL Stats -->
-                                  <v-sheet>
-                                    <v-table border density="compact" class="pb-2">
-                                      <tbody>
-                                        <tr>
-                                          <th class="text-left"></th>
-                                          <th class="text-right">MMR</th>
-                                          <th class="text-right">Wins</th>
-                                          <th class="text-right">Losses</th>
-                                          <th class="text-right">Total</th>
-                                          <th class="text-right">Winrate</th>
-                                        </tr>
-                                      </tbody>
-                                      <tbody>
-                                        <tr>
-                                          <td class="text-left text-overline">{{ item.gnl_stats[0].season.name }}</td>
-                                          <td class="text-left text-overline">{{ item.mmr }}</td>
-                                          <td class="text-right text-green">{{ item.gnl_stats[0].wins }}</td>
-                                          <td class="text-right text-red">{{ item.gnl_stats[0].losses }}</td>
-                                          <td class="text-right">{{ item.gnl_stats[0].games }}</td>
-                                          <td class="text-right">{{ Math.round( item.gnl_stats[0].wins / item.gnl_stats[0].games * 100 ) + '%' }}</td>
-                                        </tr>
-                                        <tr v-for="stat in item.w3c_stats" v-if="!isObjectEmpty( item.w3c_stats )">
-                                          <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                                          <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                                          <td class="text-right text-green">{{ stat.wins }}</td>
-                                          <td class="text-right text-red">{{ stat.losses }}</td>
-                                          <td class="text-right">{{ stat.games }}</td>
-                                          <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
-                                        </tr>
-                                      </tbody>
-                                    </v-table>
-                                  </v-sheet>
-                                </td>
-                              </tr>    
-                              <tr v-else>
-                                <td :colspan="columns.length" class="py-2">
-                                  No stats found.
-                                </td>                                
-                              </tr>                     
-                            </template>
-                            <template 
-                              v-slot:item.name="{ item }">
-                              <RaceIcon :raceIdentifier="item.race" />
-                              {{ item.name }}
-                              <FlagIcon :countryIdentifier="item.country" />
-                            </template>
-                          </v-data-table-virtual>
+                            show-select
+                            height="350px"
+                          >
+                          <template v-slot:loading>
+                            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                          </template>
+                          <template v-slot:top>
+                            <v-toolbar flat height="30">
+                              <v-toolbar-title>
+                                <v-icon icon="mdi-account"></v-icon>
+                                {{ team2.name }}
+                              </v-toolbar-title>
+                              <v-spacer></v-spacer>
+                              <!-- Search Input -->
+                              <v-text-field
+                                v-model="searchQueryT2"
+                                placeholder="Search by name"
+                                append-icon="mdi-magnify"
+                                single-line
+                                hide-details
+                              ></v-text-field>
+                            </v-toolbar>
+                          </template>
+                          <template v-slot:[`item.name`]="{ item }">
+                            <FlagIcon :countryIdentifier="item.country" />
+                            <span @click="showStats(item)">
+                              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
+                            </span>
+                          </template>
+                          </v-data-table>
                         </v-card> 
                       </v-col>
                     </v-row> 
                   </v-container>    
                 </template>       
                     
-                <v-card-actions>
+                <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
                   <v-btn 
                     prepend-icon="mdi-plus"
                     @click="createSeries"
@@ -401,7 +333,7 @@
 
     <!-- Edit Series Modal -->
     <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistend>
-      <v-card>
+      <v-card style="display: flex; flex-direction: column; height: 95vh;">
         <v-card-title>Edit Series</v-card-title>
         <v-card-text>
           <v-form>
@@ -457,7 +389,7 @@
             </v-row>
           </v-form>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
           <v-btn @click="updateSeries" color="green" prepend-icon="mdi-check">
             Save
           </v-btn>
@@ -500,7 +432,7 @@
           v-model="showProposeSeriesModal"
           max-width="95vw"
           max-height="95vh">
-          <v-card>
+          <v-card style="display: flex; flex-direction: column; height: 95vh;">
             <template v-slot:title>
               <span class="modal-title">
                 <v-icon icon="mdi-account-plus"></v-icon>
@@ -533,6 +465,8 @@
             <v-data-table
               :headers="proposedSeriesTableHeader"
               :items="proposedSeries"
+              :custom-filter="customFilterSeries"
+              :search="searchQuerySeries"
               select-strategy="all"
               density="compact"
               v-model="selectedProposedSeries"
@@ -551,7 +485,16 @@
                     <v-icon icon="mdi-account"></v-icon>
                     Series List
                   </v-toolbar-title>
+                  <span>Selected: {{ selectedProposedSeries.length }}</span>
                   <v-spacer></v-spacer>
+                  <!-- Search Input -->
+                  <v-text-field
+                    v-model="searchQuerySeries"
+                    placeholder="Search by player name"
+                    append-icon="mdi-magnify"
+                    single-line
+                    hide-details
+                  ></v-text-field>
                 </v-toolbar>
               </template>
               <template v-slot:[`item.player1`]="{ item }">
@@ -575,7 +518,7 @@
         </section>  
           </v-col>
         </v-row>  
-            <v-card-actions>
+            <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
               <v-btn 
                 prepend-icon="mdi-plus"
                 @click="createSelectedProposedSeries"
@@ -621,6 +564,7 @@
                 <v-icon icon="mdi-account"></v-icon>
                 {{ team1.name }}
               </v-toolbar-title>
+              <span>Selected: {{ proposePlayersTeam_1.length }}</span>
               <v-spacer></v-spacer>
               <!-- Search Input -->
               <v-text-field
@@ -635,13 +579,8 @@
           <template v-slot:[`item.name`]="{ item }">
             <FlagIcon :countryIdentifier="item.country" />
             <span @click="showStats(item)">
-              <strong>{{ item.name }}</strong> ({{ item.battleTag }})
+              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
-          </template>
-          <template v-slot:[`item.race`]="{ item }">
-            <div v-if="item.race">
-              <RaceIcon :raceIdentifier="item.race" />                                          
-            </div>
           </template>
           </v-data-table>
         </section>  
@@ -671,6 +610,7 @@
                 <v-icon icon="mdi-account"></v-icon>
                 {{ team2.name }}
               </v-toolbar-title>
+              <span>Selected: {{ proposePlayersTeam_2.length }}</span>
               <v-spacer></v-spacer>
               <!-- Search Input -->
               <v-text-field
@@ -685,18 +625,37 @@
           <template v-slot:[`item.name`]="{ item }">
             <FlagIcon :countryIdentifier="item.country" />
             <span @click="showStats(item)">
-              <strong>{{ item.name }}</strong> ({{ item.battleTag }})
+              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
-          </template>
-          <template v-slot:[`item.race`]="{ item }">
-            <div v-if="item.race">
-              <RaceIcon :raceIdentifier="item.race" />                                          
-            </div>
           </template>
           </v-data-table>
         </section>  
       </v-col>
     </v-row>
+  </div>
+  <div id="wc3Sync">
+    <template>
+      <v-dialog v-model="syncDialog" persistent max-width="500">
+        <v-card>
+          <v-card-title>Sync Results</v-card-title>
+          <v-card-text>
+            <div>
+              <strong>{{ team1.name }}: </strong>
+              <span v-if="syncError1" class="error--text">{{ syncMessage1 }}</span>
+              <span v-else>{{ syncMessage1 }}</span>
+            </div>
+            <div>
+              <strong>{{ team2.name }}: </strong>
+              <span v-if="syncError2" class="error--text">{{ syncMessage2 }}</span>
+              <span v-else>{{ syncMessage2 }}</span>
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="primary" @click="syncDialog = false" :disabled="isLoading">OK</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </template>
   </div>
 </template>
 
@@ -726,24 +685,18 @@ const seriesTableHeader = [
 
 const proposedSeriesTableHeader = [
   { title: 'Player 1', value: 'player1', sortable: true },
+  { title: 'GNL Games', value: 'player1.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'MMR', value: 'player1.mmr', sortable: true },
   { title: 'Player 2', value: 'player2', sortable: true },
+  { title: 'GNL Games', value: 'player2.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'MMR', value: 'player2.mmr', sortable: true }, 
   { title: '', value: 'actions', sortable: true }, 
 ]
 
-const tableHeader = [
-  { title: 'Name', value: 'name', sortable: true },     
-  { title: 'Games', key: 'gnl_stats[0].games', sortable: true, align: 'end' },
-  { title: 'MMR', value: 'mmr', sortable: true, align: 'end' }, 
-]
-
 const tablePlayerHeader = [
-  { title: 'Name', value: 'name', sortable: true },     
-  { title: 'Discord', value: 'discordTag' },
+  { title: 'Name', value: 'name', sortable: true },
   { title: 'GNL Games', key: 'gnl_stats[0].games', sortable: true },
   { title: 'MMR', value: 'mmr', sortable: true }, 
-  { title: 'Race', value: 'race' }, 
 ]
 
 const rowsExpanded = ref([])
@@ -764,23 +717,29 @@ export default {
     const team1 = ref({});
     const team2 = ref({});    
     const date = useDate();
-    const newSeries_Player_1 = ref(null)
-    const newSeries_Player_2 = ref(null)
-    const proposePlayersTeam_1 = ref(null)
-    const proposePlayersTeam_2 = ref(null)
-    const proposeSeriesMMRDiff = ref(null)
-    const proposedSeries = ref([])
-    const selectedProposedSeries = ref(null)
-    const showPlayerDetails = ref(false)
-    const playerDetails = ref(null)
-    const editSeriesDialogOpen = ref(false)
-    const selectedSeries = ref(null)
-    const hostPlayers = ref(null)
+    const newSeries_Player_1 = ref(null);
+    const newSeries_Player_2 = ref(null);
+    const proposePlayersTeam_1 = ref([]);
+    const proposePlayersTeam_2 = ref([]);
+    const proposeSeriesMMRDiff = ref(null);
+    const proposedSeries = ref([]);
+    const selectedProposedSeries = ref([]);
+    const showPlayerDetails = ref(false);
+    const playerDetails = ref(null);
+    const editSeriesDialogOpen = ref(false);
+    const selectedSeries = ref(null);
+    const hostPlayers = ref(null);
     const selectedDate = ref(null);
     const selectedTime = ref(null);
     const searchQueryT1 = ref('');
     const searchQueryT2 = ref('');
+    const searchQuerySeries = ref('');
     const isProposeValid = computed(() => proposePlayersTeam_1.value != null && proposePlayersTeam_2.value != null && proposeSeriesMMRDiff.value != null);
+    const syncDialog = ref(false);
+    const syncMessage1 = ref("");
+    const syncMessage2 = ref("");
+    const syncError1 = ref(false);
+    const syncError2 = ref(false);
 
 
 
@@ -797,7 +756,6 @@ export default {
     }
 
     const customFilter = (value, search, item) => {
-      console.log(item)
       if (!search) return true;
       search = search.toLowerCase();
       // Check if the search query matches the name or Discord fields
@@ -807,6 +765,15 @@ export default {
       );
     }
 
+    const customFilterSeries = (value, search, item) => {
+      if (!search) return true;
+      search = search.toLowerCase();
+      // Check if the search query matches the name or Discord fields
+      return (
+        item.raw.player1.name.toLowerCase().includes(search) ||
+        item.raw.player2.name.toLowerCase().includes(search)
+      );
+    }
 
     const seriesHeaders = [
       { title: 'ID', value: 'id' },
@@ -849,18 +816,34 @@ export default {
     };
 
     const syncW3CTeams = async () => {
-
       isLoading.value = true;
+      syncError1.value = false;
+      syncError2.value = false;
+      syncDialog.value = true;
+      syncMessage1.value = "Sync Onging!";
+      syncMessage2.value = "Mot started!";
+
       try {
-        team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id)
-        
-        team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id)
+        team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
+        syncMessage1.value = "Team 1 synced successfully!";
       } catch (error) {
-        console.error('Failed to sync teams with w3c details:', error);
-      } finally {
-        isLoading.value = false;
+        console.error('Failed to sync Team 1:', error);
+        syncError1.value = true;
+        syncMessage1.value = error || "An unknown error occurred.";
       }
+      try {
+        syncMessage2.value = "Sync Onging!";
+        team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id);
+        syncMessage2.value = "Team 2 synced successfully!";
+      } catch (error) {
+        console.error('Failed to sync Team 2:', error);
+        syncError2.value = true;
+        syncMessage2.value = error || "An unknown error occurred.";
+      }
+
+      isLoading.value = false; // Show results
     };
+              
 
     const showStats = async(player) => {
       showPlayerDetails.value = true;
@@ -934,9 +917,7 @@ export default {
           let p1_mmr = 0;
           for(let j = 0; j < p1.w3c_stats.length; j++){
             let w3cStats = p1.w3c_stats[j];
-              console.log(p1.name, w3cStats.race, p1.race, p1_mmr);
             if(w3cStats.race == p1.race){
-              console.log(p1.name, w3cStats.race, p1.race, p1_mmr);
               p1_mmr = w3cStats.mmr;
               break;
             }
@@ -956,20 +937,16 @@ export default {
 
             for(let z = 0; z < p2.w3c_stats.length; z++){
               let w3cStats = p2.w3c_stats[z];
-              console.log(p2.name, w3cStats.race, p2.race, p2_mmr);
               if(w3cStats.race == p2.race){
-                console.log(p2.name, w3cStats.race, p2.race, p2_mmr);
                 p2_mmr = w3cStats.mmr
                 break;
               }
             }
             let mmr_diff = p1_mmr - p2_mmr;
-            console.log(p1.name, p1_mmr, p2.name, p2_mmr)
             if (mmr_diff<0){
               mmr_diff*=-1
             }
             if(mmr_diff <= proposeSeriesMMRDiff.value){
-              console.log("match", mmr_diff, proposeSeriesMMRDiff.value)
               const newSeries = {}
               newSeries.proposedId = proposedSeries.value.length+1
               newSeries.match_id = matchStore.match.id
@@ -1093,6 +1070,8 @@ export default {
       searchQueryT1,
       searchQueryT2,
       customFilter,
+      searchQuerySeries,
+      customFilterSeries,
 
       newSeries_Player_1,
       newSeries_Player_2,
@@ -1107,7 +1086,11 @@ export default {
       selectedTime,
       tablePlayerHeader,
       
-
+      syncDialog,
+      syncError1,
+      syncError2,
+      syncMessage1,
+      syncMessage2,
 
       proposePlayersTeam_1,
       proposePlayersTeam_2,
@@ -1130,7 +1113,6 @@ export default {
       showNewSeriesModal,
       cancelCreateSeries,
       search,
-      tableHeader,
 
       rowsExpanded,
     };
