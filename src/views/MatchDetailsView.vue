@@ -317,6 +317,13 @@
                 <td class="text-right">{{ playerDetails.gnl_stats[0].games }}</td>
                 <td class="text-right">{{ Math.round( playerDetails.gnl_stats[0].wins / playerDetails.gnl_stats[0].games * 100 ) + '%' }}</td>
               </tr>
+              <tr>
+                <td>W3Champion Stats: 
+                  <a :href="`https://w3champions.com/player/${encodeURIComponent(playerDetails.battleTag)}`" target="_blank">
+                    <img src="https://w3champions.com/assets/logos/small-logo-full-black.png" alt="W3Champions" width="100" style="margin-left: 10px;">
+                  </a>
+                </td>
+              </tr>
               <tr v-for="stat in playerDetails.w3c_stats" v-if="!isObjectEmpty( playerDetails.w3c_stats )">
                 <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
                 <td class="text-left text-overline">{{ stat.mmr  }}</td>
