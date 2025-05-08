@@ -828,7 +828,7 @@ export default {
       syncError2.value = false;
       syncDialog.value = true;
       syncMessage1.value = "Sync Onging!";
-      syncMessage2.value = "Mot started!";
+      syncMessage2.value = "Not started!";
 
       try {
         team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
