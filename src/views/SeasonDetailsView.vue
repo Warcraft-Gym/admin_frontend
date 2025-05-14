@@ -307,8 +307,8 @@
   </template>
   
   <script>
-  import { useRouter } from 'vue-router';
-  import { ref, onMounted, computed } from 'vue';
+  import { useRouter, useRoute } from 'vue-router';
+  import { ref, onMounted, computed, watch } from 'vue';
   import { useSeasonStore, useMatchStore, useTeamStore, useMapStore } from '@/stores';
   import  bannerImg from '@/assets/media/GNL_Banner.png';
   import  teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
@@ -323,6 +323,7 @@
     name: 'SeasonDetailsView',
     setup() {
     const router = useRouter();
+    const route = useRoute();
     const seasonId = router.currentRoute.value.params.id;
     const seasonStore = useSeasonStore();
     const matchStore = useMatchStore();
@@ -438,10 +439,10 @@
       }
     };
 
-
     const fetchMatches = async (week) => {
         selectedWeek.value = week;
         isLoading.value = true;
+        router.push({ hash: `#week-${week}` });
         try {
             await matchStore.searchMatchesBySeasonAndPlayday(seasonId, week);
         } catch (error) {
@@ -504,16 +505,32 @@
         }
       }
     };
+
+    watch(() => route.hash, (newHash) => {
+      if (newHash) {
+        const weekFromHash = route.hash && route.hash.includes('#week-') 
+            ? parseInt(route.hash.replace('#week-', ''), 10) 
+            : 1;
+          if(selectedWeek.value && weekFromHash!=selectedWeek.value){
+            fetchMatches(weekFromHash);
+          }
+      }
+    });
+
   
     onMounted(async () => {
         isInitLoading = true;
         isLoading.value = true;
         try {
+          const weekFromHash = route.hash && route.hash.includes('#week-') 
+            ? parseInt(route.hash.replace('#week-', ''), 10) 
+            : 1;
+
           await Promise.all([
             fetchSeasonDetails(),
             fetchTeams(),
             allTeams.value = await teamStore.getTeams(),
-            fetchMatches(1),
+            fetchMatches(weekFromHash),
             fetchMaps()
         ]);
 
