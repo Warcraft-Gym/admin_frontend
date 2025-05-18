@@ -13,7 +13,7 @@
       <div id="teamList">
         <v-row>
           <v-btn 
-                    @click="showNewTeamModal = true"
+                    @click="createTeam()"
                     class="toolbar-btn"
                     variant="tonal"
                     prepend-icon="mdi-plus"
@@ -123,8 +123,7 @@
       <!-- Edit Team Modal -->
       <v-dialog
         id="editTeamModal"
-        v-if="selectedTeam"
-        v-model="selectedTeam"
+        v-model="showEditTeamModal"
         max-width="65vw">
         <v-card>
           <template v-slot:title>
@@ -194,13 +193,10 @@ const selectedTeam = ref(null);
 const isLoading  = ref(false); // State for selected user
 const errorMessage = ref(null);
 const showNewTeamModal = ref(false);
+const showEditTeamModal = ref(false);
 
 const file = ref(null);
-const newTeam = ref({
-  name: '',
-  long_name: '',
-  discord_role:''
-});
+const newTeam = ref(null);
 
 const tableHeader = [
   { title:'', value: 'icon'},
@@ -256,14 +252,29 @@ export default {
           fetchTeams(); 
         });
 
+        const createTeam = () => {
+          showNewTeamModal.value = true;
+          newTeam.value = {
+            name: '',
+            long_name: '',
+            discord_role:''
+          }
+        };
+
         const editTeam = (team) => {
-          selectedTeam.value = { ...team }; // Clone the user object to avoid modifying the original object directly
+          showEditTeamModal.value = true;
+          selectedTeam.value = { 
+            id: team.id,
+            name: team.name,
+            long_name: team.long_name,
+            discord_role: team.discord_role
+           };
         };
 
         const updateTeam = async () => {
           try {
             await teamStore.updateTeam(selectedTeam.value);
-            if(file){
+            if(file.value){
               await teamStore.uploadTeamImage(selectedTeam.value.id, file.value);
             }
             // Update the local state after a successful PUT request
@@ -275,13 +286,20 @@ export default {
         };
 
         const cancelEdit = () => {
-          selectedTeam.value = null; // Clear the selected user
+          showEditTeamModal.value = false;
+          file.value = null;
+          selectedTeam.value = { 
+            id: null,
+            name: '',
+            long_name: '',
+            discord_role: ''
+           };// Clear the selected user
         };
 
         const createNewTeam = async () => {
           try {
             await teamStore.createTeam(newTeam.value);
-            if(file){
+            if(file.value){
               await teamStore.uploadTeamImage(selectedTeam.value.id, file.value);
             }
             await fetchTeams();
@@ -303,6 +321,7 @@ export default {
 
         const cancelAddNewTeam = () => {
           showNewTeamModal.value = false;
+          file.value = null;
           newTeam.value = {
             name: '',
             long_name: '',
@@ -317,12 +336,14 @@ export default {
             //table
             tableHeader,
 
+            showEditTeamModal,
             selectedTeam,
             editTeam,
             updateTeam,
             cancelEdit,
             errorMessage,
             showNewTeamModal,
+            createTeam,
             newTeam,
             createNewTeam,
             cancelAddNewTeam,
