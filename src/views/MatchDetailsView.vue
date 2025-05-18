@@ -252,11 +252,11 @@
                     </span>
                   </td>
                   <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
-                  <td>{{ item.player1.mmr }}</td>
+                  <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
                   <td>{{ item.player1_score }}</td>
                   <td>{{ item.player2_score }}</td>
                   <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
-                  <td>{{ item.player2.mmr }}</td>
+                  <td>{{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}</td>
                   <td>
                     <span v-if="item.host_player_id === item.player1.id">
                       {{ item.player1.name }}
@@ -510,6 +510,24 @@
               <template v-slot:[`item.player2`]="{ item }">
                   <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
               </template>
+              <template v-slot:[`item.p1_mmr`]="{ item }">
+                  <td>{{ item.player1.mmr }}</td>
+              </template>
+              <template v-slot:[`item.p1_w3c_mmr`]="{ item }">
+                  <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
+              </template>
+              <template v-slot:[`item.p1_w3c_high_mmr`]="{ item }">
+                  <td>{{ item.player1.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
+              </template>
+              <template v-slot:[`item.p2_mmr`]="{ item }">
+                  <td>{{ item.player2.mmr }}</td>
+              </template>
+              <template v-slot:[`item.p2_w3c_mmr`]="{ item }">
+                  <td>{{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}</td>
+              </template>
+              <template v-slot:[`item.p2_w3c_high_mmr`]="{ item }">
+                  <td>{{ item.player2.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
+              </template>
               <template v-slot:[`item.actions`]="{ item }">
                   <td>
                     <v-btn
@@ -589,6 +607,9 @@
               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
           </template>
+          <template v-slot:[`item.w3c_mmr`]="{ item }">
+            <td>{{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
+          </template>
           </v-data-table>
         </section>  
       </v-col>
@@ -634,6 +655,9 @@
             <span @click="showStats(item)">
               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
+          </template>
+          <template v-slot:[`item.w3c_mmr`]="{ item }">
+            <td>{{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
           </template>
           </v-data-table>
         </section>  
@@ -681,11 +705,11 @@ const seriesTableHeader = [
   { title: 'Caster'},  
   { title: 'Date/Time'}, 
   { title: 'Player 1', value: 'player1.name', sortable: true },
-  { title: 'MMR', value: 'player1.mmr', sortable: true },
+  { title: 'MMR', value: 'p1_w3c_mmr', sortable: true },
   { title: 'P1 Score' },
   { title: 'P2 Score' },
   { title: 'Player 2', value: 'player2.name', sortable: true },
-  { title: 'MMR', value: 'player2.mmr', sortable: true },
+  { title: 'MMR', value: 'p2_w3c_mmr', sortable: true },
   { title: 'Host' },
   { title: 'Fantasy Match'},    
 ]
@@ -693,17 +717,21 @@ const seriesTableHeader = [
 const proposedSeriesTableHeader = [
   { title: 'Player 1', value: 'player1', sortable: true },
   { title: 'GNL Games', value: 'player1.gnl_stats[0].games', sortable: true, align: 'end' },
-  { title: 'MMR', value: 'player1.mmr', sortable: true },
+  { title: 'Signup MMR', key: 'p1_mmr', sortable: true },
+  { title: 'Current MMR', key: 'p1_w3c_mmr', sortable: true },
+  { title: 'Highest Race MMR', key: 'p1_w3c_high_mmr', sortable: true },
   { title: 'Player 2', value: 'player2', sortable: true },
   { title: 'GNL Games', value: 'player2.gnl_stats[0].games', sortable: true, align: 'end' },
-  { title: 'MMR', value: 'player2.mmr', sortable: true }, 
+  { title: 'Signup MMR', key: 'p2_mmr', sortable: true }, 
+  { title: 'Current MMR', key: 'p2_w3c_mmr', sortable: true },
+  { title: 'Highest Race MMR', key: 'p2_w3c_high_mmr', sortable: true },
   { title: '', value: 'actions', sortable: true }, 
 ]
 
 const tablePlayerHeader = [
   { title: 'Name', value: 'name', sortable: true },
   { title: 'GNL Games', key: 'gnl_stats[0].games', sortable: true },
-  { title: 'MMR', value: 'mmr', sortable: true }, 
+  { title: 'MMR', value: 'w3c_mmr', sortable: true }, 
 ]
 
 const rowsExpanded = ref([])
