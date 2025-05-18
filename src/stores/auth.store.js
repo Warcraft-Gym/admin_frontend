@@ -34,7 +34,7 @@ export const useAuthStore = defineStore({
         },
     	isTokenExpired(token) {
             if (!token) {
-                return false;
+                return true;
             }
             const payload = jwtDecode(token);
             const currentTime = Math.floor(Date.now() / 1000);
