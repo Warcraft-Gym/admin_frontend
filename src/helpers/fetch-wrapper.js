@@ -60,7 +60,12 @@ async function authHeader(method, url) {
     } 
     if (isRestricted && isLoggedIn && isApiUrl) {
         if (authstore.isTokenExpired(user.access_token)) {
-            await authstore.refresh(user.refresh_token); // Ensuring refresh completes before proceeding
+            if (auth.isTokenExpired(user.refresh_token)) {
+                auth.returnUrl = to.fullPath;
+                return '/login';
+            } else {
+                await authstore.refresh(user.refresh_token);
+            }
         }
         return { Authorization: `Bearer ${authstore.user.access_token}` };
     } 
