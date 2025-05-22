@@ -998,12 +998,31 @@ export default {
             let p2_mmr = 0;
             let p2 = t2_player[k];
             if(seriesStore.series!=null) {
+              let seriesExists = false;
               for (let n = 0; n < seriesStore.series.length; n++){
                 let s = seriesStore.series[n];
                 if(p1.id == s.player1_id && p2.id == s.player2_id){
-                  console.log("Skip Series already exists!");
-                  continue;
+                  seriesExists = true;
+                  break;
                 }
+              }
+              if(seriesExists){
+                break;
+              }
+            }
+
+            if(selectedProposedSeries.value) {
+              let selectedPropSeriesExists = false;
+              for (let m = 0; m < selectedProposedSeries.value.length; m++){
+                let sPropS = selectedProposedSeries.value[m];
+                if(p1.id == sPropS.player1_id && p2.id == sPropS.player2_id){
+                  proposedSeries.value.push(sPropS)
+                  selectedPropSeriesExists = true;
+                  break;
+                }
+              }
+              if(selectedPropSeriesExists){
+                break;
               }
             }
 
@@ -1030,14 +1049,15 @@ export default {
               newSeries.player1 = p1
               newSeries.player2_id = p2.id
               newSeries.player2 = p2
-              console.log("New Series", newSeries)
-              //await seriesStore.createSeries(newSeries)
               proposedSeries.value.push(newSeries)
             }
           }
         }
-        //await fetchMatchSeries();
-        //cancelProposeSeries();
+        if (selectedProposedSeries.value) {
+          selectedProposedSeries.value = selectedProposedSeries.value.filter(sps =>
+            proposedSeries.value.some(ps => sps.player1_id === ps.player1_id && sps.player2_id === ps.player2_id)
+          );
+        }
       } catch (error) {
         console.error('Failed to fetch match details:', error);
       } finally {
@@ -1046,9 +1066,7 @@ export default {
     };
 
     const openProposeSeries = () => {
-      console.log("Check Proposed Series")
       proposeSeries();
-      console.log("Show modal")
       showProposeSeriesModal.value = true;
     };
     const cancelProposeSeries = () => {
