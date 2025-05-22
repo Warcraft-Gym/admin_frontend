@@ -36,7 +36,7 @@
               <template v-slot:[`item.actions`]="{ item }">
                   <td>
                     <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editTeam(item)"></v-btn>
-                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removeTeam(item.id)"></v-btn>
+                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removeTeam)"></v-btn>
                   </td>
               </template>
               <template v-slot:[`item.icon`]="{ item }">
@@ -181,6 +181,18 @@
         </v-card>
       </v-dialog>
     </div>
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirm Deletion</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete this item? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </template>
 <script>
 import '@/assets/base.css';
@@ -214,7 +226,9 @@ export default {
     setup(){
         const teamStore = useTeamStore();
         // Fetch data when the page is loaded
-
+        const showDeleteDialog = ref(false);
+        const selectedDeleteItemId = ref(null);
+        const deleteAction = ref(null);
 
         // Fetch users when the component is mounted
         const fetchTeams = async () => {
@@ -328,6 +342,28 @@ export default {
             discord_role: ''
           };
         };
+
+        const openDeleteDialog = (id, action) => {
+          selectedDeleteItemId.value = id;
+          deleteAction.value = action; // Store the function dynamically
+          showDeleteDialog.value = true;
+        };
+
+        const confirmDelete = () => {
+          if (selectedDeleteItemId.value && deleteAction.value) {
+            deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
+            showDeleteDialog.value = false;
+          } else if (deleteAction.value) {
+            deleteAction.value(); // Call the dynamically stored function
+            showDeleteDialog.value = false;
+          }
+        };
+
+        const cancelDeleteDialog = () => {
+          showDeleteDialog.value = false;
+          selectedDeleteItemId.value = null;
+          deleteAction.value = null; // Store the function dynamically
+        };
         
         return {
             isLoading,
@@ -350,6 +386,13 @@ export default {
             removeTeam,       
             fetchTeams,
             file,
+
+            showDeleteDialog,
+            selectedDeleteItemId,
+            deleteAction,
+            confirmDelete,
+            cancelDeleteDialog,
+            openDeleteDialog,
         }
     },
 };

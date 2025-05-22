@@ -233,11 +233,7 @@
                     Series List
                   </v-toolbar-title>
                   <v-spacer></v-spacer>
-                  <v-btn
-                      icon
-                      @click.stop="removeAllSeries()"
-                      color="red"
-                    >
+                <v-btn icon @click="openDeleteDialog(null, removeAllSeries)" color="red">
                       <v-icon>mdi-trash-can</v-icon>
                 </v-btn>
                 </v-toolbar>
@@ -275,11 +271,7 @@
                     >
                       <v-icon>mdi-account-edit</v-icon>
                     </v-btn>
-                    <v-btn
-                      icon
-                      @click.stop="removeSeries(item.id)"
-                      color="red"
-                    >
+                    <v-btn icon @click="openDeleteDialog(item.id, removeSeries)" color="red">
                       <v-icon>mdi-trash-can</v-icon>
                     </v-btn>
                   </td>
@@ -482,6 +474,7 @@
               hover
               return-object
               show-select
+              :row-props="getRowClass"
             >
               <template v-slot:loading>
                 <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
@@ -504,11 +497,14 @@
                   ></v-text-field>
                 </v-toolbar>
               </template>
-              <template v-slot:[`item.player1`]="{ item }">
-                  <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
+              <template v-slot:[`item.player1.name`]="{ item }">
+                  <FlagIcon :countryIdentifier="item.player1.country" />
+                  <span @click="showStats(item.player1)">{{ item.player1.name }}</span>
               </template>
-              <template v-slot:[`item.player2`]="{ item }">
-                  <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
+              <template v-slot:[`item.player2.name`]="{ item }">
+                <FlagIcon :countryIdentifier="item.country" />
+                  <FlagIcon :countryIdentifier="item.player2.country" />
+                  <span @click="showStats(item.player2)">{{ item.player2.name }}</span>
               </template>
               <template v-slot:[`item.p1_w3c_mmr`]="{ item }">
                   <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
@@ -523,12 +519,8 @@
                   <td>{{ item.player2.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
               </template>
               <template v-slot:[`item.actions`]="{ item }">
-                  <td>
-                    <v-btn
-                      icon
-                      @click.stop="removeProposedSeries(item.proposedId)"
-                      color="red"
-                    >
+                  <td> 
+                    <v-btn icon @click="openDeleteDialog(item.proposedId, removeProposedSeries)" color="red">
                       <v-icon>mdi-trash-can</v-icon>
                     </v-btn>
                   </td>
@@ -681,8 +673,22 @@
         </v-card>
       </v-dialog>
     </template>
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirm Deletion</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete this item? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </div>
 </template>
+
 
 <script>
 import bannerImg from '@/assets/media/match-banner.jpg'
@@ -717,7 +723,7 @@ const seriesTableHeader = [
 ]
 
 const proposedSeriesTableHeader = [
-  { title: 'Player 1', value: 'player1', sortable: true },
+  { title: 'Player 1', value: 'player1.name', width:'300px', sortable: true },
   { title: 'GNL Games', value: 'player1.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'Signup MMR', value: 'player1.mmr', sortable: true },
   { title: 'Current MMR', key: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
@@ -730,7 +736,7 @@ const proposedSeriesTableHeader = [
     let bValue = b?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
     return aValue - bValue;
   }},
-  { title: 'Player 2', value: 'player2', sortable: true },
+  { title: 'Player 2', value: 'player2.name', width:'300px', sortable: true },
   { title: 'GNL Games', value: 'player2.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'Signup MMR', value: 'player2.mmr', sortable: true }, 
   { title: 'Current MMR', key: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
@@ -800,6 +806,10 @@ export default {
     const syncMessage2 = ref("");
     const syncError1 = ref(false);
     const syncError2 = ref(false);
+    const showDeleteDialog = ref(false);
+    const selectedDeleteItemId = ref(null);
+    const deleteAction = ref(null);
+
 
 
 
@@ -824,6 +834,14 @@ export default {
         item.raw.discordTag.toLowerCase().includes(search)
       );
     }
+
+    const getRowClass = item => {
+      const isSelected = selectedProposedSeries.value.some(
+        sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
+      );
+      return {class: isSelected ? 'highlight-row' : ''};
+    };
+
 
     const customSort = (items, sortBy, sortDesc) => {
       console.log(item, sortby, sortDesc);
@@ -1125,6 +1143,28 @@ export default {
       }
     };
 
+    const openDeleteDialog = (id, action) => {
+      selectedDeleteItemId.value = id;
+      deleteAction.value = action; // Store the function dynamically
+      showDeleteDialog.value = true;
+    };
+
+    const confirmDelete = () => {
+      if (selectedDeleteItemId.value && deleteAction.value) {
+        deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
+        showDeleteDialog.value = false;
+      } else if (deleteAction.value) {
+         deleteAction.value(); // Call the dynamically stored function
+        showDeleteDialog.value = false;
+      }
+    };
+
+    const cancelDeleteDialog = () => {
+      showDeleteDialog.value = false;
+      selectedDeleteItemId.value = null;
+      deleteAction.value = null; // Store the function dynamically
+    };
+
     const removeAllSeries = async () => {
       isLoading.value = true;
       try {
@@ -1175,6 +1215,7 @@ export default {
       selectedDate,
       selectedTime,
       tablePlayerHeader,
+      getRowClass,
       
       syncDialog,
       syncError1,
@@ -1183,6 +1224,7 @@ export default {
       syncMessage2,
 
       customSort,
+      getRowClass,
 
       proposePlayersTeam_1,
       proposePlayersTeam_2,
@@ -1197,7 +1239,14 @@ export default {
       createSelectedProposedSeries,
       removeProposedSeries,
       isProposeValid,
-      
+
+
+      showDeleteDialog,
+      selectedDeleteItemId,
+      deleteAction,
+      confirmDelete,
+      cancelDeleteDialog,
+      openDeleteDialog,
 
       bannerImg,
       date,
@@ -1251,4 +1300,9 @@ export default {
   font-weight: 400;
   font-style: normal;
 }
+
+.highlight-row {
+  background-color: #ffc87a !important; /* Change to desired highlight color */
+}
+
 </style>

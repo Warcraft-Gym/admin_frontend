@@ -218,7 +218,7 @@
                   </v-dialog>
                 </v-row>
                 <v-row>
-                  <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="removeMatch(match.id)"></v-btn>
+                  <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="openDeleteDialog(match.id, removeMatch)"></v-btn>
                 </v-row>
               </v-col>
             </v-row>
@@ -302,7 +302,18 @@
       <p v-else>No teams found for this season.</p>
     </div>
   </v-container>
-
+  <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirm Deletion</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete this item? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
   </template>
   
@@ -336,6 +347,9 @@
     const selectedMatch = ref(null);
     const selectedMap = ref(null);
     const newMatch = ref(null);
+    const showDeleteDialog = ref(false);
+    const selectedDeleteItemId = ref(null);
+    const deleteAction = ref(null);
 
     const teamImages = ref({});
     const allTeams = ref(null);
@@ -424,6 +438,28 @@
           selectedMatch.value = null; // Clear the selected user
     };
 
+    
+    const openDeleteDialog = (id, action) => {
+      selectedDeleteItemId.value = id;
+      deleteAction.value = action; // Store the function dynamically
+      showDeleteDialog.value = true;
+    };
+
+    const confirmDelete = () => {
+      if (selectedDeleteItemId.value && deleteAction.value) {
+        deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
+        showDeleteDialog.value = false;
+      } else if (deleteAction.value) {
+         deleteAction.value(); // Call the dynamically stored function
+        showDeleteDialog.value = false;
+      }
+    };
+
+    const cancelDeleteDialog = () => {
+      showDeleteDialog.value = false;
+      selectedDeleteItemId.value = null;
+      deleteAction.value = null; // Store the function dynamically
+    };
 
     const confirmSelection = async () => {
       isLoading.value = true;
@@ -567,6 +603,13 @@
         openTeamSelectionModal,
         closeTeamSelectionModal,
         addTeamsToSeason,
+
+        showDeleteDialog,
+        selectedDeleteItemId,
+        deleteAction,
+        confirmDelete,
+        cancelDeleteDialog,
+        openDeleteDialog,
 
         newMatch,
         selectedMatch,

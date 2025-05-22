@@ -118,7 +118,7 @@
               </v-btn>
               <v-btn
                 icon
-                @click.stop="removeSeason(item.id)"
+                @click.stop="openDeleteDialog(item.id, removeSeason)"
                 color="red"
               >
                 <v-icon>mdi-trash-can</v-icon>
@@ -212,6 +212,18 @@
       </v-card>
     </v-dialog>
   </div>
+  <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirm Deletion</v-card-title>
+        <v-card-text>
+          Are you sure you want to delete this item? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </template>
 <script>
 import '@/assets/base.css';
@@ -247,6 +259,9 @@ export default {
 
         const seasonStore = useSeasonStore();
         // Fetch data when the page is loaded
+        const showDeleteDialog = ref(false);
+        const selectedDeleteItemId = ref(null);
+        const deleteAction = ref(null);
 
 
         // Fetch seasons when the component is mounted
@@ -327,6 +342,28 @@ export default {
           addNewDialogOpen.value = false;
         };
         
+        const openDeleteDialog = (id, action) => {
+          selectedDeleteItemId.value = id;
+          deleteAction.value = action; // Store the function dynamically
+          showDeleteDialog.value = true;
+        };
+
+        const confirmDelete = () => {
+          if (selectedDeleteItemId.value && deleteAction.value) {
+            deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
+            showDeleteDialog.value = false;
+          } else if (deleteAction.value) {
+            deleteAction.value(); // Call the dynamically stored function
+            showDeleteDialog.value = false;
+          }
+        };
+
+        const cancelDeleteDialog = () => {
+          showDeleteDialog.value = false;
+          selectedDeleteItemId.value = null;
+          deleteAction.value = null; // Store the function dynamically
+        };
+
         const uploadFile = async () => {
         if (!isFileFormValid.value) {
           uploadMessage.value = "Please select a file and provide a Season Name or ID before uploading!";
@@ -366,6 +403,13 @@ export default {
             uploadFile,
             isFileFormValid,
 
+
+            showDeleteDialog,
+            selectedDeleteItemId,
+            deleteAction,
+            confirmDelete,
+            cancelDeleteDialog,
+            openDeleteDialog,
 
             selectedSeason,
             file,
