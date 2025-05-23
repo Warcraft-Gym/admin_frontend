@@ -841,7 +841,13 @@ export default {
       );
       if(isMatchSelected){
         return {class: 'highlight-selected-row'}; 
-      } 
+      }
+      const playerHasSeries = seriesStore.series.some(
+        sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
+      );
+      if(playerHasSeries){
+        return {class: 'highlight-row'}; 
+      }
       const isPlayerSelected = selectedProposedSeries.value.some(
         sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
       );
