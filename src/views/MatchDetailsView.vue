@@ -836,10 +836,16 @@ export default {
     }
 
     const getRowClass = item => {
-      const isSelected = selectedProposedSeries.value.some(
+      const isMatchSelected = selectedProposedSeries.value.some(
+        sel => sel.player1.id === item.item.player1.id && sel.player2.id === item.item.player2.id
+      );
+      if(isMatchSelected){
+        return {class: 'highlight-selected-row'}; 
+      } 
+      const isPlayerSelected = selectedProposedSeries.value.some(
         sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
       );
-      return {class: isSelected ? 'highlight-row' : ''};
+      return {class: isPlayerSelected ? 'highlight-row' : ''};
     };
 
 
@@ -1025,7 +1031,7 @@ export default {
                 }
               }
               if(seriesExists){
-                break;
+                continue;
               }
             }
 
@@ -1034,13 +1040,13 @@ export default {
               for (let m = 0; m < selectedProposedSeries.value.length; m++){
                 let sPropS = selectedProposedSeries.value[m];
                 if(p1.id == sPropS.player1_id && p2.id == sPropS.player2_id){
-                  proposedSeries.value.push(sPropS)
+                  proposedSeries.value.push(sPropS);
                   selectedPropSeriesExists = true;
                   break;
                 }
               }
               if(selectedPropSeriesExists){
-                break;
+                continue;
               }
             }
 
@@ -1303,6 +1309,10 @@ export default {
 
 .highlight-row {
   background-color: #ffc87a !important; /* Change to desired highlight color */
+}
+
+.highlight-selected-row {
+  background-color: #99ff7a !important; /* Change to desired highlight color */
 }
 
 </style>
