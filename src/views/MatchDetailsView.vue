@@ -62,7 +62,7 @@
         <v-row>          
           <v-col cols="auto">
             <v-btn
-              @click="showNewSeriesModal = true"
+              @click="openSeriesCreation"
               class="toolbar-btn"
               variant="tonal"
               prepend-icon="mdi-plus">
@@ -75,6 +75,16 @@
               max-width="95vw"
               max-height="95vh">
               <v-card style="display: flex; flex-direction: column; height: 95vh;">
+                <v-alert
+                    v-if="creationSeriesError"
+                    type="error"
+                    class="mx-4 my-2"
+                    dense
+                    border="start"
+                    border-color="red"
+                  >
+                  {{ creationSeriesError }}
+                </v-alert>
                 <template v-slot:title>
                   <span class="modal-title">
                     <v-icon icon="mdi-account-plus"></v-icon>
@@ -333,6 +343,16 @@
     <!-- Edit Series Modal -->
     <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistend>
       <v-card style="display: flex; flex-direction: column; height: 95vh;">
+        <v-alert
+          v-if="updateError"
+          type="error"
+          class="mx-4 my-2"
+          dense
+          border="start"
+          border-color="red"
+        >
+          {{ updateError }}
+        </v-alert>
         <v-card-title>Edit Series</v-card-title>
         <v-card-text>
           <v-form>
@@ -690,7 +710,7 @@
 </template>
 
 
-<script>
+<script setup>
 import bannerImg from '@/assets/media/match-banner.jpg'
 import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
@@ -698,6 +718,10 @@ import { DateTime } from "luxon";
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
 import FlagIcon from '../components/FlagIcon.vue';
+
+defineOptions({
+  name: 'MatchDetailsView'
+})
 
 const seriesTableHeader = [
   
@@ -720,7 +744,7 @@ const seriesTableHeader = [
   }},
   { title: 'Host' },
   { title: 'Fantasy Match'},    
-]
+];
 
 const proposedSeriesTableHeader = [
   { title: 'Player 1', value: 'player1.name', width:'300px', sortable: true },
@@ -751,7 +775,7 @@ const proposedSeriesTableHeader = [
   }
   },
   { title: '', value: 'actions', sortable: true }, 
-]
+];
 
 const tablePlayerHeader = [
   { title: 'Name', value: 'name', sortable: true },
@@ -763,514 +787,433 @@ const tablePlayerHeader = [
   }
 
 }, 
-]
+];
 
-const rowsExpanded = ref([])
+const showNewSeriesModal = ref(false);
+const showProposeSeriesModal = ref(false);
+const search = ref('');
+const router = useRouter();
+const matchId = router.currentRoute.value.params.id;
+const matchStore = useMatchStore();
+const seriesStore = useSeriesStore();
+const teamStore = useTeamStore();
+const isLoading = ref(false);
+const team1 = ref({});
+const team2 = ref({});    
+const date = useDate();
+const newSeries_Player_1 = ref(null);
+const newSeries_Player_2 = ref(null);
+const proposePlayersTeam_1 = ref([]);
+const proposePlayersTeam_2 = ref([]);
+const proposeSeriesMMRDiff = ref(null);
+const proposedSeries = ref([]);
+const selectedProposedSeries = ref([]);
+const showPlayerDetails = ref(false);
+const playerDetails = ref(null);
+const editSeriesDialogOpen = ref(false);
+const updateSeriesError = ref(false);
+const selectedSeries = ref(null);
+const hostPlayers = ref(null);
+const selectedDate = ref(null);
+const selectedTime = ref(null);
+const searchQueryT1 = ref('');
+const searchQueryT2 = ref('');
+const searchQuerySeries = ref('');
+const isProposeValid = computed(() => proposePlayersTeam_1.value != null && proposePlayersTeam_2.value != null && proposeSeriesMMRDiff.value != null);
+const syncDialog = ref(false);
+const syncMessage1 = ref("");
+const syncMessage2 = ref("");
+const syncError1 = ref(false);
+const syncError2 = ref(false);
+const showDeleteDialog = ref(false);
+const selectedDeleteItemId = ref(null);
+const deleteAction = ref(null);
+const creationSeriesError = ref(null);
 
-const showNewSeriesModal = ref(false)
-const showProposeSeriesModal = ref(false)
-const search = ref('')
+const formateDate = ( dateToFormat ) => {
+  if (!dateToFormat) {
+    return dateToFormat;
+  }
+  const formatedDate = DateTime.fromISO(
+    dateToFormat,{
+      zone: "America/New_York"
+    }
+  ).setZone("local").toLocaleString(DateTime.DATETIME_MED);
+  return formatedDate
+}
 
-export default {
-  name: 'MatchDetailsView',
-  setup() {
-    const router = useRouter();
-    const matchId = router.currentRoute.value.params.id;
-    const matchStore = useMatchStore();
-    const seriesStore = useSeriesStore();
-    const teamStore = useTeamStore();
-    const isLoading = ref(false);
-    const team1 = ref({});
-    const team2 = ref({});    
-    const date = useDate();
-    const newSeries_Player_1 = ref(null);
-    const newSeries_Player_2 = ref(null);
-    const proposePlayersTeam_1 = ref([]);
-    const proposePlayersTeam_2 = ref([]);
-    const proposeSeriesMMRDiff = ref(null);
-    const proposedSeries = ref([]);
-    const selectedProposedSeries = ref([]);
-    const showPlayerDetails = ref(false);
-    const playerDetails = ref(null);
-    const editSeriesDialogOpen = ref(false);
-    const selectedSeries = ref(null);
-    const hostPlayers = ref(null);
-    const selectedDate = ref(null);
-    const selectedTime = ref(null);
-    const searchQueryT1 = ref('');
-    const searchQueryT2 = ref('');
-    const searchQuerySeries = ref('');
-    const isProposeValid = computed(() => proposePlayersTeam_1.value != null && proposePlayersTeam_2.value != null && proposeSeriesMMRDiff.value != null);
-    const syncDialog = ref(false);
-    const syncMessage1 = ref("");
-    const syncMessage2 = ref("");
-    const syncError1 = ref(false);
-    const syncError2 = ref(false);
-    const showDeleteDialog = ref(false);
-    const selectedDeleteItemId = ref(null);
-    const deleteAction = ref(null);
+const customFilter = (value, search, item) => {
+  if (!search) return true;
+  search = search.toLowerCase();
+  // Check if the search query matches the name or Discord fields
+  return (
+    item.raw.name.toLowerCase().includes(search) ||
+    item.raw.discordTag.toLowerCase().includes(search)
+  );
+}
+
+const getRowClass = item => {
+  const isMatchSelected = selectedProposedSeries.value.some(
+    sel => sel.player1.id === item.item.player1.id && sel.player2.id === item.item.player2.id
+  );
+  if(isMatchSelected){
+    return {class: 'highlight-selected-row'}; 
+  }
+  const playerHasSeries = seriesStore.series.some(
+    sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
+  );
+  if(playerHasSeries){
+    return {class: 'highlight-row'}; 
+  }
+  const isPlayerSelected = selectedProposedSeries.value.some(
+    sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
+  );
+  return {class: isPlayerSelected ? 'highlight-row' : ''};
+};
 
 
+const customSort = (items, sortBy, sortDesc) => {
+  console.log(item, sortby, sortDesc);
+  if (sortBy === 'w3c_mmr') {
+    return [...items].sort((a, b) => {
+      let aValue = a.w3c_stats.find(player => player.race === a.race)?.mmr || 0;
+      let bValue = b.w3c_stats.find(player => player.race === b.race)?.mmr || 0;
+      return sortDesc ? bValue - aValue : aValue - bValue;
+    });
+  }
+  return items; // Uses default sorting for other columns
+};
 
+const customFilterSeries = (value, search, item) => {
+  if (!search) return true;
+  search = search.toLowerCase();
+  // Check if the search query matches the name or Discord fields
+  return (
+    item.raw.player1.name.toLowerCase().includes(search) ||
+    item.raw.player2.name.toLowerCase().includes(search)
+  );
+}
 
-    const formateDate = ( dateToFormat ) => {
-      if (!dateToFormat) {
-        return dateToFormat;
+const seriesHeaders = [
+  { title: 'ID', value: 'id' },
+  { title: 'Player 1', value: 'player1.name' },
+  { title: '', value: '' },
+  { title: 'Player 2', value: 'player2.name' },
+  { title: 'Actions', align: 'center' }
+];
+
+const cancelCreateSeries = () => {
+  showNewSeriesModal.value = false;
+};
+
+const fetchMatchDetails = async () => {
+  isLoading.value = true;
+  try {
+    await matchStore.fetchMatchDetails(matchId);
+    if (matchStore.match.team1_id && matchStore.match.team2_id) {
+      await fetchTeamDetails(); // Fetch team details only after match details are loaded
+    }
+    await fetchMatchSeries();
+  } catch (error) {
+    console.error('Failed to fetch match details:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchTeamDetails = async () => {
+  isLoading.value = true;
+  try {
+    
+    team1.value = await teamStore.getTeamDetailsSeason(matchStore.match.team1_id, matchStore.match.season_id);
+    team2.value = await teamStore.getTeamDetailsSeason(matchStore.match.team2_id, matchStore.match.season_id);
+  } catch (error) {
+    console.error('Failed to fetch match details:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const syncW3CTeams = async () => {
+  isLoading.value = true;
+  syncError1.value = false;
+  syncError2.value = false;
+  syncDialog.value = true;
+  syncMessage1.value = "Sync Onging!";
+  syncMessage2.value = "Not started!";
+
+  try {
+    team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
+    syncMessage1.value = "Team 1 synced successfully!";
+  } catch (error) {
+    console.error('Failed to sync Team 1:', error);
+    syncError1.value = true;
+    syncMessage1.value = error || "An unknown error occurred.";
+  }
+  try {
+    syncMessage2.value = "Sync Onging!";
+    team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id);
+    syncMessage2.value = "Team 2 synced successfully!";
+  } catch (error) {
+    console.error('Failed to sync Team 2:', error);
+    syncError2.value = true;
+    syncMessage2.value = error || "An unknown error occurred.";
+  }
+
+  isLoading.value = false; // Show results
+};
+          
+
+const showStats = async(player) => {
+  showPlayerDetails.value = true;
+  playerDetails.value = player;
+}
+
+const fetchMatchSeries = async () => {
+  isLoading.value = true;
+  try {
+    await seriesStore.getSeriesByMatchId(matchId);
+  } catch (error) {
+    console.error('Failed to fetch match details:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const editSeries = async (series) => {
+  const copy_series =  { ...series };
+  updateSeriesError.value = '';
+  selectedSeries.value = copy_series;
+  if (copy_series.date_time) {
+    const initialDateTime = DateTime.fromISO(
+      copy_series.date_time,{
+        zone: "America/New_York"
       }
-      const formatedDate = DateTime.fromISO(
-        dateToFormat,{
-          zone: "America/New_York"
+    ).setZone("local");
+    selectedDate.value = initialDateTime.toJSDate(); // Date only
+    selectedTime.value = initialDateTime.toFormat("HH:mm"); // Time only
+  }
+
+  hostPlayers.value = [copy_series.player1, copy_series.player2];
+  editSeriesDialogOpen.value = true;
+};
+const cancelEditSeries = async () => {
+  editSeriesDialogOpen.value = false;
+}
+
+const updateSeries = async () => {
+  isLoading.value = true;
+  updateSeriesError.value = '';
+  try{
+    // Combine selected date and time into a single ISO datetime string
+    const localDate = DateTime.fromJSDate(selectedDate.value).setZone("local");
+    const combinedDateTime = DateTime.fromISO(`${localDate.toISODate()}T${selectedTime.value}`,
+    { zone: "local" });
+    // Convert local time to Eastern Time (ET)
+    const etDateTime = combinedDateTime.setZone("America/New_York");
+    // Update series.date_time with the formatted ISO datetime in ET
+    selectedSeries.value.date_time = etDateTime.toISO();
+    await seriesStore.updateSeries(selectedSeries.value);
+    await fetchMatchSeries(); // Refresh match details after creation
+    cancelEditSeries();
+  } catch (error) {
+    console.error('Error updating series:', error);
+    updateSeriesError.value = 'Error updating series: ' + error;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const removeProposedSeries = (proposedId) => {
+  proposedSeries.value = proposedSeries.value.filter(series => series.proposedId !== proposedId);
+
+}
+
+const proposeSeries = async () => {
+  isLoading.value = true;
+  try {
+    proposedSeries.value = []
+    let t1_player = proposePlayersTeam_1.value;
+    let t2_player = proposePlayersTeam_2.value;
+
+    for(let i = 0; i< t1_player.length; i++) {
+      let p1 = t1_player[i];
+      let p1_mmr = 0;
+      for(let j = 0; j < p1.w3c_stats.length; j++){
+        let w3cStats = p1.w3c_stats[j];
+        if(w3cStats.race == p1.race){
+          p1_mmr = w3cStats.mmr;
+          break;
         }
-      ).setZone("local").toLocaleString(DateTime.DATETIME_MED);
-      return formatedDate
-    }
-
-    const customFilter = (value, search, item) => {
-      if (!search) return true;
-      search = search.toLowerCase();
-      // Check if the search query matches the name or Discord fields
-      return (
-        item.raw.name.toLowerCase().includes(search) ||
-        item.raw.discordTag.toLowerCase().includes(search)
-      );
-    }
-
-    const getRowClass = item => {
-      const isMatchSelected = selectedProposedSeries.value.some(
-        sel => sel.player1.id === item.item.player1.id && sel.player2.id === item.item.player2.id
-      );
-      if(isMatchSelected){
-        return {class: 'highlight-selected-row'}; 
       }
-      const playerHasSeries = seriesStore.series.some(
-        sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
-      );
-      if(playerHasSeries){
-        return {class: 'highlight-row'}; 
-      }
-      const isPlayerSelected = selectedProposedSeries.value.some(
-        sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
-      );
-      return {class: isPlayerSelected ? 'highlight-row' : ''};
-    };
-
-
-    const customSort = (items, sortBy, sortDesc) => {
-      console.log(item, sortby, sortDesc);
-      if (sortBy === 'w3c_mmr') {
-        return [...items].sort((a, b) => {
-          let aValue = a.w3c_stats.find(player => player.race === a.race)?.mmr || 0;
-          let bValue = b.w3c_stats.find(player => player.race === b.race)?.mmr || 0;
-          return sortDesc ? bValue - aValue : aValue - bValue;
-        });
-      }
-      return items; // Uses default sorting for other columns
-    };
-
-    const customFilterSeries = (value, search, item) => {
-      if (!search) return true;
-      search = search.toLowerCase();
-      // Check if the search query matches the name or Discord fields
-      return (
-        item.raw.player1.name.toLowerCase().includes(search) ||
-        item.raw.player2.name.toLowerCase().includes(search)
-      );
-    }
-
-    const seriesHeaders = [
-      { title: 'ID', value: 'id' },
-      { title: 'Player 1', value: 'player1.name' },
-      { title: '', value: '' },
-      { title: 'Player 2', value: 'player2.name' },
-      { title: 'Actions', align: 'center' }
-    ];
-
-    const cancelCreateSeries = () => {
-      showNewSeriesModal.value = false;
-    };
-
-    const fetchMatchDetails = async () => {
-      isLoading.value = true;
-      try {
-        await matchStore.fetchMatchDetails(matchId);
-        if (matchStore.match.team1_id && matchStore.match.team2_id) {
-          await fetchTeamDetails(); // Fetch team details only after match details are loaded
-        }
-        await fetchMatchSeries();
-      } catch (error) {
-        console.error('Failed to fetch match details:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const fetchTeamDetails = async () => {
-      isLoading.value = true;
-      try {
-        
-        team1.value = await teamStore.getTeamDetailsSeason(matchStore.match.team1_id, matchStore.match.season_id);
-        team2.value = await teamStore.getTeamDetailsSeason(matchStore.match.team2_id, matchStore.match.season_id);
-      } catch (error) {
-        console.error('Failed to fetch match details:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const syncW3CTeams = async () => {
-      isLoading.value = true;
-      syncError1.value = false;
-      syncError2.value = false;
-      syncDialog.value = true;
-      syncMessage1.value = "Sync Onging!";
-      syncMessage2.value = "Not started!";
-
-      try {
-        team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
-        syncMessage1.value = "Team 1 synced successfully!";
-      } catch (error) {
-        console.error('Failed to sync Team 1:', error);
-        syncError1.value = true;
-        syncMessage1.value = error || "An unknown error occurred.";
-      }
-      try {
-        syncMessage2.value = "Sync Onging!";
-        team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id);
-        syncMessage2.value = "Team 2 synced successfully!";
-      } catch (error) {
-        console.error('Failed to sync Team 2:', error);
-        syncError2.value = true;
-        syncMessage2.value = error || "An unknown error occurred.";
-      }
-
-      isLoading.value = false; // Show results
-    };
-              
-
-    const showStats = async(player) => {
-      showPlayerDetails.value = true;
-      playerDetails.value = player;
-    }
-
-    const fetchMatchSeries = async () => {
-      isLoading.value = true;
-      try {
-        await seriesStore.getSeriesByMatchId(matchId);
-      } catch (error) {
-        console.error('Failed to fetch match details:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const editSeries = async (series) => {
-      const copy_series =  { ...series };
-      selectedSeries.value = copy_series;
-      if (copy_series.date_time) {
-        const initialDateTime = DateTime.fromISO(
-          copy_series.date_time,{
-            zone: "America/New_York"
-          }
-        ).setZone("local");
-        selectedDate.value = initialDateTime.toJSDate(); // Date only
-        selectedTime.value = initialDateTime.toFormat("HH:mm"); // Time only
-      }
-
-      hostPlayers.value = [copy_series.player1, copy_series.player2];
-      editSeriesDialogOpen.value = true;
-    };
-    const cancelEditSeries = async () => {
-      editSeriesDialogOpen.value = false;
-    }
-
-    const updateSeries = async () => {
-      isLoading.value = true;
-      try{
-        // Combine selected date and time into a single ISO datetime string
-        const localDate = DateTime.fromJSDate(selectedDate.value).setZone("local");
-        const combinedDateTime = DateTime.fromISO(`${localDate.toISODate()}T${selectedTime.value}`,
-        { zone: "local" });
-        // Convert local time to Eastern Time (ET)
-        const etDateTime = combinedDateTime.setZone("America/New_York");
-        // Update series.date_time with the formatted ISO datetime in ET
-        selectedSeries.value.date_time = etDateTime.toISO();
-        await seriesStore.updateSeries(selectedSeries.value);
-        await fetchMatchSeries(); // Refresh match details after creation
-        cancelEditSeries();
-      } finally {
-        isLoading.value = false;
-      }
-    }
-
-    const removeProposedSeries = (proposedId) => {
-      proposedSeries.value = proposedSeries.value.filter(series => series.proposedId !== proposedId);
-
-    }
-
-    const proposeSeries = async () => {
-      isLoading.value = true;
-      try {
-        proposedSeries.value = []
-        let t1_player = proposePlayersTeam_1.value;
-        let t2_player = proposePlayersTeam_2.value;
-
-        for(let i = 0; i< t1_player.length; i++) {
-          let p1 = t1_player[i];
-          let p1_mmr = 0;
-          for(let j = 0; j < p1.w3c_stats.length; j++){
-            let w3cStats = p1.w3c_stats[j];
-            if(w3cStats.race == p1.race){
-              p1_mmr = w3cStats.mmr;
+      for(let k=0;k< t2_player.length; k++) {
+        let p2_mmr = 0;
+        let p2 = t2_player[k];
+        if(seriesStore.series!=null) {
+          let seriesExists = false;
+          for (let n = 0; n < seriesStore.series.length; n++){
+            let s = seriesStore.series[n];
+            if(p1.id == s.player1_id && p2.id == s.player2_id){
+              seriesExists = true;
               break;
             }
           }
-          for(let k=0;k< t2_player.length; k++) {
-            let p2_mmr = 0;
-            let p2 = t2_player[k];
-            if(seriesStore.series!=null) {
-              let seriesExists = false;
-              for (let n = 0; n < seriesStore.series.length; n++){
-                let s = seriesStore.series[n];
-                if(p1.id == s.player1_id && p2.id == s.player2_id){
-                  seriesExists = true;
-                  break;
-                }
-              }
-              if(seriesExists){
-                continue;
-              }
-            }
-
-            if(selectedProposedSeries.value) {
-              let selectedPropSeriesExists = false;
-              for (let m = 0; m < selectedProposedSeries.value.length; m++){
-                let sPropS = selectedProposedSeries.value[m];
-                if(p1.id == sPropS.player1_id && p2.id == sPropS.player2_id){
-                  proposedSeries.value.push(sPropS);
-                  selectedPropSeriesExists = true;
-                  break;
-                }
-              }
-              if(selectedPropSeriesExists){
-                continue;
-              }
-            }
-
-            for(let z = 0; z < p2.w3c_stats.length; z++){
-              let w3cStats = p2.w3c_stats[z];
-              if(w3cStats.race == p2.race){
-                p2_mmr = w3cStats.mmr
-                break;
-              }
-            }
-            let mmr_diff = p1_mmr - p2_mmr;
-            if (mmr_diff<0){
-              mmr_diff*=-1
-            }
-            if(mmr_diff <= proposeSeriesMMRDiff.value){
-              const newSeries = {}
-              newSeries.proposedId = proposedSeries.value.length+1
-              newSeries.match_id = matchStore.match.id
-              newSeries.season_id = matchStore.match.season_id
-              newSeries.host_player_id = p1.id
-              newSeries.player1_score = 0
-              newSeries.player2_score = 0
-              newSeries.player1_id = p1.id
-              newSeries.player1 = p1
-              newSeries.player2_id = p2.id
-              newSeries.player2 = p2
-              proposedSeries.value.push(newSeries)
-            }
+          if(seriesExists){
+            continue;
           }
         }
-        if (selectedProposedSeries.value) {
-          selectedProposedSeries.value = selectedProposedSeries.value.filter(sps =>
-            proposedSeries.value.some(ps => sps.player1_id === ps.player1_id && sps.player2_id === ps.player2_id)
-          );
-        }
-      } catch (error) {
-        console.error('Failed to fetch match details:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
 
-    const openProposeSeries = () => {
-      proposeSeries();
-      showProposeSeriesModal.value = true;
-    };
-    const cancelProposeSeries = () => {
-      showProposeSeriesModal.value = false;
-    };
-
-    const createSelectedProposedSeries = async () => {
-      
-      isLoading.value = true;
-      try {
-        for (const series of selectedProposedSeries.value) {
-          await seriesStore.createSeries(series);
+        if(selectedProposedSeries.value) {
+          let selectedPropSeriesExists = false;
+          for (let m = 0; m < selectedProposedSeries.value.length; m++){
+            let sPropS = selectedProposedSeries.value[m];
+            if(p1.id == sPropS.player1_id && p2.id == sPropS.player2_id){
+              proposedSeries.value.push(sPropS);
+              selectedPropSeriesExists = true;
+              break;
+            }
+          }
+          if(selectedPropSeriesExists){
+            continue;
+          }
         }
 
-        await fetchMatchSeries(); // Refresh match details after creation
-        cancelProposeSeries();
-      } catch (error) {
-        console.error('Failed to create series:', error);
-      } finally {
-        isLoading.value = false;
+        for(let z = 0; z < p2.w3c_stats.length; z++){
+          let w3cStats = p2.w3c_stats[z];
+          if(w3cStats.race == p2.race){
+            p2_mmr = w3cStats.mmr
+            break;
+          }
+        }
+        let mmr_diff = p1_mmr - p2_mmr;
+        if (mmr_diff<0){
+          mmr_diff*=-1
+        }
+        if(mmr_diff <= proposeSeriesMMRDiff.value){
+          const newSeries = {}
+          newSeries.proposedId = proposedSeries.value.length+1
+          newSeries.match_id = matchStore.match.id
+          newSeries.season_id = matchStore.match.season_id
+          newSeries.host_player_id = p1.id
+          newSeries.player1_score = 0
+          newSeries.player2_score = 0
+          newSeries.player1_id = p1.id
+          newSeries.player1 = p1
+          newSeries.player2_id = p2.id
+          newSeries.player2 = p2
+          proposedSeries.value.push(newSeries)
+        }
       }
-    };
-
-    const createSeries = async () => {
-      const newSeries = {}
-    
-      newSeries.match_id = matchStore.match.id
-      newSeries.season_id = matchStore.match.season_id
-      newSeries.host_player_id = newSeries_Player_1.value[0].id
-      newSeries.player1_score = 0
-      newSeries.player2_score = 0
-      newSeries.player1_id = newSeries_Player_1.value[0].id
-      newSeries.player2_id = newSeries_Player_2.value[0].id
-      
-      isLoading.value = true;
-      try {
-        await seriesStore.createSeries(newSeries);
-        await fetchMatchSeries(); // Refresh match details after creation
-        cancelCreateSeries();
-      } catch (error) {
-        console.error('Failed to create series:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const removeSeries = async (seriesId) => {
-      isLoading.value = true;
-      try {
-        await seriesStore.deleteSeries(seriesId);
-        await fetchMatchDetails(); // Refresh match details after removal
-      } catch (error) {
-        console.error('Failed to remove series:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const openDeleteDialog = (id, action) => {
-      selectedDeleteItemId.value = id;
-      deleteAction.value = action; // Store the function dynamically
-      showDeleteDialog.value = true;
-    };
-
-    const confirmDelete = () => {
-      if (selectedDeleteItemId.value && deleteAction.value) {
-        deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
-        showDeleteDialog.value = false;
-      } else if (deleteAction.value) {
-         deleteAction.value(); // Call the dynamically stored function
-        showDeleteDialog.value = false;
-      }
-    };
-
-    const cancelDeleteDialog = () => {
-      showDeleteDialog.value = false;
-      selectedDeleteItemId.value = null;
-      deleteAction.value = null; // Store the function dynamically
-    };
-
-    const removeAllSeries = async () => {
-      isLoading.value = true;
-      try {
-        await seriesStore.deleteAllSeries()
-        await fetchMatchDetails(); // Refresh match details after removal
-      } catch (error) {
-        console.error('Failed to remove series:', error);
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    onMounted(() => {
-      fetchMatchDetails();
-    });
-
-    return {
-      match: computed(() => matchStore.match),
-      series: computed(() => seriesStore.series),
-      team1,
-      team2,
-      isLoading,
-      seriesHeaders,
-      fetchMatchDetails,
-      createSeries,
-      removeSeries,
-      removeAllSeries,
-      syncW3CTeams,
-      seriesTableHeader,
-      showPlayerDetails,
-      playerDetails,
-      showStats,
-      searchQueryT1,
-      searchQueryT2,
-      customFilter,
-      searchQuerySeries,
-      customFilterSeries,
-
-      newSeries_Player_1,
-      newSeries_Player_2,
-
-      editSeriesDialogOpen,
-      editSeries,
-      updateSeries,
-      cancelEditSeries,
-      selectedSeries,
-      hostPlayers,
-      selectedDate,
-      selectedTime,
-      tablePlayerHeader,
-      getRowClass,
-      
-      syncDialog,
-      syncError1,
-      syncError2,
-      syncMessage1,
-      syncMessage2,
-
-      customSort,
-      getRowClass,
-
-      proposePlayersTeam_1,
-      proposePlayersTeam_2,
-      proposeSeries,
-      proposeSeriesMMRDiff,
-      proposedSeries,
-      showProposeSeriesModal,
-      proposedSeriesTableHeader,
-      selectedProposedSeries,
-      cancelProposeSeries,
-      openProposeSeries,
-      createSelectedProposedSeries,
-      removeProposedSeries,
-      isProposeValid,
-
-
-      showDeleteDialog,
-      selectedDeleteItemId,
-      deleteAction,
-      confirmDelete,
-      cancelDeleteDialog,
-      openDeleteDialog,
-
-      bannerImg,
-      date,
-      formateDate,
-      showNewSeriesModal,
-      cancelCreateSeries,
-      search,
-
-      rowsExpanded,
-    };
+    }
+    if (selectedProposedSeries.value) {
+      selectedProposedSeries.value = selectedProposedSeries.value.filter(sps =>
+        proposedSeries.value.some(ps => sps.player1_id === ps.player1_id && sps.player2_id === ps.player2_id)
+      );
+    }
+  } catch (error) {
+    console.error('Failed to fetch match details:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
+
+const openProposeSeries = () => {
+  proposeSeries();
+  showProposeSeriesModal.value = true;
+};
+const cancelProposeSeries = () => {
+  showProposeSeriesModal.value = false;
+};
+
+const createSelectedProposedSeries = async () => {
+  
+  isLoading.value = true;
+  try {
+    for (const series of selectedProposedSeries.value) {
+      await seriesStore.createSeries(series);
+    }
+
+    await fetchMatchSeries(); // Refresh match details after creation
+    cancelProposeSeries();
+  } catch (error) {
+    console.error('Failed to create series:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const createSeries = async () => {
+  const newSeries = {}
+
+  newSeries.match_id = matchStore.match.id
+  newSeries.season_id = matchStore.match.season_id
+  newSeries.host_player_id = newSeries_Player_1.value[0].id
+  newSeries.player1_score = 0
+  newSeries.player2_score = 0
+  newSeries.player1_id = newSeries_Player_1.value[0].id
+  newSeries.player2_id = newSeries_Player_2.value[0].id
+  
+  isLoading.value = true;
+  try {
+    await seriesStore.createSeries(newSeries);
+    await fetchMatchSeries(); // Refresh match details after creation
+    cancelCreateSeries();
+  } catch (error) {
+    console.error('Failed to create series:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const removeSeries = async (seriesId) => {
+  isLoading.value = true;
+  try {
+    await seriesStore.deleteSeries(seriesId);
+    await fetchMatchDetails(); // Refresh match details after removal
+  } catch (error) {
+    console.error('Failed to remove series:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const openDeleteDialog = (id, action) => {
+  selectedDeleteItemId.value = id;
+  deleteAction.value = action; // Store the function dynamically
+  showDeleteDialog.value = true;
+};
+
+const confirmDelete = () => {
+  if (selectedDeleteItemId.value && deleteAction.value) {
+    deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
+    showDeleteDialog.value = false;
+  } else if (deleteAction.value) {
+      deleteAction.value(); // Call the dynamically stored function
+    showDeleteDialog.value = false;
+  }
+};
+
+const cancelDeleteDialog = () => {
+  showDeleteDialog.value = false;
+  selectedDeleteItemId.value = null;
+  deleteAction.value = null; // Store the function dynamically
+};
+
+const removeAllSeries = async () => {
+  isLoading.value = true;
+  try {
+    await seriesStore.deleteAllSeries()
+    await fetchMatchDetails(); // Refresh match details after removal
+  } catch (error) {
+    console.error('Failed to remove series:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchMatchDetails();
+});
 </script>
 
 <style>

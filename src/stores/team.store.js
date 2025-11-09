@@ -63,9 +63,11 @@ export const useTeamStore = defineStore({
         async updateTeam(team) {
             const teamId = team.id;
             const updatedTeam = await fetchWrapper.put(`${backendUrl}/teams/${teamId}`, team);
+            return updatedTeam;
         },
         async createTeam(team) {
-            const updatedTeam = await fetchWrapper.post(`${backendUrl}/teams`, team);
+            const newTeam = await fetchWrapper.post(`${backendUrl}/teams`, team);
+            return newTeam;
         },
         async deleteTeam(team_id) {
             await fetchWrapper.delete(`${backendUrl}/teams/${team_id}`);

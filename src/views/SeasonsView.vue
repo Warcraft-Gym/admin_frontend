@@ -67,12 +67,12 @@
       </v-expansion-panel>
     </v-expansion-panels>
 
-
-
     <!-- Error Message -->
-    <v-alert v-if="errorMessage" type="error" class="mt-4">
-      {{ errorMessage }}
-    </v-alert>
+    <v-row justify="center" v-if="errorMessage" class="error-message">
+      <v-col cols="auto">
+        <p>{{ errorMessage }}</p>
+      </v-col>
+    </v-row>  
 
     <!-- Seasons Table -->
     <section id="seasons-table" v-else-if="seasons.length > 0">
@@ -129,14 +129,19 @@
       </v-data-table>
     </section>
 
-    <!-- No Seasons Found -->
-    <v-alert v-else type="info" class="mt-4">
-      No seasons found.
-    </v-alert>
-
     <!-- Add New Season Modal -->
     <v-dialog v-if="newSeason" v-model="addNewDialogOpen" max-width="65vw">
       <v-card>
+        <v-alert
+            v-if="creationError"
+            type="error"
+            class="mx-4 my-2"
+            dense
+            border="start"
+            border-color="red"
+          >
+          {{ creationError }}
+        </v-alert>
         <v-card-title>Add New Season</v-card-title>
         <v-card-text>
           <v-form>
@@ -159,6 +164,12 @@
                   label="Pick Ban Order"
                 ></v-text-field>
               </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedSeason.discordRole"
+                  label="Pick Ban Order"
+                ></v-text-field>
+              </v-col>
             </v-row>
           </v-form>
         </v-card-text>
@@ -176,6 +187,16 @@
     <!-- Edit Season Modal -->
     <v-dialog v-model="editDialogOpen" max-width="65vw">
       <v-card>
+        <v-alert
+            v-if="updateError"
+            type="error"
+            class="mx-4 my-2"
+            dense
+            border="start"
+            border-color="red"
+          >
+          {{ updateError }}
+        </v-alert>
         <v-card-title>Edit Season: {{ selectedSeason.name }}</v-card-title>
         <v-card-text>
           <v-form>
@@ -195,6 +216,12 @@
               <v-col cols="6">
                 <v-text-field
                   v-model="selectedSeason.pick_ban"
+                  label="Pick Ban Order"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field
+                  v-model="selectedSeason.discordRole"
                   label="Pick Ban Order"
                 ></v-text-field>
               </v-col>
@@ -239,10 +266,12 @@ const errorMessage = ref(null);
 const newSeason = ref(null);
 const addNewDialogOpen = ref(false);
   
-const file = ref(null)
-const uploadMessage = ref(null)
-const seasonId = ref(null)
-const seasonName = ref(null)
+const file = ref(null);
+const uploadMessage = ref(null);
+const seasonId = ref(null);
+const seasonName = ref(null);
+const creationError = ref(null);
+const updateError = ref(null);
 
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
@@ -289,10 +318,12 @@ export default {
 
         const editSeason = (season) => {
           selectedSeason.value = { ...season }; // Clone the season object to avoid modifying the original object directly
+          updateError.value = '';
           editDialogOpen.value = true;
         };
 
         const updateSeason = async () => {
+          updateError.value = '';
           try {
             await seasonStore.updateSeason(selectedSeason.value);
             // Update the local state after a successful PUT request
@@ -300,6 +331,7 @@ export default {
             cancelEdit(); // Reset the form
           } catch (error) {
             console.error('Error updating season:', error);
+            updateError.value = 'Error updating season: ' + error;
           }
         };
 
@@ -315,25 +347,30 @@ export default {
             pick_ban: '',
             series_per_week: 0,
           },
+          creationError.value = '';
           addNewDialogOpen.value = true;
         }
 
         const createNewSeason = async () => {
+          creationError.value = '';
           try {
             await seasonStore.createSeason(newSeason.value);
             await fetchSeasons();
             cancelAddNewSeason();
           } catch (error) {
             console.error('Error creating season:', error);
+            creationError.value = 'Error creating season: ' + error;
           }
         };
 
         const removeSeason = async (seasonId) => {
+          errorMessage.value = '';
           try {
             await seasonStore.deleteSeason(seasonId);
             await fetchSeasons(); // Refresh the list after deletion
           } catch (error) {
             console.error('Error deleting season:', error);
+            errorMessage.value = 'Error deleting season: ' + error;
           }
         };
 
@@ -403,6 +440,8 @@ export default {
             uploadFile,
             isFileFormValid,
 
+            creationError,
+            updateError,
 
             showDeleteDialog,
             selectedDeleteItemId,
