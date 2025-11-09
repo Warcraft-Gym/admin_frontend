@@ -252,20 +252,27 @@
       </v-card>
     </v-dialog>
 </template>
-<script>
+<script setup>
 import '@/assets/base.css';
 import { useSeasonStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+
+defineOptions({
+  name: 'SeasonsView'
+})
+
+// Store
+const seasonStore = useSeasonStore();
+const { seasons } = storeToRefs(seasonStore);
 
 // State for editing
 const selectedSeason = ref(null);
 const editDialogOpen = ref(false);
-const isLoading  = ref(false); // State for selected season
-const isFileFormValid = computed(() => file.value != null && (seasonName.value!=null && seasonName.value.trim() !== "" || seasonId.value !== null));
+const isLoading = ref(false);
 const errorMessage = ref(null);
 const newSeason = ref(null);
 const addNewDialogOpen = ref(false);
-  
 const file = ref(null);
 const uploadMessage = ref(null);
 const seasonId = ref(null);
@@ -273,198 +280,152 @@ const seasonName = ref(null);
 const creationError = ref(null);
 const updateError = ref(null);
 
+// Computed
+const isFileFormValid = computed(() => 
+  file.value != null && (seasonName.value != null && seasonName.value.trim() !== "" || seasonId.value !== null)
+);
+
+// Table configuration
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
   { title: 'Name', value: 'name', sortable: true },  
   { title: 'Number of weeks', value: 'number_weeks', sortable: true },    
   { title: 'Pick Ban Order', value: 'pick_ban', sortable: true },
   { title: 'Number of Series per Week', value: 'series_per_week', sortable: true },
-]
+];
 
-export default {
+// Delete dialog state
+const showDeleteDialog = ref(false);
+const selectedDeleteItemId = ref(null);
+const deleteAction = ref(null);
 
-    name: 'SeasonsView',
-    setup(){
-
-        const seasonStore = useSeasonStore();
-        // Fetch data when the page is loaded
-        const showDeleteDialog = ref(false);
-        const selectedDeleteItemId = ref(null);
-        const deleteAction = ref(null);
-
-
-        // Fetch seasons when the component is mounted
-        const fetchSeasons = async () => {
-          
-          isLoading.value = true;
-          errorMessage.value = null; // Reset error message
-          try {
-            await seasonStore.fetchSeasons(); // Fetch season data
-
-
-            if (seasonStore.seasons.length === 0) {
-              errorMessage.value = 'No seasons found.';
-            }
-          } catch (error) {
-            errorMessage.value = 'Failed to load seasons. Please try again later.';
-          } finally {
-            isLoading.value = false;
-          }
-        };
-
-        onMounted( () => {
-          fetchSeasons(); 
-        });
-
-        const editSeason = (season) => {
-          selectedSeason.value = { ...season }; // Clone the season object to avoid modifying the original object directly
-          updateError.value = '';
-          editDialogOpen.value = true;
-        };
-
-        const updateSeason = async () => {
-          updateError.value = '';
-          try {
-            await seasonStore.updateSeason(selectedSeason.value);
-            // Update the local state after a successful PUT request
-            await fetchSeasons(); // Re-fetch the season
-            cancelEdit(); // Reset the form
-          } catch (error) {
-            console.error('Error updating season:', error);
-            updateError.value = 'Error updating season: ' + error;
-          }
-        };
-
-        const cancelEdit = () => {
-          selectedSeason.value = null; // Clear the selected season
-          editDialogOpen.value = false;
-        };
-
-        const addNewSeason = async () =>{
-          newSeason.value = {
-            name: '',
-            number_weeks: 0,
-            pick_ban: '',
-            series_per_week: 0,
-          },
-          creationError.value = '';
-          addNewDialogOpen.value = true;
-        }
-
-        const createNewSeason = async () => {
-          creationError.value = '';
-          try {
-            await seasonStore.createSeason(newSeason.value);
-            await fetchSeasons();
-            cancelAddNewSeason();
-          } catch (error) {
-            console.error('Error creating season:', error);
-            creationError.value = 'Error creating season: ' + error;
-          }
-        };
-
-        const removeSeason = async (seasonId) => {
-          errorMessage.value = '';
-          try {
-            await seasonStore.deleteSeason(seasonId);
-            await fetchSeasons(); // Refresh the list after deletion
-          } catch (error) {
-            console.error('Error deleting season:', error);
-            errorMessage.value = 'Error deleting season: ' + error;
-          }
-        };
-
-        const cancelAddNewSeason = () => {
-          newSeason.value = null;
-          addNewDialogOpen.value = false;
-        };
-        
-        const openDeleteDialog = (id, action) => {
-          selectedDeleteItemId.value = id;
-          deleteAction.value = action; // Store the function dynamically
-          showDeleteDialog.value = true;
-        };
-
-        const confirmDelete = () => {
-          if (selectedDeleteItemId.value && deleteAction.value) {
-            deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
-            showDeleteDialog.value = false;
-          } else if (deleteAction.value) {
-            deleteAction.value(); // Call the dynamically stored function
-            showDeleteDialog.value = false;
-          }
-        };
-
-        const cancelDeleteDialog = () => {
-          showDeleteDialog.value = false;
-          selectedDeleteItemId.value = null;
-          deleteAction.value = null; // Store the function dynamically
-        };
-
-        const uploadFile = async () => {
-        if (!isFileFormValid.value) {
-          uploadMessage.value = "Please select a file and provide a Season Name or ID before uploading!";
-          return;
-        }
-        try {
-          isLoading.value = true
-          uploadMessage.value = null
-          const success = await seasonStore.uploadSeasonFile(seasonId.value, seasonName.value, file.value)
-          // Include season data in the request
-          if (success) {
-            uploadMessage.value = "File uploaded successfully!";
-          } else {
-            uploadMessage.value = `Upload failed!.`;
-          }
-          await fetchSeasons(); 
-        } catch (error) {
-          console.error("Error uploading file:", error);
-          uploadMessage.value = "An error occurred during file upload.";
-        } finally {
-          isLoading.value = false;
-          seasonId.value = null;
-          seasonName.value = null;
-          file.value = null;
-        }
-      }
-
-        return {
-            isLoading,
-            seasons: computed(() => seasonStore.seasons),
-            
-            //table
-            tableHeader,
-            seasonName,
-            seasonId,
-            uploadMessage,
-            uploadFile,
-            isFileFormValid,
-
-            creationError,
-            updateError,
-
-            showDeleteDialog,
-            selectedDeleteItemId,
-            deleteAction,
-            confirmDelete,
-            cancelDeleteDialog,
-            openDeleteDialog,
-
-            selectedSeason,
-            file,
-            editSeason,
-            updateSeason,
-            editDialogOpen,
-            cancelEdit,
-            errorMessage,
-            newSeason,
-            addNewDialogOpen,
-            addNewSeason,
-            createNewSeason,
-            cancelAddNewSeason,
-            removeSeason,        
-            fetchSeasons,
-        }
-    },
+// Methods
+const fetchSeasons = async () => {
+  isLoading.value = true;
+  errorMessage.value = null;
+  try {
+    await seasonStore.fetchSeasons();
+    if (seasons.value.length === 0) {
+      errorMessage.value = 'No seasons found.';
+    }
+  } catch (error) {
+    errorMessage.value = 'Failed to load seasons. Please try again later.';
+  } finally {
+    isLoading.value = false;
+  }
 };
+
+const editSeason = (season) => {
+  selectedSeason.value = { ...season };
+  updateError.value = '';
+  editDialogOpen.value = true;
+};
+
+const updateSeason = async () => {
+  updateError.value = '';
+  try {
+    await seasonStore.updateSeason(selectedSeason.value);
+    await fetchSeasons();
+    cancelEdit();
+  } catch (error) {
+    console.error('Error updating season:', error);
+    updateError.value = 'Error updating season: ' + error;
+  }
+};
+
+const cancelEdit = () => {
+  selectedSeason.value = null;
+  editDialogOpen.value = false;
+};
+
+const addNewSeason = () => {
+  newSeason.value = {
+    name: '',
+    number_weeks: 0,
+    pick_ban: '',
+    series_per_week: 0,
+  };
+  creationError.value = '';
+  addNewDialogOpen.value = true;
+};
+
+const createNewSeason = async () => {
+  creationError.value = '';
+  try {
+    await seasonStore.createSeason(newSeason.value);
+    await fetchSeasons();
+    cancelAddNewSeason();
+  } catch (error) {
+    console.error('Error creating season:', error);
+    creationError.value = 'Error creating season: ' + error;
+  }
+};
+
+const removeSeason = async (seasonId) => {
+  errorMessage.value = '';
+  try {
+    await seasonStore.deleteSeason(seasonId);
+    await fetchSeasons();
+  } catch (error) {
+    console.error('Error deleting season:', error);
+    errorMessage.value = 'Error deleting season: ' + error;
+  }
+};
+
+const cancelAddNewSeason = () => {
+  newSeason.value = null;
+  addNewDialogOpen.value = false;
+};
+
+const openDeleteDialog = (id, action) => {
+  selectedDeleteItemId.value = id;
+  deleteAction.value = action;
+  showDeleteDialog.value = true;
+};
+
+const confirmDelete = () => {
+  if (selectedDeleteItemId.value && deleteAction.value) {
+    deleteAction.value(selectedDeleteItemId.value);
+  } else if (deleteAction.value) {
+    deleteAction.value();
+  }
+  showDeleteDialog.value = false;
+};
+
+const cancelDeleteDialog = () => {
+  showDeleteDialog.value = false;
+  selectedDeleteItemId.value = null;
+  deleteAction.value = null;
+};
+
+const uploadFile = async () => {
+  if (!isFileFormValid.value) {
+    uploadMessage.value = "Please select a file and provide a Season Name or ID before uploading!";
+    return;
+  }
+  try {
+    isLoading.value = true;
+    uploadMessage.value = null;
+    const success = await seasonStore.uploadSeasonFile(seasonId.value, seasonName.value, file.value);
+    if (success) {
+      uploadMessage.value = "File uploaded successfully!";
+    } else {
+      uploadMessage.value = "Upload failed!";
+    }
+    await fetchSeasons();
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    uploadMessage.value = "An error occurred during file upload.";
+  } finally {
+    isLoading.value = false;
+    seasonId.value = null;
+    seasonName.value = null;
+    file.value = null;
+  }
+};
+
+// Lifecycle hooks
+onMounted(() => {
+  fetchSeasons();
+});
 </script>

@@ -218,12 +218,16 @@
 import '@/assets/base.css';
 import { useTeamStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import  teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
 
 defineOptions({
   name: 'TeamsView'
 })
 
+// Store initialization and refs
+const teamStore = useTeamStore();
+const { teams } = storeToRefs(teamStore);
 
 // State for editing
 const selectedTeam = ref(null);
@@ -246,8 +250,6 @@ const tableHeader = [
   { title: 'Discord Role', value: 'discord_role', sortable: true }, 
   { title: 'Actions', value: 'actions' }, 
 ]
-
-const teamStore = useTeamStore();
 // Fetch data when the page is loaded
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);

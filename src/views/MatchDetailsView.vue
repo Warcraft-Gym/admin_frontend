@@ -717,11 +717,20 @@ import { ref, onMounted, computed } from 'vue';
 import { DateTime } from "luxon";
 import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
+import { storeToRefs } from 'pinia';
 import FlagIcon from '../components/FlagIcon.vue';
 
 defineOptions({
   name: 'MatchDetailsView'
 })
+
+// Stores initialization
+const router = useRouter();
+const matchStore = useMatchStore();
+const seriesStore = useSeriesStore();
+const teamStore = useTeamStore();
+const { match } = storeToRefs(matchStore);
+const { series } = storeToRefs(seriesStore);
 
 const seriesTableHeader = [
   
@@ -789,46 +798,65 @@ const tablePlayerHeader = [
 }, 
 ];
 
-const showNewSeriesModal = ref(false);
-const showProposeSeriesModal = ref(false);
-const search = ref('');
-const router = useRouter();
+// Route params
 const matchId = router.currentRoute.value.params.id;
-const matchStore = useMatchStore();
-const seriesStore = useSeriesStore();
-const teamStore = useTeamStore();
+
+// Component state
 const isLoading = ref(false);
-const team1 = ref({});
-const team2 = ref({});    
+const search = ref('');
 const date = useDate();
+
+// Team state
+const team1 = ref({});
+const team2 = ref({});
+
+// Series state
+const showNewSeriesModal = ref(false);
 const newSeries_Player_1 = ref(null);
 const newSeries_Player_2 = ref(null);
+const editSeriesDialogOpen = ref(false);
+const selectedSeries = ref(null);
+const hostPlayers = ref(null);
+const selectedDate = ref(null);
+const selectedTime = ref(null);
+const creationSeriesError = ref(null);
+const updateSeriesError = ref(false);
+
+// Propose series state
+const showProposeSeriesModal = ref(false);
 const proposePlayersTeam_1 = ref([]);
 const proposePlayersTeam_2 = ref([]);
 const proposeSeriesMMRDiff = ref(null);
 const proposedSeries = ref([]);
 const selectedProposedSeries = ref([]);
-const showPlayerDetails = ref(false);
-const playerDetails = ref(null);
-const editSeriesDialogOpen = ref(false);
-const updateSeriesError = ref(false);
-const selectedSeries = ref(null);
-const hostPlayers = ref(null);
-const selectedDate = ref(null);
-const selectedTime = ref(null);
+
+// Search state
 const searchQueryT1 = ref('');
 const searchQueryT2 = ref('');
 const searchQuerySeries = ref('');
-const isProposeValid = computed(() => proposePlayersTeam_1.value != null && proposePlayersTeam_2.value != null && proposeSeriesMMRDiff.value != null);
+
+// Player details state
+const showPlayerDetails = ref(false);
+const playerDetails = ref(null);
+
+// Sync state
 const syncDialog = ref(false);
 const syncMessage1 = ref("");
 const syncMessage2 = ref("");
 const syncError1 = ref(false);
 const syncError2 = ref(false);
+
+// Delete dialog state
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);
 const deleteAction = ref(null);
-const creationSeriesError = ref(null);
+
+// Computed properties
+const isProposeValid = computed(() => 
+  proposePlayersTeam_1.value != null && 
+  proposePlayersTeam_2.value != null && 
+  proposeSeriesMMRDiff.value != null
+);
 
 const formateDate = ( dateToFormat ) => {
   if (!dateToFormat) {

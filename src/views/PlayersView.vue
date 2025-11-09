@@ -344,6 +344,7 @@
 </template>
 <script setup>
 import { usePlayerStore } from '@/stores';
+import { storeToRefs } from 'pinia';
 import { onMounted, ref } from 'vue';
 
 defineOptions({
@@ -368,6 +369,7 @@ const newPlayer = ref({
   fantasyTier: '',
 });
 const playerStore = usePlayerStore();
+const { players } = storeToRefs(playerStore);
 // Fetch data when the page is loaded
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);

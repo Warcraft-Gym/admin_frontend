@@ -191,15 +191,42 @@
 
 </template>
 
-<script>
+<script setup>
 import '@/assets/base.css';
 import { useRouter } from 'vue-router';
 import { useTeamStore, usePlayerStore } from '@/stores';
 import { computed, onMounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 
-const isLoading  = ref(false); // State for selected user
+defineOptions({ name: 'SeasonTeamDetailsView' });
+
+// Router and store setup
+const router = useRouter();
+const teamStore = useTeamStore();
+const playerStore = usePlayerStore();
+
+// Route params
+const teamId = computed(() => router.currentRoute.value.params.id);
+const seasonId = computed(() => router.currentRoute.value.params.season_id);
+
+// Store refs
+const { team } = storeToRefs(teamStore);
+const { players: allPlayers } = storeToRefs(playerStore);
+
+// State management
+const isLoading = ref(false);
 const errorMessage = ref(null);
+const players = ref([]);
+const showNewPlayerModal = ref(false);
+const selectedPlayers = ref([]);
 
+// Search state
+const searchRace = ref(null);
+const searchName = ref(null);
+const searchEnabled = ref(false);
+const rangeValues = ref([0, 3000]);
+
+// Table configuration
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
   { title: 'Name', value: 'name', sortable: true },  
@@ -211,184 +238,127 @@ const tableHeader = [
   { title: 'W3C Stats', value: 'w3c_stats', sortable: false },  
   { title: 'Fantasy Tier', value: 'fantasy_tier', sortable: false },    
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
-]
+];
+
+const playerTableHeaders = [
+  { title: 'Name', value: 'name' },
+  { title: 'BattleTag', value: 'battleTag' },
+  { title: 'Country', value: 'country' },
+  { title: 'MMR', value: 'mmr' },
+];
 
 const races = ref([
-  {
-    name :"HU"
-  },
-  {
-    name :"OC"
-  },
-  {
-    name :"UD"
-  },
-  {
-    name :"NE"
-  },
-])
+  { name: "HU" },
+  { name: "OC" },
+  { name: "UD" },
+  { name: "NE" },
+]);
 
-export default {
-    name: 'SeasonTeamDetailsView',
-    setup(){
-        // Fetch data when the page is loaded
-        const router = useRouter();
-        const teamId = router.currentRoute.value.params.id;
-        const seasonId = router.currentRoute.value.params.season_id;
-        const teamStore = useTeamStore();
-        const playerStore = usePlayerStore();
-        const players = ref([]);
-        // Modal state
-        const showNewPlayerModal = ref(false);
-        const selectedPlayers = ref([]);
-
-        //research models
-        const searchRace = ref(null)
-        const searchName = ref(null)
-        const searchEnabled = ref(false)
-        const rangeValues = ref([0, 3000])
-
-        // Headers for the modal's player table
-        const playerTableHeaders = [
-          { title: 'Name', value: 'name' },
-          { title: 'BattleTag', value: 'battleTag' },
-          { title: 'Country', value: 'country' },
-          { title: 'MMR', value: 'mmr' },
-        ];
-
-        const fetchAllPlayers = async () => {
-          try {
-            await playerStore.fetchPlayers();
-          } catch (error) {
-            console.error('Failed to fetch players:', error);
-          } finally {
-            isLoading.value = false;
-
-            //reset placeholders
-            searchEnabled.value = false;
-            searchName.value = ''
-            searchRace.value = ''
-            rangeValues.value[0] = '0'
-            rangeValues.value[1] = '3000'
-          }
-        };
-
-        const saveSelectedPlayers = async () => {
-          try {
-            await teamStore.addPlayersToTeamForSeason(
-              teamId, seasonId, selectedPlayers.value
-            );
-            selectedPlayers.value=[]
-            fetchTeam(); // Refresh team data
-            showNewPlayerModal.value = false; // Close modal
-          } catch (error) {
-            console.error('Failed to save selected players:', error);
-          }
-        };
-
-
-        // Fetch users when the component is mounted
-        const fetchTeam = async () => {
-          
-          isLoading.value = true;
-          errorMessage.value = null; // Reset error message
-          try {
-            await teamStore.fetchTeamBySeason(teamId, seasonId)
-            if (!teamStore.team) {
-              errorMessage.value = 'No team information found.';
-            }
-            players.value = teamStore.team.player_by_season[seasonId]
-          } catch (error) {
-            console.error(error)
-            errorMessage.value = 'Failed to load team. Please try again later.';
-          }
-        };
-
-        watch(showNewPlayerModal, (newValue) => {
-          if (newValue === true) {
-            fetchAllPlayers();
-          }
-        });
-
-        onMounted( () => {
-          fetchTeam(); 
-        });
-
-        const removePlayerFromTeam = async (playerId) => {
-          try {
-            await teamStore.removePlayersFromTeamForSeason(teamId, seasonId, [playerId])// Fetch user data
-            fetchTeam(); 
-          } catch (error) {
-            console.error('Error deleting player:', error);
-          }
-        };
-
-        const syncW3CTeam = async () => {
-          try {
-            await teamStore.syncPlayersW3C(teamId, seasonId)// Fetch user data
-            fetchTeam(); 
-          } catch (error) {
-            console.error('Error deleting player:', error);
-          }
-        };
-
-        // Function to disable rows where MMR is below 1000
-        const isRowDisabled = (item) => {
-          let playerAlreadyInTeam = false;
-          for (const player in players.value){
-            if (player == item.id){
-              playerAlreadyInTeam = true
-              break
-            }
-          }
-          return playerAlreadyInTeam; // Example condition
-        };
-
-
-        // Methods
-        const searchPlayer = async () => {
-          
-          isLoading.value = true;
-
-          try {
-            await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
-          } finally {
-            isLoading.value = false;            
-            searchEnabled.value = true;
-          }
-          
-        }
-        
-        return {
-            isLoading: computed(() => teamStore.isLoading),
-            team: computed(() => teamStore.team),
-            allPlayers: computed(() => playerStore.players),
-            players,
-            selectedPlayers,
-            //table
-            tableHeader,
-            playerTableHeaders,
-
-            //search variables
-            searchPlayer,
-            searchName,
-            searchRace,
-            rangeValues,
-            searchEnabled,
-
-            errorMessage,
-            removePlayerFromTeam,
-            races,            
-            fetchTeam,
-            syncW3CTeam,
-            showNewPlayerModal,
-            fetchAllPlayers,
-            saveSelectedPlayers,
-            isRowDisabled,
-
-        }
-    },
+// Methods
+const fetchAllPlayers = async () => {
+  try {
+    await playerStore.fetchPlayers();
+  } catch (error) {
+    console.error('Failed to fetch players:', error);
+  } finally {
+    isLoading.value = false;
+    searchEnabled.value = false;
+    searchName.value = '';
+    searchRace.value = '';
+    rangeValues.value = [0, 3000];
+  }
 };
+
+const fetchTeam = async () => {
+  isLoading.value = true;
+  errorMessage.value = null;
+  try {
+    await teamStore.fetchTeamBySeason(teamId.value, seasonId.value);
+    if (!team.value) {
+      errorMessage.value = 'No team information found.';
+    }
+    players.value = team.value.player_by_season[seasonId.value];
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = 'Failed to load team. Please try again later.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const saveSelectedPlayers = async () => {
+  try {
+    await teamStore.addPlayersToTeamForSeason(
+      teamId.value,
+      seasonId.value,
+      selectedPlayers.value
+    );
+    selectedPlayers.value = [];
+    fetchTeam();
+    showNewPlayerModal.value = false;
+  } catch (error) {
+    console.error('Failed to save selected players:', error);
+  }
+};
+
+watch(showNewPlayerModal, (newValue) => {
+  if (newValue === true) {
+    fetchAllPlayers();
+  }
+});
+
+onMounted( () => {
+  fetchTeam(); 
+});
+
+const removePlayerFromTeam = async (playerId) => {
+  try {
+    await teamStore.removePlayersFromTeamForSeason(
+      teamId.value,
+      seasonId.value,
+      [playerId]
+    );
+    fetchTeam();
+  } catch (error) {
+    console.error('Error removing player:', error);
+  }
+};
+
+const syncW3CTeam = async () => {
+  try {
+    await teamStore.syncPlayersW3C(teamId.value, seasonId.value);
+    fetchTeam();
+  } catch (error) {
+    console.error('Error syncing W3C data:', error);
+  }
+};
+
+const isRowDisabled = (item) => {
+  let playerAlreadyInTeam = false;
+  for (const player in players.value) {
+    if (player == item.id) {
+      playerAlreadyInTeam = true;
+      break;
+    }
+  }
+  return playerAlreadyInTeam;
+};
+
+const searchPlayer = async () => {
+  isLoading.value = true;
+  try {
+    await playerStore.searchPlayer(
+      searchName.value,
+      searchRace.value,
+      rangeValues.value[0],
+      rangeValues.value[1]
+    );
+  } finally {
+    isLoading.value = false;
+    searchEnabled.value = true;
+  }
+};
+
 </script>
 <style>
 .disabled-row {

@@ -159,159 +159,131 @@
       </v-card>
     </v-dialog>
 </template>
-<script>
+<script setup>
 import '@/assets/base.css';
 import { useMapStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 
-// State for editing
+defineOptions({
+  name: 'MapsView'
+})
+
+// Store
+const mapStore = useMapStore();
+const { maps } = storeToRefs(mapStore);
+
+// State
 const selectedMap = ref(null);
-const isLoading  = ref(false); // State for selected user
+const isLoading = ref(false);
 const errorMessage = ref(null);
 const showNewMapModal = ref(false);
+
+// Form state
 const newMap = ref({
   name: '',
   shortname: ''
 });
 
+// Delete dialog state
+const showDeleteDialog = ref(false);
+const selectedDeleteItemId = ref(null);
+const deleteAction = ref(null);
+
+// Table configuration
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
   { title: 'Name', value: 'name', sortable: true },  
   { title: 'shortname', value: 'shortname', sortable: true }, 
-  { title: 'Actions', value: 'actions' }, 
-]
+  { title: 'Actions', value: 'actions' }
+];
 
-
-export default {
-
-    name: 'MapsView',
-    setup(){
-        const mapStore = useMapStore();
-        // Fetch data when the page is loaded
-        const showDeleteDialog = ref(false);
-        const selectedDeleteItemId = ref(null);
-        const deleteAction = ref(null);
-
-        // Fetch users when the component is mounted
-        const fetchMaps = async () => {
-          
-          isLoading.value = true;
-          errorMessage.value = null; // Reset error message
-          try {
-            await mapStore.fetchMaps(); // Fetch user data
-
-
-            if (mapStore.maps.length === 0) {
-              errorMessage.value = 'No maps found.';
-            }
-          } catch (error) {
-            errorMessage.value = 'Failed to load maps. Please try again later.';
-          } finally {
-            isLoading.value = false;
-          }
-        };
-
-        onMounted( () => {
-          fetchMaps(); 
-        });
-
-        const editMap = (map) => {
-          selectedMap.value = { ...map }; // Clone the user object to avoid modifying the original object directly
-        };
-
-        const updateMap = async () => {
-          try {
-            await mapStore.updateMap(selectedMap.value);
-            // Update the local state after a successful PUT request
-            await fetchMaps(); // Re-fetch the maps
-            cancelEdit(); // Reset the form
-          } catch (error) {
-            console.error('Error updating map:', error);
-          }
-        };
-
-        const cancelEdit = () => {
-          selectedMap.value = null; // Clear the selected user
-        };
-
-        const createNewMap = async () => {
-          try {
-            await mapStore.createMap(newMap.value);
-            await fetchMaps();
-            cancelAddNewMap();
-          } catch (error) {
-            console.error('Error creating map:', error);
-          }
-        };
-
-        const removeMap = async (mapId) => {
-          try {
-            await mapStore.deleteMap(mapId);
-            await fetchMaps(); // Refresh the list after deletion
-          } catch (error) {
-            console.error('Error deleting map:', error);
-          }
-        };
-
-
-        const cancelAddNewMap = () => {
-          showNewMapModal.value = false;
-          newMap.value = {
-            name: '',
-            shortname: ''
-          };
-        };
-
-        const openDeleteDialog = (id, action) => {
-          selectedDeleteItemId.value = id;
-          deleteAction.value = action; // Store the function dynamically
-          showDeleteDialog.value = true;
-        };
-
-        const confirmDelete = () => {
-          if (selectedDeleteItemId.value && deleteAction.value) {
-            deleteAction.value(selectedDeleteItemId.value); // Call the dynamically stored function
-            showDeleteDialog.value = false;
-          } else if (deleteAction.value) {
-            deleteAction.value(); // Call the dynamically stored function
-            showDeleteDialog.value = false;
-          }
-        };
-
-        const cancelDeleteDialog = () => {
-          showDeleteDialog.value = false;
-          selectedDeleteItemId.value = null;
-          deleteAction.value = null; // Store the function dynamically
-        };
-        
-        return {
-            isLoading,
-            maps: computed(() => mapStore.maps),
-
-            //table
-            tableHeader,
-
-            selectedMap,
-            editMap,
-            updateMap,
-            cancelEdit,
-            errorMessage,
-            showNewMapModal,
-            newMap,
-            createNewMap,
-            cancelAddNewMap,
-            removeMap,       
-            fetchMaps,
-
-            showDeleteDialog,
-            selectedDeleteItemId,
-            deleteAction,
-            confirmDelete,
-            cancelDeleteDialog,
-            openDeleteDialog,
-        }
-    },
+// Methods
+const fetchMaps = async () => {
+  isLoading.value = true;
+  errorMessage.value = null;
+  try {
+    await mapStore.fetchMaps();
+    if (maps.value.length === 0) {
+      errorMessage.value = 'No maps found.';
+    }
+  } catch (error) {
+    errorMessage.value = 'Failed to load maps. Please try again later.';
+  } finally {
+    isLoading.value = false;
+  }
 };
+
+const editMap = (map) => {
+  selectedMap.value = { ...map };
+};
+
+const updateMap = async () => {
+  try {
+    await mapStore.updateMap(selectedMap.value);
+    await fetchMaps();
+    cancelEdit();
+  } catch (error) {
+    console.error('Error updating map:', error);
+  }
+};
+
+const cancelEdit = () => {
+  selectedMap.value = null;
+};
+
+const createNewMap = async () => {
+  try {
+    await mapStore.createMap(newMap.value);
+    await fetchMaps();
+    cancelAddNewMap();
+  } catch (error) {
+    console.error('Error creating map:', error);
+  }
+};
+
+const removeMap = async (mapId) => {
+  try {
+    await mapStore.deleteMap(mapId);
+    await fetchMaps();
+  } catch (error) {
+    console.error('Error deleting map:', error);
+  }
+};
+
+const cancelAddNewMap = () => {
+  showNewMapModal.value = false;
+  newMap.value = {
+    name: '',
+    shortname: ''
+  };
+};
+
+const openDeleteDialog = (id, action) => {
+  selectedDeleteItemId.value = id;
+  deleteAction.value = action;
+  showDeleteDialog.value = true;
+};
+
+const confirmDelete = () => {
+  if (selectedDeleteItemId.value && deleteAction.value) {
+    deleteAction.value(selectedDeleteItemId.value);
+  } else if (deleteAction.value) {
+    deleteAction.value();
+  }
+  showDeleteDialog.value = false;
+};
+
+const cancelDeleteDialog = () => {
+  showDeleteDialog.value = false;
+  selectedDeleteItemId.value = null;
+  deleteAction.value = null;
+};
+
+// Lifecycle hooks
+onMounted(() => {
+  fetchMaps();
+});
 </script>
 
 <style>

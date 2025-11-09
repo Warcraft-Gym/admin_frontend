@@ -317,67 +317,89 @@
 
   </template>
   
-  <script>
-  import { useRouter, useRoute } from 'vue-router';
-  import { ref, onMounted, computed, watch } from 'vue';
-  import { useSeasonStore, useMatchStore, useTeamStore, useMapStore } from '@/stores';
-  import  bannerImg from '@/assets/media/GNL_Banner.png';
-  import  teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
-  
-  const addTeamsTableHeader = [
+  <script setup>
+import { useRouter, useRoute } from 'vue-router';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useSeasonStore, useMatchStore, useTeamStore, useMapStore } from '@/stores';
+import { storeToRefs } from 'pinia';
+import bannerImg from '@/assets/media/GNL_Banner.png';
+import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
+
+defineOptions({
+  name: 'SeasonDetailsView'
+})
+
+// Store initialization
+const router = useRouter();
+const route = useRoute();
+const seasonStore = useSeasonStore();
+const matchStore = useMatchStore();
+const teamStore = useTeamStore();
+const mapStore = useMapStore();
+
+// Store refs
+const { current_season: season } = storeToRefs(seasonStore);
+const { matches } = storeToRefs(matchStore);
+const { teams } = storeToRefs(teamStore);
+const { maps } = storeToRefs(mapStore);
+
+// Route params
+const seasonId = router.currentRoute.value.params.id;
+
+// Table configuration
+const addTeamsTableHeader = [
   { title: 'ID', value: 'id', sortable: true },
   { title: 'Name', value: 'name', sortable: true },
   { title: 'Long Name', value: 'long_name', sortable: true },
-]
+];
+    // Component state
+const isLoading = ref(true);
+const isInitLoading = ref(false);
 
-  export default {
-    name: 'SeasonDetailsView',
-    setup() {
-    const router = useRouter();
-    const route = useRoute();
-    const seasonId = router.currentRoute.value.params.id;
-    const seasonStore = useSeasonStore();
-    const matchStore = useMatchStore();
-    const teamStore = useTeamStore();
-    const mapStore = useMapStore();
-    const isLoading = ref(true);
-    const selectedWeek = ref(null);
-    const isModalOpen = ref(false);
-    const isTeamDialogOpen = ref(false);
-    const selectedMatch = ref(null);
-    const selectedMap = ref(null);
-    const newMatch = ref(null);
-    const showDeleteDialog = ref(false);
-    const selectedDeleteItemId = ref(null);
-    const deleteAction = ref(null);
+// Week selection state
+const selectedWeek = ref(null);
 
-    const teamImages = ref({});
-    const allTeams = ref(null);
-    const selectedTeams = ref(null);
+// Modal state
+const isModalOpen = ref(false);
+const isTeamDialogOpen = ref(false);
 
-    const selectedTeam1 = ref(null);
-    const selectedTeam2 = ref(null);
-    // Compute teams that are not part of the season
-    const availableTeams = computed(() => {
-      if (!allTeams.value || allTeams.value.length == 0) {
-        console.log("no teams")
-        return [];
-      }
-      return allTeams.value;
-      //return allTeams.value.filter(team => !teamStore.teams.some(seasonTeam => seasonTeam.id === team.id));
-    });
+// Match state
+const selectedMatch = ref(null);
+const selectedMap = ref(null);
+const newMatch = ref(null);
 
-    const openTeamSelectionModal = async () => {
-      isTeamDialogOpen.value = true;
-      selectedTeams.value = [];
-    };
+// Team state
+const teamImages = ref({});
+const allTeams = ref(null);
+const selectedTeams = ref(null);
+const selectedTeam1 = ref(null);
+const selectedTeam2 = ref(null);
 
-    const closeTeamSelectionModal = () => {
-      isTeamDialogOpen.value = false;
-      selectedTeams.value = null;
-    };
+// Delete dialog state
+const showDeleteDialog = ref(false);
+const selectedDeleteItemId = ref(null);
+const deleteAction = ref(null);
 
-    let isInitLoading = false;
+// Compute teams that are not part of the season
+const availableTeams = computed(() => {
+  if (!allTeams.value || allTeams.value.length == 0) {
+    console.log("no teams");
+    return [];
+  }
+  return allTeams.value;
+  //return allTeams.value.filter(team => !teamStore.teams.some(seasonTeam => seasonTeam.id === team.id));
+});
+
+// Team selection methods
+const openTeamSelectionModal = async () => {
+  isTeamDialogOpen.value = true;
+  selectedTeams.value = [];
+};
+
+const closeTeamSelectionModal = () => {
+  isTeamDialogOpen.value = false;
+  selectedTeams.value = null;
+};
 
     const openMatchCreationModal = () => {
       newMatch.value = {
@@ -476,19 +498,19 @@
     };
 
     const fetchMatches = async (week) => {
-        selectedWeek.value = week;
-        isLoading.value = true;
-        router.push({ hash: `#week-${week}` });
-        try {
-            await matchStore.searchMatchesBySeasonAndPlayday(seasonId, week);
-        } catch (error) {
-            console.error(`Failed to fetch matches for week ${week}:`, error);
-        } finally {
-          if(!isInitLoading){
-            isLoading.value = false;
-          }
-        }
-    };
+  selectedWeek.value = week;
+  isLoading.value = true;
+  router.push({ hash: `#week-${week}` });
+  try {
+    await matchStore.searchMatchesBySeasonAndPlayday(seasonId, week);
+  } catch (error) {
+    console.error(`Failed to fetch matches for week ${week}:`, error);
+  } finally {
+    if (!isInitLoading.value) {
+      isLoading.value = false;
+    }
+  }
+};
 
     const fetchMaps = async () => {
       try {
@@ -500,47 +522,46 @@
 
     // Fetch teams for the season
     const fetchTeams = async () => {
-      isLoading.value = true;
+  isLoading.value = true;
+  try {
+    await teamStore.fetchTeamsBySeason(seasonId);
+
+    // Fetch team images concurrently
+    const teamPromises = teamStore.teams.map(async (team) => {
       try {
-        await teamStore.fetchTeamsBySeason(seasonId);
-
-        // Fetch team images concurrently
-        const teamPromises = teamStore.teams.map(async (team) => {
-          try {
-            const imgResponse = await teamStore.getTeamImage(team.id);
-            if (!imgResponse.ok) throw new Error("Image not found");
-            const imgBlob = await imgResponse.blob();
-            teamImages.value[team.id] = URL.createObjectURL(imgBlob); //
-          } catch (error) {
-            teamImages.value[team.id] = teamDefaultImg; // Assign default image if fetch fails
-          }
-          return team;
-        });
-
-        // Wait for all images to be fetched before storing updated teams
-        await Promise.all(teamPromises);
-
+        const imgResponse = await teamStore.getTeamImage(team.id);
+        if (!imgResponse.ok) throw new Error("Image not found");
+        const imgBlob = await imgResponse.blob();
+        teamImages.value[team.id] = URL.createObjectURL(imgBlob);
       } catch (error) {
-        console.error('Failed to fetch teams for the season:', error);
-      } finally {
-        if(!isInitLoading){
-          isLoading.value = false;
-        }
+        teamImages.value[team.id] = teamDefaultImg; // Assign default image if fetch fails
       }
-    };
+      return team;
+    });
+
+    // Wait for all images to be fetched before storing updated teams
+    await Promise.all(teamPromises);
+  } catch (error) {
+    console.error('Failed to fetch teams for the season:', error);
+  } finally {
+    if (!isInitLoading.value) {
+      isLoading.value = false;
+    }
+  }
+};
 
     const fetchSeasonDetails = async () => {
-      isLoading.value = true;
-      try {
-          await seasonStore.fetchSeason(seasonId);
-      } catch (error) {
-          console.error('Failed to fetch season details:', error);
-      } finally {
-        if(!isInitLoading){
-          isLoading.value = false;
-        }
-      }
-    };
+  isLoading.value = true;
+  try {
+    await seasonStore.fetchSeason(seasonId);
+  } catch (error) {
+    console.error('Failed to fetch season details:', error);
+  } finally {
+    if (!isInitLoading.value) {
+      isLoading.value = false;
+    }
+  }
+};
 
     watch(() => route.hash, (newHash) => {
       if (newHash) {
@@ -554,73 +575,39 @@
     });
 
   
-    onMounted(async () => {
-        isInitLoading = true;
-        isLoading.value = true;
-        try {
-          const weekFromHash = route.hash && route.hash.includes('#week-') 
-            ? parseInt(route.hash.replace('#week-', ''), 10) 
-            : 1;
+    // Lifecycle hooks
+onMounted(async () => {
+  isInitLoading.value = true;
+  isLoading.value = true;
+  try {
+    const weekFromHash = route.hash && route.hash.includes('#week-') 
+      ? parseInt(route.hash.replace('#week-', ''), 10) 
+      : 1;
 
-          await Promise.all([
-            fetchSeasonDetails(),
-            fetchTeams(),
-            allTeams.value = await teamStore.getTeams(),
-            fetchMatches(weekFromHash),
-            fetchMaps()
-        ]);
+    await Promise.all([
+      fetchSeasonDetails(),
+      fetchTeams(),
+      allTeams.value = await teamStore.getTeams(),
+      fetchMatches(weekFromHash),
+      fetchMaps()
+    ]);
+  } finally {
+    isLoading.value = false;
+    isInitLoading.value = false;
+  }
+});
 
-        } finally {
-          isLoading.value = false;
-          isInitLoading = false;
-        }
-    });
-    return { 
-        season: computed(() => seasonStore.current_season),
-        matches: computed(() => matchStore.matches),
-        teams: computed(() => teamStore.teams),
-        maps : computed(() => mapStore.maps),
-
-        isLoading,
-        bannerImg,
-
-        teamImages,
-        teamDefaultImg,
-
-        fetchMatches,
-        fetchTeams,
-        selectedWeek,
-        isModalOpen,
-        selectedTeam1,
-        selectedTeam2,
-        openMatchCreationModal,
-        closeMatchCreationModal,
-        confirmSelection,
-        selectedTeams,
-        availableTeams,
-        isTeamDialogOpen,
-        addTeamsTableHeader,
-        openTeamSelectionModal,
-        closeTeamSelectionModal,
-        addTeamsToSeason,
-
-        showDeleteDialog,
-        selectedDeleteItemId,
-        deleteAction,
-        confirmDelete,
-        cancelDeleteDialog,
-        openDeleteDialog,
-
-        newMatch,
-        selectedMatch,
-        selectedMap,
-        editMatch,
-        updateMatch,
-        removeMatch,
-        cancelEdit,
-        };
-    },
-  };
+// Route watchers
+watch(() => route.hash, (newHash) => {
+  if (newHash) {
+    const weekFromHash = route.hash && route.hash.includes('#week-') 
+      ? parseInt(route.hash.replace('#week-', ''), 10) 
+      : 1;
+    if(selectedWeek.value && weekFromHash != selectedWeek.value) {
+      fetchMatches(weekFromHash);
+    }
+  }
+});
   </script>
   <style>  
   #seasonHeader {
