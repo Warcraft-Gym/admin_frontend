@@ -250,6 +250,13 @@
           prepend-icon="mdi-plus">
           Add Teams
         </v-btn>
+        <v-btn
+          @click="router.push(`/seasons/${season.id}/assign`)"
+          class="toolbar-btn"
+          variant="tonal"
+          prepend-icon="mdi-account-multiple-plus">
+          Assign Signups
+        </v-btn>
       </v-col>
 
         <!-- Team Selection Modal -->

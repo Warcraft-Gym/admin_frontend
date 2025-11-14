@@ -5,6 +5,11 @@
     <v-card v-if="team">
       <v-card-title>
         <v-icon left icon="mdi-account-group"></v-icon> {{ team.name }}
+        <v-spacer></v-spacer>
+        <v-btn color="green" @click="syncW3CTeam" :loading="isLoading" :disabled="isLoading">
+          <v-icon left>mdi-sync</v-icon>
+          Sync wc3 info
+        </v-btn>
       </v-card-title>
       <v-card-text v-if="team.seasons_info">
         <p><strong>Score:</strong> {{ team.seasons_info[0].final_score }}</p>
@@ -322,11 +327,14 @@ const removePlayerFromTeam = async (playerId) => {
 };
 
 const syncW3CTeam = async () => {
+  isLoading.value = true;
   try {
     await teamStore.syncPlayersW3C(teamId.value, seasonId.value);
-    fetchTeam();
+    await fetchTeam();
   } catch (error) {
     console.error('Error syncing W3C data:', error);
+  } finally {
+    isLoading.value = false;
   }
 };
 

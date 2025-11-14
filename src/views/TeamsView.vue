@@ -11,14 +11,6 @@
       <h1>Teams Information</h1>
       <!-- Teams -->
       <div id="teamList">
-        <v-row>
-          <v-btn 
-                    @click="createTeam()"
-                    class="toolbar-btn"
-                    variant="tonal"
-                    prepend-icon="mdi-plus"
-                  >Add New Team</v-btn>
-         </v-row>
         <!-- Error Message -->
         <v-row justify="center" v-if="errorMessage" class="error-message">
           <v-col cols="auto">
@@ -33,9 +25,20 @@
               :items="teams"
               fixed-header
               hover>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-spacer />
+                  <v-btn
+                    class="toolbar-btn"
+                    variant="tonal"
+                    prepend-icon="mdi-plus"
+                    @click="createTeam()"
+                  >Add New Team</v-btn>
+                </v-toolbar>
+              </template>
               <template v-slot:[`item.actions`]="{ item }">
                   <td>
-                    <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editTeam(item)"></v-btn>
+                    <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click="editTeam(item)"></v-btn>
                     <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removeTeam)"></v-btn>
                   </td>
               </template>

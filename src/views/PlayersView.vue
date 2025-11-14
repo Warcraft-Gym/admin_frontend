@@ -104,7 +104,6 @@
                 <v-toolbar flat>
                   <v-toolbar-title>
                     <v-icon icon="mdi-account"></v-icon>
-                    <h2>Player list</h2>
                   </v-toolbar-title>                    
                   <v-btn 
                     @click="openCreateNew"
@@ -151,10 +150,33 @@
                     <div v-else>—</div>
                   </td>
                   <td>
-                    <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
+                    <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
                     <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removePlayer)"></v-btn>
-                    <!-- SECURE SYNC BUTTON WITH TIMEOUT -->
-                    <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CPlayer(item.id)"></v-btn>                      
+                    <!-- per-player sync status: icon-only button inside table -->
+                    <v-btn
+                      class="table-action"
+                      density="compact"
+                      color="green"
+                      icon
+                      @click.stop.prevent="syncW3CPlayer(item.id)"
+                      :loading="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'"
+                      :disabled="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'"
+                    >
+                      <template v-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'success'">
+                        <v-icon small color="green">mdi-check-circle</v-icon>
+                      </template>
+                      <template v-else-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'error'">
+                        <v-tooltip>
+                          <template #activator="{ props }">
+                            <v-icon v-bind="props" small color="red" @click.stop.prevent="syncW3CPlayer(item.id)">mdi-alert-circle</v-icon>
+                          </template>
+                          <span>{{ perPlayerSyncStatus[item.id].message || 'Sync failed — click to retry' }}</span>
+                        </v-tooltip>
+                      </template>
+                      <template v-else>
+                        <v-icon small class="text--secondary">mdi-sync</v-icon>
+                      </template>
+                    </v-btn>
                   </td>
                 </tr>
               </template>
@@ -192,7 +214,7 @@
             </span>
           </template>
           <template v-slot:text>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="newPlayer.name" 
@@ -206,7 +228,7 @@
                 </v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <CountrySelect v-model="newPlayer.country" />
               </v-col>
@@ -217,7 +239,7 @@
                 </v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="newPlayer.discordId"
@@ -226,7 +248,7 @@
                 ></v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-number-input
                   v-model="newPlayer.mmr" 
@@ -240,7 +262,7 @@
                 <RaceSelect v-model="newPlayer.race" />
               </v-col>
             </v-row> 
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="newPlayer.fantasy_tier" 
@@ -284,8 +306,7 @@
       <!-- Edit Player Modal -->
       <v-dialog
         id="EditPlayerModal"
-        v-if="showEditPlayerModal"
-        v-model="selectedPlayer"
+        v-model="showEditPlayerModal"
         max-width="65vw">
         <v-card>
           <v-alert
@@ -305,7 +326,7 @@
             </span>
           </template>
           <template v-slot:text>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="selectedPlayer.name" 
@@ -319,7 +340,7 @@
                 </v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">                
                 <CountrySelect v-model="selectedPlayer.country" />
               </v-col>
@@ -330,7 +351,7 @@
                 </v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="selectedPlayer.discordId"
@@ -339,7 +360,7 @@
                 ></v-text-field>
               </v-col>
             </v-row>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-number-input
                   v-model="selectedPlayer.mmr" 
@@ -353,7 +374,7 @@
                 <RaceSelect v-model="selectedPlayer.race" />
               </v-col>
             </v-row> 
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="selectedPlayer.fantasy_tier" 
@@ -546,6 +567,9 @@ onMounted( () => {
   seasonStore.fetchSeasons();
 });
 
+// per-player sync status map: { [playerId]: { state: 'loading'|'success'|'error', message?: string } }
+const perPlayerSyncStatus = ref({});
+
 const openDeleteDialog = (id, action) => {
   selectedDeleteItemId.value = id;
   deleteAction.value = action; // Store the function dynamically
@@ -605,8 +629,7 @@ const updatePlayer = async () => {
     // send selectedPlayer directly — fields match backend schema
     await playerStore.updatePlayer(selectedPlayer.value);
     // Update the local state after a successful PUT request
-    // sync signup seasons: compute additions and removals
-    const playerId = payload.id || selectedPlayer.value.id;
+    const playerId = selectedPlayer.value.id;
     const newSignupIds = selectedSignupSeasonIds.value || [];
     const toAdd = newSignupIds.filter(id => !originalSignupSeasonIds.includes(id));
     const toRemove = originalSignupSeasonIds.filter(id => !newSignupIds.includes(id));
@@ -677,11 +700,16 @@ const removePlayer = async (playerId) => {
 };
 
 const syncW3CPlayer = async (playerId) => {
+  if (!playerId) return;
+  perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [playerId]: { state: 'loading' } };
   try {
     await playerStore.syncW3CPlayer(playerId);
-    await fetchPlayers(); // Refresh the list after deletion
+    perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [playerId]: { state: 'success' } };
+    await fetchPlayers(); // refresh list to reflect updated stats
   } catch (error) {
-    console.error('Error deleting player:', error);
+    console.error('Error syncing player:', playerId, error);
+    const message = error && (error.message || error.msg || error.error) ? (error.message || error.msg || error.error) : (typeof error === 'string' ? error : JSON.stringify(error));
+    perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [playerId]: { state: 'error', message } };
   }
 };
 

@@ -148,7 +148,10 @@
                             </span>
                           </v-col>
                           <v-col>
-                            <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
+                            <v-btn density="compact" color="green" @click="syncW3CTeams" :loading="isLoading" :disabled="isLoading">
+                              <v-icon left>mdi-sync</v-icon>
+                              Sync wc3 info
+                            </v-btn>
                           </v-col>
                         </v-row>
                       </v-col> 
@@ -423,9 +426,12 @@
   <div id="teamDetails">
     <v-row class="justify-center">
       <v-col cols="auto text-center">
-        <h2>Team Details</h2>
-        <v-btn density="compact" color="green" icon="mdi-sync" @click="syncW3CTeams"></v-btn>
-      </v-col>
+          <h2>Team Details</h2>
+          <v-btn density="compact" color="green" @click="syncW3CTeams" :loading="isLoading" :disabled="isLoading">
+            <v-icon left>mdi-sync</v-icon>
+            Sync wc3 info
+          </v-btn>
+        </v-col>
       <v-col>
         <v-btn
           @click="openProposeSeries"

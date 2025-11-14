@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
-import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, MapsView, TeamsView } from '@/views';
+import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView } from '@/views';
 
 export const router = createRouter({
     history: createWebHashHistory(),
@@ -12,6 +12,7 @@ export const router = createRouter({
         { path: '/seasons', component: SeasonsView },
         { path: '/players', component: PlayersView },
         { path: '/seasons/:id', component: SeasonDetailsView },
+    { path: '/seasons/:id/assign', component: SeasonTeamAssignView },
         { path: '/match/:id', component: MatchDetailsView},
         { path: '/team/:id/season/:season_id', component: SeasonTeamDetailsView},
         { path: '/maps', component: MapsView},

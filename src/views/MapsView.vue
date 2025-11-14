@@ -11,14 +11,6 @@
       <h1>Map Information</h1>
       <!-- Maps -->
       <div id="mapList">
-        <v-row>
-          <v-btn 
-                    @click="showNewMapModal = true"
-                    class="toolbar-btn"
-                    variant="tonal"
-                    prepend-icon="mdi-plus"
-                  >Add New Map</v-btn>
-         </v-row>
         <!-- Error Message -->
         <v-row justify="center" v-if="errorMessage" class="error-message">
           <v-col cols="auto">
@@ -33,10 +25,21 @@
               :items="maps"
               fixed-header
               hover>
+              <template v-slot:top>
+                <v-toolbar flat>
+                  <v-spacer />
+                  <v-btn
+                    class="toolbar-btn"
+                    variant="tonal"
+                    prepend-icon="mdi-plus"
+                    @click="showNewMapModal = true"
+                  >Add New Map</v-btn>
+                </v-toolbar>
+              </template>
               <template v-slot:[`item.actions`]="{ item }">
                   <td>
-                    <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editMap(item)"></v-btn>
-                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removeMap)"></v-btn>
+              <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click.stop.prevent="editMap(item)"></v-btn>
+              <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop.prevent="openDeleteDialog(item.id, removeMap)"></v-btn>
                   </td>
               </template>
             </v-data-table>
@@ -62,7 +65,7 @@
             </span>
           </template>
           <template v-slot:text>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
                 <v-text-field
                   v-model="newMap.name" 
@@ -98,12 +101,8 @@
       </v-dialog>
 
       <!-- Edit Map Modal -->
-      <v-dialog
-        id="editMapModal"
-        v-if="selectedMap"
-        v-model="selectedMap"
-        max-width="65vw">
-        <v-card>
+      <v-dialog id="editMapModal" v-model="editDialogOpen" max-width="65vw">
+        <v-card v-if="selectedMap">
           <template v-slot:title>
             <span class="modal-title">
               <v-icon icon="mdi-account-edit"></v-icon>
@@ -111,38 +110,20 @@
             </span>
           </template>
           <template v-slot:text>
-            <v-row dense="true">
+            <v-row :dense="true">
               <v-col cols="6">
-                <v-text-field
-                  v-model="selectedMap.name" 
-                  label="Map name">
-                </v-text-field>
+                <v-text-field v-model="selectedMap.name" label="Map name" />
               </v-col>
               <v-col cols="6">
-                <v-text-field
-                  v-model="selectedMap.shortname" 
-                  label="Map shortname">
-                </v-text-field>
+                <v-text-field v-model="selectedMap.shortname" label="Map shortname" />
               </v-col>
-            </v-row>      
-          </template>       
-              
+            </v-row>
+          </template>
+
           <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-pencil"
-              @click="updateMap"
-              color="light-green"
-              variant="tonal">
-              Save
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelEdit"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
+            <v-btn prepend-icon="mdi-pencil" @click="updateMap" color="light-green" variant="tonal">Save</v-btn>
+            <v-btn prepend-icon="mdi-close" @click="cancelEdit" color="orange" variant="tonal">Cancel</v-btn>
+          </v-card-actions>
         </v-card>
       </v-dialog>
     </div>
@@ -178,6 +159,7 @@ const selectedMap = ref(null);
 const isLoading = ref(false);
 const errorMessage = ref(null);
 const showNewMapModal = ref(false);
+const editDialogOpen = ref(false);
 
 // Form state
 const newMap = ref({
@@ -216,6 +198,7 @@ const fetchMaps = async () => {
 
 const editMap = (map) => {
   selectedMap.value = { ...map };
+  editDialogOpen.value = true;
 };
 
 const updateMap = async () => {
@@ -230,6 +213,7 @@ const updateMap = async () => {
 
 const cancelEdit = () => {
   selectedMap.value = null;
+  editDialogOpen.value = false;
 };
 
 const createNewMap = async () => {
