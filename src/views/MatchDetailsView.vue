@@ -62,7 +62,7 @@
         <v-row>          
           <v-col cols="auto">
             <v-btn
-              @click="openSeriesCreation"
+              @click="openCreateNewSeries"
               class="toolbar-btn"
               variant="tonal"
               prepend-icon="mdi-plus">
@@ -929,6 +929,13 @@ const seriesHeaders = [
   { title: 'Player 2', value: 'player2.name' },
   { title: 'Actions', align: 'center' }
 ];
+
+const openCreateNewSeries = () => {
+  showNewSeriesModal.value = true;
+  newSeries_Player_1.value = null;
+  newSeries_Player_2.value = null;
+  creationSeriesError.value = null;
+};
 
 const cancelCreateSeries = () => {
   showNewSeriesModal.value = false;

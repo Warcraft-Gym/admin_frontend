@@ -152,9 +152,6 @@
                         </v-row>
                         <v-row justify="center">
                           <v-col cols="auto">
-                            <v-btn @click="searchPlayer" prepend-icon="mdi-magnify" color="blue">Search</v-btn>
-                          </v-col>
-                          <v-col cols="auto">
                             <v-btn v-if="searchEnabled" @click="fetchPlayers" variant="tonal" prepend-icon="mdi-refresh">Reset</v-btn>
                           </v-col>
                         </v-row>
@@ -167,14 +164,14 @@
         </v-card-title>
         <v-card-text>
           <!-- disabling does not work might want to prefilter the users-->
-          <v-data-table
-            :headers="playerTableHeaders"
-            :items="allPlayers"
-            item-value="id"
-            v-model="selectedPlayers"
-            show-select
-            :item-disabled="isRowDisabled"
-          >
+                  <v-data-table
+                    :headers="playerTableHeaders"
+                    :items="filteredAllPlayers"
+                    item-value="id"
+                    v-model="selectedPlayers"
+                    show-select
+                    :item-disabled="isRowDisabled"
+                  >
             <template v-slot:top>
               <v-toolbar flat>
                 <v-toolbar-title>Available Players</v-toolbar-title>
@@ -345,19 +342,46 @@ const isRowDisabled = (item) => {
 };
 
 const searchPlayer = async () => {
-  isLoading.value = true;
-  try {
-    await playerStore.searchPlayer(
-      searchName.value,
-      searchRace.value,
-      rangeValues.value[0],
-      rangeValues.value[1]
-    );
-  } finally {
-    isLoading.value = false;
-    searchEnabled.value = true;
-  }
+  // Use client-side filtering for the Add Player modal (allPlayers already fetched).
+  searchEnabled.value = true;
 };
+
+const filteredAllPlayers = computed(() => {
+  let list = allPlayers.value || [];
+
+  // Only include players who signed up for the current season
+  if (seasonId.value) {
+    const sid = String(seasonId.value);
+    list = list.filter(p => {
+      if (!p.signup_seasons) return false;
+      return p.signup_seasons.some(s => String(s.id) === sid);
+    });
+  }
+
+  if (searchName.value && searchName.value.trim().length > 0) {
+    const q = searchName.value.trim().toLowerCase();
+    list = list.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const bt = (p.battleTag || '').toLowerCase();
+      return name.includes(q) || bt.includes(q);
+    });
+  }
+
+  if (searchRace.value) {
+    list = list.filter(p => p.race === searchRace.value);
+  }
+
+  if (Array.isArray(rangeValues.value) && rangeValues.value.length === 2) {
+    const min = Number(rangeValues.value[0] ?? 0);
+    const max = Number(rangeValues.value[1] ?? 3000);
+    list = list.filter(p => {
+      const mmr = Number(p.mmr ?? 0);
+      return mmr >= min && mmr <= max;
+    });
+  }
+
+  return list;
+});
 
 </script>
 <style>

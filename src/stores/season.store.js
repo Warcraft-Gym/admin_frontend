@@ -41,6 +41,14 @@ export const useSeasonStore = defineStore({
         async removeMapsFromSeason(season_id, map_ids) {
             const updatedTeam = await fetchWrapper.post(`${backendUrl}/seasons/removeMaps/${season_id}`, {'map_ids': map_ids});
         },
+        async addUserSignup(season_id, user_ids) {
+            const updated = await fetchWrapper.post(`${backendUrl}/seasons/addUserSignup/${season_id}`, {'user_ids': user_ids});
+            return updated;
+        },
+        async removeUserSignup(season_id, user_ids) {
+            const updated = await fetchWrapper.post(`${backendUrl}/seasons/removeUserSignup/${season_id}`, {'user_ids': user_ids});
+            return updated;
+        },
         async uploadSeasonFile(season_id, season_name, file){
             let url = null
             if (season_id != null){

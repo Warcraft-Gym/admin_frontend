@@ -17,14 +17,24 @@
                 </v-expansion-panel-title>
                 <v-expansion-panel-text>
                   <v-row>
-                    <v-col cols="6">
+                    <v-col cols="4">
                       <v-text-field
-                      v-model="searchName" 
-                      label="Search a player name...">
+                        v-model="searchName"
+                        label="Search a player name...">
                       </v-text-field>
                     </v-col>
-                    <v-col cols="6">
+                    <v-col cols="4">
                       <RaceSelect v-model="searchRace" />
+                    </v-col>
+                    <v-col cols="4">
+                      <v-select
+                        v-model="selectedSeasonFilter"
+                        :items="seasons"
+                        item-title="name"
+                        item-value="id"
+                        clearable
+                        label="Filter by Season"
+                      ></v-select>
                     </v-col>
                   </v-row>
                   <v-row>
@@ -61,9 +71,6 @@
                   </v-row>
                   <v-row justify="center">
                     <v-col cols="auto">
-                      <v-btn @click="searchPlayer" prepend-icon="mdi-magnify" color="blue">Search</v-btn>
-                    </v-col>
-                    <v-col cols="auto">
                       <v-btn v-if="searchEnabled" @click="fetchPlayers" variant="tonal" prepend-icon="mdi-refresh">Reset</v-btn>
                     </v-col>
                   </v-row>
@@ -87,7 +94,7 @@
             <v-data-table
               :headers="tableHeader"
               :loading="isLoading"
-              :items="players"
+              :items="filteredPlayers"
               fixed-header
               hover>
               <template v-slot:loading>
@@ -125,8 +132,24 @@
                     </div>
                   </td>     
                   <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
-                  <td>stats</td>
-                  <td>fantasy</td>
+                  <td>
+                    <div v-if="item.signup_seasons && item.signup_seasons.length > 0">
+                      <template v-for="s in item.signup_seasons.slice().sort((a,b) => b.id - a.id).slice(0,2)" :key="s.id">
+                        <v-chip small class="ma-1">{{ s.name }}</v-chip>
+                      </template>
+                      <v-menu v-if="item.signup_seasons.length > 2" offset-y>
+                        <template #activator="{ props }">
+                          <v-chip v-bind="props" class="ma-1" small>+{{ item.signup_seasons.length - 2 }}</v-chip>
+                        </template>
+                        <v-list>
+                          <v-list-item v-for="s in item.signup_seasons.slice().sort((a,b) => b.id - a.id)" :key="s.id">
+                            <v-list-item-title>{{ s.name }}</v-list-item-title>
+                          </v-list-item>
+                        </v-list>
+                      </v-menu>
+                    </div>
+                    <div v-else>—</div>
+                  </td>
                   <td>
                     <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
                     <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removePlayer)"></v-btn>
@@ -196,6 +219,15 @@
             </v-row>
             <v-row dense="true">
               <v-col cols="6">
+                <v-text-field
+                  v-model="newPlayer.discordId"
+                  label="Player Discord ID"
+                  hint="Numeric Discord user id (required)"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
                 <v-number-input
                   v-model="newPlayer.mmr" 
                   control-variant="hidden"
@@ -211,9 +243,21 @@
             <v-row dense="true">
               <v-col cols="6">
                 <v-text-field
-                  v-model="newPlayer.fantasyTier" 
+                  v-model="newPlayer.fantasy_tier" 
                   label="Player Fantasy Tier">
                 </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-select
+                  v-model="selectedSignupSeasonIdsNew"
+                  :items="seasons"
+                  item-title="name"
+                  item-value="id"
+                  multiple
+                  chips
+                  label="Signed-up Seasons"
+                  clearable
+                ></v-select>
               </v-col>
             </v-row>           
           </template>       
@@ -288,6 +332,15 @@
             </v-row>
             <v-row dense="true">
               <v-col cols="6">
+                <v-text-field
+                  v-model="selectedPlayer.discordId"
+                  label="Player Discord ID"
+                  hint="Numeric Discord user id (required)"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row dense="true">
+              <v-col cols="6">
                 <v-number-input
                   v-model="selectedPlayer.mmr" 
                   control-variant="hidden"
@@ -303,9 +356,20 @@
             <v-row dense="true">
               <v-col cols="6">
                 <v-text-field
-                  v-model="selectedPlayer.fantasyTier" 
+                  v-model="selectedPlayer.fantasy_tier" 
                   label="Player Fantasy Tier">
                 </v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-select
+                  v-model="selectedSignupSeasonIds"
+                  :items="seasons"
+                  item-title="name"
+                  item-value="id"
+                  multiple
+                  chips
+                  label="Signed-up Seasons"
+                ></v-select>
               </v-col>
             </v-row>           
           </template>       
@@ -343,9 +407,9 @@
     </v-dialog>
 </template>
 <script setup>
-import { usePlayerStore } from '@/stores';
+import { usePlayerStore, useSeasonStore } from '@/stores';
 import { storeToRefs } from 'pinia';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 
 defineOptions({
   name: 'PlayersView'
@@ -364,12 +428,58 @@ const newPlayer = ref({
   battleTag: '',
   country: '',
   discordTag: '',
+  discordId: '',
   mmr: 0,
   race: '',
-  fantasyTier: '',
+  fantasy_tier: null,
 });
+// seasons selected when creating a new player
+const selectedSignupSeasonIdsNew = ref([]);
 const playerStore = usePlayerStore();
+const seasonStore = useSeasonStore();
 const { players } = storeToRefs(playerStore);
+const { seasons } = storeToRefs(seasonStore);
+// filter for season in the grid
+const selectedSeasonFilter = ref(null);
+
+const filteredPlayers = computed(() => {
+  let list = players.value || [];
+
+  // filter by name / battletag
+  if (searchName.value && searchName.value.trim().length > 0) {
+    const q = searchName.value.trim().toLowerCase();
+    list = list.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const bt = (p.battleTag || '').toLowerCase();
+      return name.includes(q) || bt.includes(q);
+    });
+  }
+
+  // filter by race
+  if (searchRace.value) {
+    list = list.filter(p => p.race === searchRace.value);
+  }
+
+  // filter by season signup
+  if (selectedSeasonFilter.value) {
+    list = list.filter(p => (p.signup_seasons || []).some(s => s.id === selectedSeasonFilter.value));
+  }
+
+  // filter by mmr range
+  if (Array.isArray(rangeValues.value) && rangeValues.value.length === 2) {
+    const min = Number(rangeValues.value[0] ?? 0);
+    const max = Number(rangeValues.value[1] ?? 3000);
+    list = list.filter(p => {
+      const mmr = Number(p.mmr ?? 0);
+      return mmr >= min && mmr <= max;
+    });
+  }
+
+  return list;
+});
+// seasons for signup selection
+const selectedSignupSeasonIds = ref([]);
+let originalSignupSeasonIds = [];
 // Fetch data when the page is loaded
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);
@@ -401,8 +511,7 @@ const tableHeader = [
   { title: 'Discord Name', value: 'discordTag', sortable: true }, 
   { title: 'GNL MMR', value: 'mmr', sortable: true }, 
   { title: 'Main Race', value: 'race', sortable: true },  
-  { title: 'W3C Stats', value: 'w3c_stats', sortable: false },  
-  { title: 'Fantasy Tier', value: 'fantasy_tier', sortable: false },    
+  { title: 'Signups', value: 'signups', sortable: false },    
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
 ];
 
@@ -433,7 +542,8 @@ const fetchPlayers = async () => {
 };
 
 onMounted( () => {
-  fetchPlayers(); 
+  fetchPlayers();
+  seasonStore.fetchSeasons();
 });
 
 const openDeleteDialog = (id, action) => {
@@ -448,9 +558,10 @@ const openCreateNew = () => {
     battleTag: '',
     country: '',
     discordTag: '',
+    discordId: '',
     mmr: 0,
     race: '',
-    fantasyTier: '',
+    fantasy_tier: null,
   };
   creationError.value = '';
   showNewPlayerModal.value = true;
@@ -474,26 +585,42 @@ const cancelDeleteDialog = () => {
 
 // Methods
 const searchPlayer = async () => {
-  isLoading.value = true;
-  try {
-    await playerStore.searchPlayer( searchName.value, searchRace.value, rangeValues.value[0], rangeValues.value[1] );
-  } finally {
-    isLoading.value = false;            
-    searchEnabled.value = true;
-  }
-}
+  // Apply client-side filters only. Backend is not queried here.
+  searchEnabled.value = true;
+};
 
 const editPlayer = (player) => {
   selectedPlayer.value = { ...player }; // Clone the user object to avoid modifying the original object directly
   updateError.value = '';
+  // prepare signup seasons selection
+  const signup = selectedPlayer.value.signup_seasons || [];
+  originalSignupSeasonIds = signup.map(s => s.id);
+  selectedSignupSeasonIds.value = [...originalSignupSeasonIds];
   showEditPlayerModal.value = true;
 };
 
 const updatePlayer = async () => {
   updateError.value = '';
   try {
+    // send selectedPlayer directly — fields match backend schema
     await playerStore.updatePlayer(selectedPlayer.value);
     // Update the local state after a successful PUT request
+    // sync signup seasons: compute additions and removals
+    const playerId = payload.id || selectedPlayer.value.id;
+    const newSignupIds = selectedSignupSeasonIds.value || [];
+    const toAdd = newSignupIds.filter(id => !originalSignupSeasonIds.includes(id));
+    const toRemove = originalSignupSeasonIds.filter(id => !newSignupIds.includes(id));
+
+    // perform API calls per season via season store actions
+    try {
+      // additions
+      await Promise.all(toAdd.map(sid => seasonStore.addUserSignup(sid, [playerId])));
+      // removals
+      await Promise.all(toRemove.map(sid => seasonStore.removeUserSignup(sid, [playerId])));
+    } catch (err) {
+      console.error('Failed to sync signup seasons:', err);
+    }
+
     await fetchPlayers(); // Re-fetch the users
     cancelEdit(); // Reset the form
   } catch (error) {
@@ -510,7 +637,28 @@ const cancelEdit = () => {
 const createNewPlayer = async () => {
   creationError.value = '';
   try {
-    await playerStore.createPlayer(newPlayer.value);
+    // send newPlayer directly — fields use backend schema names
+    const created = await playerStore.createPlayer(newPlayer.value);
+
+    // determine created player id: prefer API return, otherwise refetch and find by unique battletag
+    let createdId = created && created.id ? created.id : null;
+    if (!createdId) {
+      await fetchPlayers();
+      // try to find by battletag and name as fallback
+      const found = (players.value || []).find(p => p.battleTag === newPlayer.value.battleTag && p.name === newPlayer.value.name);
+      createdId = found ? found.id : null;
+    }
+
+    // If seasons were selected, register the user for those seasons
+    if (createdId && Array.isArray(selectedSignupSeasonIdsNew.value) && selectedSignupSeasonIdsNew.value.length > 0) {
+      try {
+        await Promise.all(selectedSignupSeasonIdsNew.value.map(sid => seasonStore.addUserSignup(sid, [createdId])));
+      } catch (err) {
+        console.error('Failed to add user signup for new player:', err);
+      }
+    }
+
+    // refresh players list and close modal
     await fetchPlayers();
     cancelAddNewPlayer();
   } catch (error) {
@@ -544,9 +692,12 @@ const cancelAddNewPlayer = () => {
     battleTag: '',
     country: '',
     discordTag: '',
+    discordId: '',
     mmr: 0,
     race: '',
+    fantasy_tier: null,
   };
+  selectedSignupSeasonIdsNew.value = [];
 };
 </script>
 
