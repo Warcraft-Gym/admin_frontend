@@ -133,7 +133,7 @@
                           </template>
                           <template v-slot:[`item.name`]="{ item }">
                             <FlagIcon :countryIdentifier="item.country" />
-                            <span @click="showStats(item)">
+                              <span @click.stop="showStats(item)">
                               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
                             </span>
                           </template>
@@ -194,7 +194,7 @@
                           </template>
                           <template v-slot:[`item.name`]="{ item }">
                             <FlagIcon :countryIdentifier="item.country" />
-                            <span @click="showStats(item)">
+                            <span @click.stop="showStats(item)">
                               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
                             </span>
                           </template>
@@ -246,8 +246,8 @@
                     Series List
                   </v-toolbar-title>
                   <v-spacer></v-spacer>
-                <v-btn icon @click="openDeleteDialog(null, removeAllSeries)" color="red">
-                      <v-icon>mdi-trash-can</v-icon>
+                <v-btn variant="tonal" color="red" prepend-icon="mdi-trash-can" @click="openDeleteDialog(null, removeAllSeries)">
+                  Delete all
                 </v-btn>
                 </v-toolbar>
               </template>
@@ -260,11 +260,11 @@
                       {{ formateDate(item.date_time) }}
                     </span>
                   </td>
-                  <td @click="showStats(item.player1)">{{ item.player1.name }}</td>
+                  <td @click.stop="showStats(item.player1)">{{ item.player1.name }}</td>
                   <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
                   <td>{{ item.player1_score }}</td>
                   <td>{{ item.player2_score }}</td>
-                  <td @click="showStats(item.player2)">{{ item.player2.name }}</td>
+                  <td @click.stop="showStats(item.player2)">{{ item.player2.name }}</td>
                   <td>{{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}</td>
                   <td>
                     <span v-if="item.host_player_id === item.player1.id">
@@ -276,18 +276,15 @@
                     <span v-else>
                     </span>
                   </td>
-                  <td>
-                    <v-btn
-                      icon
-                      @click.stop="editSeries(item)"
-                      color="blue"
-                    >
-                      <v-icon>mdi-account-edit</v-icon>
-                    </v-btn>
-                    <v-btn icon @click="openDeleteDialog(item.id, removeSeries)" color="red">
-                      <v-icon>mdi-trash-can</v-icon>
-                    </v-btn>
+                  <td class="text-center">
+                    <v-icon v-if="item.is_fantasy_match" icon="mdi-sword-cross" color="purple" title="Fantasy match"></v-icon>
+                    <span v-else class="text-muted">—</span>
                   </td>
+                  <td class="actions-cell">
+                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editSeries(item)" color="blue"></v-btn>
+                      <v-btn class="table-action" density="compact" icon="mdi-trash-can" @click.stop="openDeleteDialog(item.id, removeSeries)" color="red"></v-btn>
+                  </td>
+                  
                 </tr>
               </template>
             </v-data-table>
@@ -315,12 +312,12 @@
             </tbody>
             <tbody>
               <tr>
-                <td class="text-left text-overline">{{ playerDetails.gnl_stats[0].season.name }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
+                <td class="text-left text-overline">{{ selectedGnl?.season?.name || 'N/A' }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
                 <td class="text-left text-overline">{{ playerDetails.mmr }}</td>
-                <td class="text-right text-green">{{ playerDetails.gnl_stats[0].wins }}</td>
-                <td class="text-right text-red">{{ playerDetails.gnl_stats[0].losses }}</td>
-                <td class="text-right">{{ playerDetails.gnl_stats[0].games }}</td>
-                <td class="text-right">{{ Math.round( playerDetails.gnl_stats[0].wins / playerDetails.gnl_stats[0].games * 100 ) + '%' }}</td>
+                <td class="text-right text-green">{{ selectedGnl?.wins || 0 }}</td>
+                <td class="text-right text-red">{{ selectedGnl?.losses || 0 }}</td>
+                <td class="text-right">{{ selectedGnl?.games || 0 }}</td>
+                <td class="text-right">{{ selectedGnl && selectedGnl.games ? (Math.round( selectedGnl.wins / selectedGnl.games * 100 ) + '%') : '0%' }}</td>
               </tr>
               <tr>
                 <td>W3Champion Stats: 
@@ -340,11 +337,11 @@
             </tbody>
           </v-table>
         </v-card-text>
-      </v-card>
-    </v-dialog>
+          </v-card>
+        </v-dialog>
 
-    <!-- Edit Series Modal -->
-    <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistend>
+        <!-- Edit Series Modal -->
+        <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistent>
       <v-card style="display: flex; flex-direction: column; height: 95vh;">
         <v-alert
           v-if="updateError"
@@ -525,12 +522,12 @@
               </template>
               <template v-slot:[`item.player1.name`]="{ item }">
                   <FlagIcon :countryIdentifier="item.player1.country" />
-                  <span @click="showStats(item.player1)">{{ item.player1.name }}</span>
+                  <span @click.stop="showStats(item.player1)">{{ item.player1.name }}</span>
               </template>
               <template v-slot:[`item.player2.name`]="{ item }">
                 <FlagIcon :countryIdentifier="item.country" />
                   <FlagIcon :countryIdentifier="item.player2.country" />
-                  <span @click="showStats(item.player2)">{{ item.player2.name }}</span>
+                  <span @click.stop="showStats(item.player2)">{{ item.player2.name }}</span>
               </template>
               <template v-slot:[`item.p1_w3c_mmr`]="{ item }">
                   <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
@@ -545,10 +542,10 @@
                   <td>{{ item.player2.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
               </template>
               <template v-slot:[`item.actions`]="{ item }">
-                  <td> 
-                    <v-btn icon @click="openDeleteDialog(item.proposedId, removeProposedSeries)" color="red">
-                      <v-icon>mdi-trash-can</v-icon>
-                    </v-btn>
+                  <td class="actions-cell"> 
+                      <v-btn class="table-action" icon density="compact" @click.stop="openDeleteDialog(item.proposedId, removeProposedSeries)" color="red">
+                        <v-icon>mdi-trash-can</v-icon>
+                      </v-btn>
                   </td>
               </template>
             </v-data-table>
@@ -556,13 +553,13 @@
           </v-col>
         </v-row>  
             <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
-              <v-btn 
-                prepend-icon="mdi-plus"
-                @click="createSelectedProposedSeries"
-                color="light-green"
-                variant="tonal">
-                Create Selected Series
-              </v-btn>
+                    <v-btn
+                      prepend-icon="mdi-plus"
+                      @click="createSelectedProposedSeries"
+                      color="light-green"
+                      variant="tonal">
+                      Create Selected Series
+                    </v-btn>
               <v-btn 
                 prepend-icon="mdi-close" 
                 @click="cancelProposeSeries"
@@ -615,7 +612,7 @@
           </template>
           <template v-slot:[`item.name`]="{ item }">
             <FlagIcon :countryIdentifier="item.country" />
-            <span @click="showStats(item)">
+            <span @click.stop="showStats(item)">
               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
           </template>
@@ -664,7 +661,7 @@
           </template>
           <template v-slot:[`item.name`]="{ item }">
             <FlagIcon :countryIdentifier="item.country" />
-            <span @click="showStats(item)">
+            <span @click.stop="showStats(item)">
               <strong>{{ item.name }}</strong> ({{ item.discordTag }})
             </span>
           </template>
@@ -759,6 +756,7 @@ const seriesTableHeader = [
   }},
   { title: 'Host' },
   { title: 'Fantasy Match'},    
+  { title: '', value: 'actions', sortable: true }
 ];
 
 const proposedSeriesTableHeader = [
@@ -927,6 +925,20 @@ const customFilterSeries = (value, search, item) => {
     item.raw.player2.name.toLowerCase().includes(search)
   );
 }
+
+// Helper to check for empty objects/arrays
+const isObjectEmpty = (obj) => {
+  return obj == null || (typeof obj === 'object' && Object.keys(obj).length === 0);
+}
+
+// Compute the season-specific GNL stats for the currently shown player
+const selectedGnl = computed(() => {
+  if (!playerDetails.value) return null;
+  const sid = match.value?.season_id;
+  const stats = playerDetails.value.gnl_stats || [];
+  const found = stats.find(s => String(s.season?.id) === String(sid));
+  return found || null;
+});
 
 const seriesHeaders = [
   { title: 'ID', value: 'id' },
@@ -1258,8 +1270,12 @@ onMounted(() => {
 </script>
 
 <style>
-.table-action {
-  margin-right: 15px;
+
+.toolbar-btn { margin-right: 12px !important; }
+
+/* Keep action buttons on a single line and prevent wrapping in table cells */
+.actions-cell {
+  white-space: nowrap;
 }
 
 #matchHeader {

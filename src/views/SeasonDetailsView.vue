@@ -143,12 +143,14 @@
               </v-col>
               <v-col cols="1">
                 <v-row>
-                  <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editMatch(match)"></v-btn>
+                  <v-btn class="table-action" icon density="compact" color="blue" @click.stop="editMatch(match)">
+                    <v-icon>mdi-account-edit</v-icon>
+                  </v-btn>
                   <!-- Edit Map Modal -->
                   <v-dialog
                     id="editMatchModal"
                     v-if="selectedMatch"
-                    v-model="selectedMatch"
+                    v-model="editMatchDialogOpen"
                     max-width="65vw">
                     <v-card>
                       <template v-slot:title>
@@ -218,7 +220,9 @@
                   </v-dialog>
                 </v-row>
                 <v-row>
-                  <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop="openDeleteDialog(match.id, removeMatch)"></v-btn>
+                  <v-btn class="table-action" icon density="compact" color="red" @click.stop="openDeleteDialog(match.id, removeMatch)">
+                    <v-icon>mdi-trash-can</v-icon>
+                  </v-btn>
                 </v-row>
               </v-col>
             </v-row>
@@ -369,6 +373,7 @@ const selectedWeek = ref(null);
 // Modal state
 const isModalOpen = ref(false);
 const isTeamDialogOpen = ref(false);
+const editMatchDialogOpen = ref(false);
 
 // Match state
 const selectedMatch = ref(null);
@@ -441,6 +446,7 @@ const closeTeamSelectionModal = () => {
 
     const editMatch = (match) => {
       selectedMatch.value = { ...match }; // Clone the user object to avoid modifying the original object directly
+      editMatchDialogOpen.value = true;
     };
 
     const updateMatch = async () => {
@@ -464,7 +470,8 @@ const closeTeamSelectionModal = () => {
     };
 
     const cancelEdit = () => {
-          selectedMatch.value = null; // Clear the selected user
+      editMatchDialogOpen.value = false;
+      selectedMatch.value = null; // Clear the selected user
     };
 
     
@@ -674,5 +681,10 @@ watch(() => route.hash, (newHash) => {
   font-weight: bold; /* Add a slight background for text readability */
   padding: 8px;
   border-radius: 4px;
+}
+/* Small spacing for inline table action buttons */
+.table-action {
+  margin-right: 8px;
+  margin-bottom: 8px;
 }
   </style>

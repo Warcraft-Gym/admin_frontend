@@ -27,10 +27,10 @@
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="3">
+              <v-col cols="2">
                 <v-text-field v-model="searchName" label="Search name" density="compact"></v-text-field>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="2">
                 <v-select
                   v-model="searchRace"
                   :items="races"
@@ -41,7 +41,7 @@
                   density="compact"
                 ></v-select>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="6">
                 <v-range-slider
                   v-model="rangeValues"
                   :min="0"
@@ -51,14 +51,14 @@
                   density="compact"
                 >
                   <template v-slot:prepend>
-                    <v-text-field v-model="rangeValues[0]" density="compact" disabled single-line type="number"></v-text-field>
+                    <v-text-field v-model="rangeValues[0]" density="compact" single-line type="number"></v-text-field>
                   </template>
                   <template v-slot:append>
-                    <v-text-field v-model="rangeValues[1]" density="compact" disabled single-line type="number"></v-text-field>
+                    <v-text-field v-model="rangeValues[1]" density="compact" single-line type="number"></v-text-field>
                   </template>
                 </v-range-slider>
               </v-col>
-              <v-col cols="3" class="d-flex align-center">
+              <v-col cols="2" class="d-flex align-center">
                 <v-btn color="primary" @click="clearFilters">Clear filters</v-btn>
               </v-col>
             </v-row>
@@ -95,12 +95,6 @@
                 <div>No available signed-up players for this season.</div>
               </template>
             </v-data-table>
-
-            <v-row class="mt-2">
-              <v-col cols="12">
-                <v-btn color="primary" @click="clearFilters">Clear filters</v-btn>
-              </v-col>
-            </v-row>
           </v-card-text>
         </v-card>
       </v-col>
@@ -111,42 +105,46 @@
       <v-card>
         <v-card-title>Player Details</v-card-title>
         <v-card-text>
-          <div v-if="playerDetails">
-            <v-table border density="compact" class="pb-2">
-              <tbody>
-                <tr>
-                  <td><strong>Name</strong></td>
-                  <td>{{ playerDetails.name }}</td>
-                </tr>
-                <tr v-if="playerDetails.battleTag">
-                  <td><strong>BattleTag</strong></td>
-                  <td>{{ playerDetails.battleTag }}</td>
-                </tr>
-                <tr v-if="playerDetails.country">
-                  <td><strong>Country</strong></td>
-                  <td>{{ playerDetails.country }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-
-            <h3>W3C Stats</h3>
-            <v-data-table :items="playerDetails.w3c_stats || []" dense hide-default-footer>
-              <template #item.race="{ item }">
-                <RaceIcon :raceIdentifier="item.race" />
-              </template>
-              <template #item.mmr="{ item }">
-                <div>{{ item.mmr }}</div>
-              </template>
-              <template #no-data>
-                <div>No W3C stats available.</div>
-              </template>
-            </v-data-table>
-          </div>
+          <v-table border density="compact" class="pb-2">
+            <tbody>
+              <tr>
+                <th class="text-left"></th>
+                <th class="text-right">MMR</th>
+                <th class="text-right">Wins</th>
+                <th class="text-right">Losses</th>
+                <th class="text-right">Total</th>
+                <th class="text-right">Winrate</th>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <td class="text-left text-overline">{{ gnlStatsForSelected?.season?.name || seasonName }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
+                <td class="text-left text-overline">{{ playerDetails.mmr ?? 'N/A' }}</td>
+                <td class="text-right text-green">{{ gnlStatsForSelected?.wins ?? '-' }}</td>
+                <td class="text-right text-red">{{ gnlStatsForSelected?.losses ?? '-' }}</td>
+                <td class="text-right">{{ gnlStatsForSelected?.games ?? '-' }}</td>
+                <td class="text-right">
+                  {{ (gnlStatsForSelected && gnlStatsForSelected.games) ? (Math.round( (gnlStatsForSelected.wins / gnlStatsForSelected.games) * 100 ) + '%') : 'N/A' }}
+                </td>
+              </tr>
+              <tr>
+                <td>W3Champion Stats: 
+                  <a :href="`https://w3champions.com/player/${encodeURIComponent(playerDetails.battleTag)}`" target="_blank">
+                    <img src="https://w3champions.com/assets/logos/small-logo-full-black.png" alt="W3Champions" width="100" style="margin-left: 10px;">
+                  </a>
+                </td>
+              </tr>
+              <tr v-for="stat in playerDetails.w3c_stats" v-if="!isObjectEmpty( playerDetails.w3c_stats )">
+                <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
+                <td class="text-left text-overline">{{ stat.mmr  }}</td>
+                <td class="text-right text-green">{{ stat.wins }}</td>
+                <td class="text-right text-red">{{ stat.losses }}</td>
+                <td class="text-right">{{ stat.games }}</td>
+                <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
+              </tr>
+            </tbody>
+          </v-table>
         </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="showPlayerDetails = false">Close</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -312,11 +310,13 @@ const colsCount = computed(() => {
   return Math.max(1, n); // side-by-side for fewer than 8 teams
 });
 
-// fetch data
+// fetch data — prefer fetching teams for the specific season when seasonId is available
 const fetchData = async () => {
   await Promise.all([
     playerStore.fetchPlayers(),
-    teamStore.fetchTeams ? teamStore.fetchTeams() : Promise.resolve(),
+    (seasonId.value && teamStore.fetchTeamsBySeason)
+      ? teamStore.fetchTeamsBySeason(seasonId.value)
+      : (teamStore.fetchTeams ? teamStore.fetchTeams() : Promise.resolve()),
     seasonStore.fetchSeasons ? seasonStore.fetchSeasons() : Promise.resolve()
   ]);
 };
@@ -363,6 +363,23 @@ const showStats = async (player) => {
   playerDetails.value = player;
   showPlayerDetails.value = true;
 };
+
+// small helper used by the player details template
+const isObjectEmpty = (obj) => {
+  if (!obj) return true;
+  if (typeof obj !== 'object') return false;
+  return Object.keys(obj).length === 0;
+};
+
+// pick the GNL stats row for the current season when showing player details
+const gnlStatsForSelected = computed(() => {
+  const p = playerDetails.value;
+  if (!p) return null;
+  const sid = String(seasonId.value);
+  const arr = p.gnl_stats || [];
+  // prefer stats that match the current season id, otherwise fallback to first entry
+  return arr.find(s => String(s.season?.id) === sid) || null;
+});
 
 // capture selection emitted by v-data-table (varies by Vuetify version)
 const onSelectedUpdate = (val) => {

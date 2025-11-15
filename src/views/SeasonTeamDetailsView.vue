@@ -4,17 +4,23 @@
     <h1>Team Details</h1>
     <v-card v-if="team">
       <v-card-title>
-        <v-icon left icon="mdi-account-group"></v-icon> {{ team.name }}
-        <v-spacer></v-spacer>
-        <v-btn color="green" @click="syncW3CTeam" :loading="isLoading" :disabled="isLoading">
-          <v-icon left>mdi-sync</v-icon>
-          Sync wc3 info
-        </v-btn>
+        <div class="d-flex align-center" style="width:100%">
+          <div class="d-flex align-center">
+            <v-icon left icon="mdi-account-group"></v-icon> {{ team.name }}
+          </div>
+          <v-spacer></v-spacer>
+          <div>
+            <v-btn small color="green" @click="syncW3CTeam" :loading="isLoading" :disabled="isLoading">
+              <v-icon left>mdi-sync</v-icon>
+              Sync wc3 info
+            </v-btn>
+          </div>
+        </div>
       </v-card-title>
       <v-card-text v-if="team.seasons_info">
-        <p><strong>Score:</strong> {{ team.seasons_info[0].final_score }}</p>
-        <p><strong>Score:</strong> {{ team.seasons_info[0].points_against }}</p>
-        <p><strong>Score:</strong> {{ team.seasons_info[0].points_available }}</p>
+        <p><strong>Final Score:</strong> {{ team.seasons_info[0].final_score }}</p>
+        <p><strong>Points Against:</strong> {{ team.seasons_info[0].points_against }}</p>
+        <p><strong>Points Available:</strong> {{ team.seasons_info[0].points_available }}</p>
         <!-- Add more details as needed -->
       </v-card-text>
     </v-card>
