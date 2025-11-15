@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
-import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView } from '@/views';
+import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView } from '@/views';
 
 export const router = createRouter({
     history: createWebHashHistory(),
@@ -10,9 +10,10 @@ export const router = createRouter({
         { path: '/', component: HomeView },
         { path: '/login', component: LoginView },
         { path: '/seasons', component: SeasonsView },
+        { path: '/signup', component: PublicSignupView },
         { path: '/players', component: PlayersView },
         { path: '/seasons/:id', component: SeasonDetailsView },
-    { path: '/seasons/:id/assign', component: SeasonTeamAssignView },
+        { path: '/seasons/:id/assign', component: SeasonTeamAssignView },
         { path: '/match/:id', component: MatchDetailsView},
         { path: '/team/:id/season/:season_id', component: SeasonTeamDetailsView},
         { path: '/maps', component: MapsView},
@@ -23,7 +24,7 @@ export const router = createRouter({
 
 router.beforeEach(async (to) => {
     // redirect to login page if not logged in and trying to access a restricted page
-    const publicPages = ['/login'];
+    const publicPages = ['/login','/signup','/signup-token'];
     const authRequired = !publicPages.includes(to.path);
     const auth = useAuthStore();
 

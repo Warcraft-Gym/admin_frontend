@@ -1,7 +1,7 @@
 <template>
     <v-autocomplete
         v-model="model"
-        label="Races"
+        label="Race"
         :menu-props="{ scrollStrategy: 'close'}"
         item-title="name"
         item-value="id"

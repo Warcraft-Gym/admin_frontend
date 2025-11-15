@@ -1,15 +1,24 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/stores';
 
 const authStore = useAuthStore();
 const { user: authUser } = storeToRefs(authStore);
+const route = useRoute();
+
+// hide the app bar for the public signup page even if user is present
+const showAppBar = () => {
+    if (!authStore.user) return false;
+    // also hide on explicit public-only routes
+    if (route.path === '/signup') return false;
+    return true;
+}
 </script>
 
 <template>
     <v-app> 
-        <v-app-bar v-show="authStore.user">
+    <v-app-bar v-show="showAppBar()">
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list class="inline-nav" nav>
