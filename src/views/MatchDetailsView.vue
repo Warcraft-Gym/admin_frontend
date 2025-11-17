@@ -358,18 +358,16 @@
           <v-form>
             <v-row dense>
               <v-col cols="6">
-                    <v-date-picker
-                      v-model="selectedDate"
-                      label="Scheduled Date:"
-                    ></v-date-picker>
+                <SimpleDatePicker
+                  v-model="selectedDate"
+                  label="Scheduled Date"
+                />
               </v-col>
               <v-col cols="6">
-                <v-time-picker
+                <SimpleTimePicker
                   v-model="selectedTime"
-                  label="Scheduled Time HH:mm"
-                  format="24hr"
-                >
-                </v-time-picker>
+                  label="Scheduled Time"
+                />
               </v-col>
               <v-col cols="6">
                 <v-text-field
@@ -722,6 +720,8 @@ import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
 import { useDate } from 'vuetify';
 import { storeToRefs } from 'pinia';
 import FlagIcon from '../components/FlagIcon.vue';
+import SimpleTimePicker from '../components/SimpleTimePicker.vue';
+import SimpleDatePicker from '../components/SimpleDatePicker.vue';
 
 defineOptions({
   name: 'MatchDetailsView'
