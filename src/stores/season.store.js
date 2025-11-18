@@ -49,6 +49,10 @@ export const useSeasonStore = defineStore({
             const updated = await fetchWrapper.post(`${backendUrl}/seasons/removeUserSignup/${season_id}`, {'user_ids': user_ids});
             return updated;
         },
+        async fetchSeasonSignups(season_id) {
+            const signups = await fetchWrapper.get(`${backendUrl}/seasons/${season_id}/signups`);
+            return signups;
+        },
         async uploadSeasonFile(season_id, season_name, file){
             let url = null
             if (season_id != null){

@@ -350,7 +350,7 @@ const createNewTeam = async () => {
     );
 
     if (nameExists) {
-      throw Error(`Team with name ${team.name} already exists`);
+      throw Error(`Team with name ${newTeam.value.name} already exists`);
     }
 
     const createdTeam = await teamStore.createTeam(newTeam.value);

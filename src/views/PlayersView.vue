@@ -289,7 +289,9 @@
               prepend-icon="mdi-plus"
               @click="createNewPlayer"
               color="light-green"
-              variant="tonal">
+              variant="tonal"
+              :loading="isCreating"
+              :disabled="isCreating">
               Add
             </v-btn>
             <v-btn 
@@ -439,6 +441,7 @@ defineOptions({
 // State for editing
 const selectedPlayer = ref(null);
 const isLoading  = ref(false); // State for selected user
+const isCreating = ref(false); // State for creating new player
 const errorMessage = ref(null);
 const creationError = ref(null);
 const updateError = ref(null);
@@ -653,15 +656,18 @@ const updatePlayer = async () => {
 };
 
 const cancelEdit = () => {
-  selectedPlayer.value = null; // Clear the selected user
   showEditPlayerModal.value = false;
+  selectedPlayer.value = {}; // Clear the selected user
+  
 };
 
 const createNewPlayer = async () => {
   creationError.value = '';
+  isCreating.value = true;
   try {
     // send newPlayer directly — fields use backend schema names
     const created = await playerStore.createPlayer(newPlayer.value);
+    console.log('Player created:', created);
 
     // determine created player id: prefer API return, otherwise refetch and find by unique battletag
     let createdId = created && created.id ? created.id : null;
@@ -672,12 +678,23 @@ const createNewPlayer = async () => {
       createdId = found ? found.id : null;
     }
 
+    console.log('Created player ID:', createdId);
+    console.log('Selected signup seasons:', selectedSignupSeasonIdsNew.value);
+
     // If seasons were selected, register the user for those seasons
     if (createdId && Array.isArray(selectedSignupSeasonIdsNew.value) && selectedSignupSeasonIdsNew.value.length > 0) {
       try {
-        await Promise.all(selectedSignupSeasonIdsNew.value.map(sid => seasonStore.addUserSignup(sid, [createdId])));
+        console.log('Adding user to seasons...');
+        await Promise.all(selectedSignupSeasonIdsNew.value.map(async sid => {
+          console.log(`Adding user ${createdId} to season ${sid}`);
+          const result = await seasonStore.addUserSignup(sid, [createdId]);
+          console.log(`Result for season ${sid}:`, result);
+          return result;
+        }));
+        console.log('All season signups completed');
       } catch (err) {
         console.error('Failed to add user signup for new player:', err);
+        creationError.value = 'Player created but failed to add to seasons: ' + err;
       }
     }
 
@@ -687,6 +704,8 @@ const createNewPlayer = async () => {
   } catch (error) {
     console.error('Error creating user:', error);
     creationError.value = 'Error creating user: ' + error;
+  } finally {
+    isCreating.value = false;
   }
 };
 

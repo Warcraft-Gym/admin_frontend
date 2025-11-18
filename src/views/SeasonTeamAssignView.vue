@@ -84,9 +84,9 @@
                   <template v-else-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'error'">
                     <v-tooltip>
                       <template #activator="{ props }">
-                        <v-icon v-bind="props" small color="red" style="cursor:pointer" @click.stop.prevent="syncSinglePlayer(item)">mdi-alert-circle</v-icon>
+                        <v-icon v-bind="props" small color="red">mdi-alert-circle</v-icon>
                       </template>
-                      <span>{{ perPlayerSyncStatus[item.id].message || 'Sync failed — click to retry' }}</span>
+                      <span>{{ perPlayerSyncStatus[item.id].message || 'Sync failed' }}</span>
                     </v-tooltip>
                   </template>
                 </div>
@@ -192,9 +192,9 @@
                           <template v-else-if="perPlayerSyncStatus[p.id] && perPlayerSyncStatus[p.id].state === 'error'">
                             <v-tooltip>
                               <template #activator="{ props }">
-                                <v-icon v-bind="props" small color="red" style="cursor:pointer" @click.stop.prevent="syncSinglePlayer(p)">mdi-alert-circle</v-icon>
+                                <v-icon v-bind="props" small color="red">mdi-alert-circle</v-icon>
                               </template>
-                              <span>{{ perPlayerSyncStatus[p.id].message || 'Sync failed — click to retry' }}</span>
+                              <span>{{ perPlayerSyncStatus[p.id].message || 'Sync failed' }}</span>
                             </v-tooltip>
                           </template>
                         </div>
@@ -251,6 +251,10 @@ const seasonStore = useSeasonStore();
 
 const { players } = storeToRefs(playerStore);
 const { teams } = storeToRefs(teamStore);
+const { seasons } = storeToRefs(seasonStore);
+
+// Local state for signed up players
+const signedUpPlayersData = ref([]);
 
 const searchName = ref('');
 const searchRace = ref(null);
@@ -313,22 +317,36 @@ const colsCount = computed(() => {
 // fetch data — prefer fetching teams for the specific season when seasonId is available
 const fetchData = async () => {
   await Promise.all([
-    playerStore.fetchPlayers(),
     (seasonId.value && teamStore.fetchTeamsBySeason)
       ? teamStore.fetchTeamsBySeason(seasonId.value)
       : (teamStore.fetchTeams ? teamStore.fetchTeams() : Promise.resolve()),
     seasonStore.fetchSeasons ? seasonStore.fetchSeasons() : Promise.resolve()
   ]);
+  
+  // Fetch signed up users separately
+  if (seasonId.value && seasonStore.fetchSeasonSignups) {
+    try {
+      signedUpPlayersData.value = await seasonStore.fetchSeasonSignups(seasonId.value);
+    } catch (err) {
+      console.error('Failed to fetch season signups:', err);
+      signedUpPlayersData.value = [];
+    }
+  }
 };
 
 onMounted(() => {
   fetchData();
 });
 
-// players signed up for this season
-const signedUpPlayers = computed(() => {
+const seasonName = computed(() => {
   const sid = String(seasonId.value);
-  return (players.value || []).filter(p => (p.signup_seasons || []).some(s => String(s.id) === sid));
+  const season = (seasons.value || []).find(s => String(s.id) === sid);
+  return season ? season.name : '';
+});
+
+// players signed up for this season - from local data fetched separately
+const signedUpPlayers = computed(() => {
+  return signedUpPlayersData.value || [];
 });
 
 const filteredPlayers = computed(() => {
@@ -460,25 +478,7 @@ const removePlayerFromTeam = async (teamId, playerId) => {
   }
 };
 
-// sync a single player (retryable); sets perPlayerSyncStatus[player.id]
-const syncSinglePlayer = async (player) => {
-  if (!player || !player.id) return;
-  perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [player.id]: { state: 'loading' } };
-  try {
-    if (playerStore && playerStore.syncW3CPlayer) {
-      await playerStore.syncW3CPlayer(player.id);
-    }
-    perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [player.id]: { state: 'success' } };
-    // refresh player data
-    await playerStore.fetchPlayers();
-  } catch (err) {
-    console.error('Failed to sync player', player.id, err);
-    const message = err && (err.message || err.msg || err.error) ? (err.message || err.msg || err.error) : (typeof err === 'string' ? err : JSON.stringify(err));
-    perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [player.id]: { state: 'error', message } };
-  }
-};
-
-// sync only players signed up for the current season
+// sync all players in teams for the current season
 const syncAllDraftPlayers = async () => {
   syncAllLoading.value = true;
   try {
@@ -497,7 +497,7 @@ const syncAllDraftPlayers = async () => {
         perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [p.id]: { state: 'error', message } };
       }
     }
-    // refresh players/teams after all
+    // refresh teams after all syncs
     await fetchData();
   } finally {
     syncAllLoading.value = false;
