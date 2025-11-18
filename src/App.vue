@@ -7,21 +7,21 @@ const authStore = useAuthStore();
 const { user: authUser } = storeToRefs(authStore);
 const route = useRoute();
 
-// hide the app bar for the public signup page even if user is present
-const showAppBar = () => {
+// show navigation links only for authenticated users on non-public routes
+const showNavLinks = () => {
     if (!authStore.user) return false;
-    // also hide on explicit public-only routes
-    if (route.path === '/signup') return false;
+    // hide on explicit public-only routes
+    if (route.path === '/signup' || route.path === '/player-dashboard') return false;
     return true;
 }
 </script>
 
 <template>
     <v-app> 
-    <v-app-bar v-show="showAppBar()">
+    <v-app-bar>
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
-                <v-list class="inline-nav" nav>
+                <v-list v-show="showNavLinks()" class="inline-nav" nav>
                     <v-list-item>
                         <RouterLink to="/">Home</RouterLink>
                     </v-list-item>

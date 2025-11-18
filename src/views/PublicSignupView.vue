@@ -100,7 +100,8 @@ onMounted(async () => {
 
   try {
     const backend = import.meta.env.VITE_BACKEND_URL || '';
-    const res = await fetch(`${backend}/signup-token/${token.value}`);
+    // Use the public token endpoint (updated API): /public-token/<token>
+    const res = await fetch(`${backend}/public-token/${token.value}`);
     if (!res.ok) {
       tokenInvalid.value = true;
       tokenInvalidReason.value = (await res.text()) || 'not_found';

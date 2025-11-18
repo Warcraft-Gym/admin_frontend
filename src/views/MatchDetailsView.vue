@@ -866,11 +866,10 @@ const formateDate = ( dateToFormat ) => {
   if (!dateToFormat) {
     return dateToFormat;
   }
-  const formatedDate = DateTime.fromISO(
-    dateToFormat,{
-      zone: "America/New_York"
-    }
-  ).setZone("local").toLocaleString(DateTime.DATETIME_MED);
+  // Display ET time as stored in database (no conversion)
+  const formatedDate = DateTime.fromISO(dateToFormat, {
+    zone: "America/New_York"
+  }).toLocaleString(DateTime.DATETIME_MED);
   return formatedDate
 }
 
@@ -1038,11 +1037,12 @@ const editSeries = async (series) => {
   updateSeriesError.value = '';
   selectedSeries.value = copy_series;
   if (copy_series.date_time) {
+    // Keep in ET timezone (no conversion to local)
     const initialDateTime = DateTime.fromISO(
       copy_series.date_time,{
         zone: "America/New_York"
       }
-    ).setZone("local");
+    );
     selectedDate.value = initialDateTime.toJSDate(); // Date only
     selectedTime.value = initialDateTime.toFormat("HH:mm"); // Time only
   }
@@ -1058,14 +1058,13 @@ const updateSeries = async () => {
   isLoading.value = true;
   updateSeriesError.value = '';
   try{
-    // Combine selected date and time into a single ISO datetime string
-    const localDate = DateTime.fromJSDate(selectedDate.value).setZone("local");
-    const combinedDateTime = DateTime.fromISO(`${localDate.toISODate()}T${selectedTime.value}`,
-    { zone: "local" });
-    // Convert local time to Eastern Time (ET)
-    const etDateTime = combinedDateTime.setZone("America/New_York");
+    // Combine selected date and time directly in ET timezone
+    const etDate = DateTime.fromJSDate(selectedDate.value).setZone("America/New_York");
+    const combinedDateTime = DateTime.fromISO(`${etDate.toISODate()}T${selectedTime.value}`, {
+      zone: "America/New_York"
+    });
     // Update series.date_time with the formatted ISO datetime in ET
-    selectedSeries.value.date_time = etDateTime.toISO();
+    selectedSeries.value.date_time = combinedDateTime.toISO();
     await seriesStore.updateSeries(selectedSeries.value);
     await fetchMatchSeries(); // Refresh match details after creation
     cancelEditSeries();
