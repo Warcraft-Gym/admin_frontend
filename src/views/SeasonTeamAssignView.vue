@@ -67,11 +67,20 @@
               :headers="playerTableHeaders"
               :items="availablePlayers"
               return-object
-              v-model="selectedPlayers"
-              @update:selected="onSelectedUpdate"
-              show-select
               dense
             >
+              <template #item.team="{ item }">
+                <v-select
+                  v-model="playerTeamSelection[item.id]"
+                  :items="teams"
+                  item-title="name"
+                  item-value="id"
+                  density="compact"
+                  clearable
+                  hide-details
+                  style="min-width: 150px;"
+                ></v-select>
+              </template>
               <template #item.name="{ item }">
                 <div class="d-flex align-center" style="gap:8px;">
                   <span style="cursor: pointer; color: var(--v-theme-primary);" @click="showStats(item)"><strong>{{ item.name }}</strong></span>
@@ -91,11 +100,31 @@
                   </template>
                 </div>
               </template>
+              <template #item.mmr="{ item }">
+                <div>
+                  <div>{{ item.mmr }}</div>
+                  <div class="text--secondary" style="font-size: 0.85em;">
+                    W3C: {{ getW3CMMR(item) ?? 'N/A' }}
+                  </div>
+                </div>
+              </template>
               <template #no-data>
                 <div>No available signed-up players for this season.</div>
               </template>
             </v-data-table>
           </v-card-text>
+          <v-card-actions class="px-4 pb-4">
+            <v-btn
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-account-multiple-plus"
+              @click="assignAllPlayers"
+              :loading="assignAllLoading"
+              :disabled="assignAllLoading || playersWithTeamSelected === 0"
+            >
+              Assign {{ playersWithTeamSelected }} Player{{ playersWithTeamSelected !== 1 ? 's' : '' }} to Teams
+            </v-btn>
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
@@ -160,20 +189,6 @@
                     <v-icon left icon="mdi-account-group"></v-icon>
                     {{ team.name }}
                   </div>
-                  <div>
-                    <v-btn
-                      icon
-                      small
-                      color="green"
-                      @click="addSelectedToTeam(team.id)"
-                      :disabled="selectedCount === 0 || isAddLoading(team.id)"
-                      :loading="isAddLoading(team.id)"
-                    >
-                      <template v-if="!isAddLoading(team.id)">
-                        <v-icon small>mdi-plus</v-icon>
-                      </template>
-                    </v-btn>
-                  </div>
                 </div>
               </v-card-title>
               <v-card-text>
@@ -199,6 +214,7 @@
                           </template>
                         </div>
                         <div class="text--secondary">{{ p.mmr }} — <RaceIcon :raceIdentifier="p.race" /></div>
+                        <div class="text--secondary" style="font-size: 0.85em;">W3C: {{ getW3CMMR(p) ?? 'N/A' }}</div>
                       </div>
                       <div style="display:flex;align-items:center;gap:6px;">
                           <v-btn
@@ -265,27 +281,19 @@ const races = ref([
   { name: 'NE' }
 ]);
 const rangeValues = ref([0, 3000]);
-// selectedPlayers holds selected player objects from the table (Vuetify may return an Array or a Set)
-const selectedPlayers = ref([]);
+
+// Track team selection per player
+const playerTeamSelection = ref({});
 
 // per-player sync status: { state: 'idle'|'loading'|'success'|'error', message?: string }
 const perPlayerSyncStatus = ref({});
-
-// normalize selected count (works for Array, Set, or object)
-const selectedCount = computed(() => {
-  const s = selectedPlayers.value;
-  if (!s) return 0;
-  if (Array.isArray(s)) return s.length;
-  if (s instanceof Set) return s.size;
-  if (typeof s === 'object') return Object.keys(s).length;
-  return 0;
-});
 
 const playerTableHeaders = [
   { title: 'ID', value: 'id' },
   { title: 'Name', value: 'name' },
   { title: 'MMR', value: 'mmr' },
   { title: 'Race', value: 'race' },
+  { title: 'Team', value: 'team', sortable: false },
 ];
 
 // compute assigned player ids across all teams for this season
@@ -304,6 +312,11 @@ const assignedPlayerIds = computed(() => {
 // available players = signed up players minus assigned players
 const availablePlayers = computed(() => {
   return (filteredPlayers.value || []).filter(p => !assignedPlayerIds.value.has(p.id));
+});
+
+// Count players with team selected
+const playersWithTeamSelected = computed(() => {
+  return Object.values(playerTeamSelection.value).filter(teamId => teamId != null).length;
 });
 
 // columns for teams grid: if exactly 8 teams -> show 4 columns (will wrap to two rows);
@@ -399,10 +412,11 @@ const gnlStatsForSelected = computed(() => {
   return arr.find(s => String(s.season?.id) === sid) || null;
 });
 
-// capture selection emitted by v-data-table (varies by Vuetify version)
-const onSelectedUpdate = (val) => {
-  console.debug('v-data-table update:selected payload:', val);
-  selectedPlayers.value = val;
+// Get W3C MMR for player's signed up race
+const getW3CMMR = (player) => {
+  if (!player || !player.race || !player.w3c_stats) return null;
+  const w3cStat = player.w3c_stats.find(s => s.race === player.race);
+  return w3cStat?.mmr ?? null;
 };
 
 function getTeamPlayersForSeason(team) {
@@ -419,6 +433,7 @@ function getTeamPlayersForSeason(team) {
 const addLoading = ref({});
 const removeLoading = ref({});
 const syncAllLoading = ref(false);
+const assignAllLoading = ref(false);
 
 const isAddLoading = (teamId) => {
   return !!addLoading.value[teamId];
@@ -427,40 +442,34 @@ const isRemoveLoading = (teamId, playerId) => {
   return !!removeLoading.value[`${teamId}_${playerId}`];
 };
 
-const addSelectedToTeam = async (teamId) => {
-    console.log("addSelectedToTeam: ", selectedPlayers.value);
-  const sel = selectedPlayers.value;
-  if (!sel) return;
-  // support Array, Set or array-of-ids
-  let ids = [];
-  if (Array.isArray(sel)) {
-    // sel might be array of objects or ids
-    if (sel.length > 0 && typeof sel[0] === 'object') ids = sel.map(p => p.id);
-    else ids = sel.map(p => p);
-  } else if (sel instanceof Set) {
-    const arr = Array.from(sel);
-    if (arr.length > 0 && typeof arr[0] === 'object') ids = arr.map(p => p.id);
-    else ids = arr.map(p => p);
-  } else if (typeof sel === 'object') {
-    // object-like map
-    ids = Object.values(sel).map(v => (typeof v === 'object' ? v.id : v));
-  }
-  if (!ids || ids.length === 0) return;
-  console.debug('Adding players to team', teamId, 'season', seasonId.value, 'ids', ids);
-  addLoading.value = { ...addLoading.value, [teamId]: true };
+const assignAllPlayers = async () => {
+  assignAllLoading.value = true;
   try {
-    if (teamStore.addPlayersToTeamForSeason) {
-      await teamStore.addPlayersToTeamForSeason(teamId, seasonId.value, ids);
+    // Group players by team
+    const playersByTeam = {};
+    for (const [playerId, teamId] of Object.entries(playerTeamSelection.value)) {
+      if (teamId != null) {
+        if (!playersByTeam[teamId]) {
+          playersByTeam[teamId] = [];
+        }
+        playersByTeam[teamId].push(parseInt(playerId));
+      }
     }
+
+    // Add players to each team
+    for (const [teamId, playerIds] of Object.entries(playersByTeam)) {
+      if (playerIds.length > 0) {
+        await teamStore.addPlayersToTeamForSeason(parseInt(teamId), seasonId.value, playerIds);
+      }
+    }
+
+    // Clear selections and refresh
+    playerTeamSelection.value = {};
     await fetchData();
-    // clear selection using same shape
-    if (Array.isArray(sel)) selectedPlayers.value = [];
-    else if (sel instanceof Set) selectedPlayers.value = new Set();
-    else selectedPlayers.value = [];
   } catch (err) {
-    console.error('Failed to add players to team:', err);
+    console.error('Failed to assign players to teams:', err);
   } finally {
-    addLoading.value = { ...addLoading.value, [teamId]: false };
+    assignAllLoading.value = false;
   }
 };
 
