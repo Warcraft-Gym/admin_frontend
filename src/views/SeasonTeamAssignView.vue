@@ -51,10 +51,10 @@
                   density="compact"
                 >
                   <template v-slot:prepend>
-                    <v-text-field v-model="rangeValues[0]" density="compact" single-line type="number"></v-text-field>
+                    <v-text-field v-model="rangeValues[0]" density="compact" single-line type="number" hide-spin-buttons style="width: 80px;"></v-text-field>
                   </template>
                   <template v-slot:append>
-                    <v-text-field v-model="rangeValues[1]" density="compact" single-line type="number"></v-text-field>
+                    <v-text-field v-model="rangeValues[1]" density="compact" single-line type="number" hide-spin-buttons style="width: 80px;"></v-text-field>
                   </template>
                 </v-range-slider>
               </v-col>
