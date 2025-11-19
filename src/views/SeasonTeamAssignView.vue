@@ -108,6 +108,9 @@
                   </div>
                 </div>
               </template>
+              <template #item.race="{ item }">
+                <RaceIcon :raceIdentifier="item.race" />
+              </template>
               <template #no-data>
                 <div>No available signed-up players for this season.</div>
               </template>

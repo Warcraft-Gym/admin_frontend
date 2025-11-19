@@ -395,15 +395,17 @@ const deleteAction = ref(null);
 // Compute teams that are not part of the season
 const availableTeams = computed(() => {
   if (!allTeams.value || allTeams.value.length == 0) {
-    console.log("no teams");
     return [];
   }
-  return allTeams.value;
-  //return allTeams.value.filter(team => !teamStore.teams.some(seasonTeam => seasonTeam.id === team.id));
+  return allTeams.value.filter(team => !teamStore.teams.some(seasonTeam => seasonTeam.id === team.id));
 });
 
 // Team selection methods
 const openTeamSelectionModal = async () => {
+  // Load basic team info only when the modal is opened
+  if (!allTeams.value) {
+    allTeams.value = await teamStore.getTeamsBasic();
+  }
   isTeamDialogOpen.value = true;
   selectedTeams.value = [];
 };
@@ -538,7 +540,7 @@ const closeTeamSelectionModal = () => {
     const fetchTeams = async () => {
   isLoading.value = true;
   try {
-    await teamStore.fetchTeamsBySeason(seasonId);
+    await teamStore.fetchTeamsBySeasonBasic(seasonId);
 
     // Fetch team images concurrently
     const teamPromises = teamStore.teams.map(async (team) => {
@@ -601,7 +603,6 @@ onMounted(async () => {
     await Promise.all([
       fetchSeasonDetails(),
       fetchTeams(),
-      allTeams.value = await teamStore.getTeams(),
       fetchMatches(weekFromHash),
       fetchMaps()
     ]);

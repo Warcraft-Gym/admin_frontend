@@ -275,7 +275,7 @@ const fetchTeams = async () => {
         const imgResponse = await teamStore.getTeamImage(team.id);
         if (!imgResponse.ok) throw new Error("Image not found");
         const imgBlob = await imgResponse.blob();
-        team.image_url = URL.createObjectURL(imgBlob); //
+        team.image_url = URL.createObjectURL(imgBlob);
       } catch (error) {
         team.image_url = teamDefaultImg; // Assign default image if fetch fails
       }
