@@ -60,9 +60,9 @@ async function authHeader(method, url) {
     } 
     if (isRestricted && isLoggedIn && isApiUrl) {
         if (authstore.isTokenExpired(user.access_token)) {
-            if (auth.isTokenExpired(user.refresh_token)) {
-                auth.returnUrl = to.fullPath;
-                return '/login';
+            if (authstore.isTokenExpired(user.refresh_token)) {
+                authstore.logout();
+                return {};
             } else {
                 await authstore.refresh(user.refresh_token);
             }

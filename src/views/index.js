@@ -10,3 +10,4 @@ export { default as MapsView } from './MapsView.vue';
 export { default as TeamsView } from './TeamsView.vue';
 export { default as PublicSignupView } from './PublicSignupView.vue';
 export { default as PlayerDashboardView } from './PlayerDashboardView.vue';
+export { default as ConfigView } from './ConfigView.vue';

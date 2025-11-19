@@ -38,6 +38,9 @@ const showNavLinks = () => {
                         <RouterLink to="/maps">Maps</RouterLink>
                     </v-list-item>
                     <v-list-item>
+                        <RouterLink to="/config">Config</RouterLink>
+                    </v-list-item>
+                    <v-list-item>
                         <v-btn 
                             append-icon="mdi-logout"
                             @click="authStore.logout()"
