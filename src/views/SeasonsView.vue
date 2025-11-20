@@ -92,9 +92,22 @@
             <v-form>
               <v-row dense>
                 <v-col cols="6"><v-text-field v-model="newSeason.name" label="Season Name" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.number_weeks" label="Number of Weeks" /></v-col>
+                <v-col cols="6"><v-text-field v-model="newSeason.number_weeks" label="Number of Weeks" type="number" /></v-col>
                 <v-col cols="6"><v-text-field v-model="newSeason.pick_ban" label="Pick Ban Order" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.series_per_week" label="Series per Week" /></v-col>
+                <v-col cols="6"><v-text-field v-model="newSeason.series_per_week" label="Series per Week" type="number" /></v-col>
+                <v-col cols="6"><v-text-field v-model="newSeason.discordRole" label="Discord Role ID" /></v-col>
+                <v-col cols="6">
+                  <v-autocomplete
+                    v-model="newSeasonMapIds"
+                    :items="maps"
+                    item-title="name"
+                    item-value="id"
+                    label="Map Pool"
+                    multiple
+                    chips
+                    closable-chips
+                  />
+                </v-col>
               </v-row>
             </v-form>
           </v-card-text>
@@ -113,9 +126,22 @@
             <v-form>
               <v-row dense>
                 <v-col cols="6"><v-text-field v-model="selectedSeason.name" label="Season Name" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.number_weeks" label="Number of Weeks" /></v-col>
+                <v-col cols="6"><v-text-field v-model="selectedSeason.number_weeks" label="Number of Weeks" type="number" /></v-col>
                 <v-col cols="6"><v-text-field v-model="selectedSeason.pick_ban" label="Pick Ban Order" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.series_per_week" label="Series per Week" /></v-col>
+                <v-col cols="6"><v-text-field v-model="selectedSeason.series_per_week" label="Series per Week" type="number" /></v-col>
+                <v-col cols="6"><v-text-field v-model="selectedSeason.discordRole" label="Discord Role ID" /></v-col>
+                <v-col cols="6">
+                  <v-autocomplete
+                    v-model="selectedSeasonMapIds"
+                    :items="maps"
+                    item-title="name"
+                    item-value="id"
+                    label="Map Pool"
+                    multiple
+                    chips
+                    closable-chips
+                  />
+                </v-col>
               </v-row>
             </v-form>
           </v-card-text>
@@ -142,13 +168,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useSeasonStore } from '@/stores';
+import { useSeasonStore, useMapStore } from '@/stores';
 
 defineOptions({ name: 'SeasonsView' });
 
 const seasonStore = useSeasonStore();
+const mapStore = useMapStore();
 
 const seasons = ref([]);
+const maps = ref([]);
 const isLoading = ref(false);
 const errorMessage = ref(null);
 const uploadMessage = ref(null);
@@ -157,9 +185,11 @@ const seasonId = ref(null);
 const file = ref(null);
 
 const newSeason = ref(null);
+const newSeasonMapIds = ref([]);
 const addNewDialogOpen = ref(false);
 const editDialogOpen = ref(false);
 const selectedSeason = ref(null);
+const selectedSeasonMapIds = ref([]);
 const creationError = ref(null);
 const updateError = ref(null);
 
@@ -195,10 +225,22 @@ const fetchSeasons = async () => {
   }
 };
 
-onMounted(() => fetchSeasons());
+const fetchMaps = async () => {
+  try {
+    await mapStore.fetchMaps();
+    maps.value = mapStore.maps || [];
+  } catch (err) {
+    console.error('Failed to fetch maps', err);
+  }
+};
+
+onMounted(async () => {
+  await Promise.all([fetchSeasons(), fetchMaps()]);
+});
 
 const addNewSeason = () => {
-  newSeason.value = { name: '', number_weeks: 0, pick_ban: '', series_per_week: 0 };
+  newSeason.value = { name: '', number_weeks: 0, pick_ban: '', series_per_week: 0, discordRole: '' };
+  newSeasonMapIds.value = [];
   creationError.value = '';
   addNewDialogOpen.value = true;
 };
@@ -206,7 +248,13 @@ const addNewSeason = () => {
 const createNewSeason = async () => {
   creationError.value = '';
   try {
-    await seasonStore.createSeason(newSeason.value);
+    const createdSeason = await seasonStore.createSeason(newSeason.value);
+    
+    // Add maps to the season if any were selected
+    if (newSeasonMapIds.value && newSeasonMapIds.value.length > 0) {
+      await seasonStore.addMapsToSeason(createdSeason.id, newSeasonMapIds.value);
+    }
+    
     await fetchSeasons();
     cancelAddNewSeason();
   } catch (err) {
@@ -218,10 +266,12 @@ const createNewSeason = async () => {
 const cancelAddNewSeason = () => {
   addNewDialogOpen.value = false;
   newSeason.value = null;
+  newSeasonMapIds.value = [];
 };
 
 const editSeason = (season) => {
   selectedSeason.value = { ...season };
+  selectedSeasonMapIds.value = season.maps ? season.maps.map(m => m.id) : [];
   updateError.value = '';
   editDialogOpen.value = true;
 };
@@ -230,6 +280,19 @@ const updateSeason = async () => {
   updateError.value = '';
   try {
     await seasonStore.updateSeason(selectedSeason.value);
+    
+    // Update map pool - first get current maps, then determine what to add/remove
+    const currentMapIds = selectedSeason.value.maps ? selectedSeason.value.maps.map(m => m.id) : [];
+    const mapsToAdd = selectedSeasonMapIds.value.filter(id => !currentMapIds.includes(id));
+    const mapsToRemove = currentMapIds.filter(id => !selectedSeasonMapIds.value.includes(id));
+    
+    if (mapsToAdd.length > 0) {
+      await seasonStore.addMapsToSeason(selectedSeason.value.id, mapsToAdd);
+    }
+    if (mapsToRemove.length > 0) {
+      await seasonStore.removeMapsFromSeason(selectedSeason.value.id, mapsToRemove);
+    }
+    
     await fetchSeasons();
     cancelEdit();
   } catch (err) {
@@ -241,6 +304,7 @@ const updateSeason = async () => {
 const cancelEdit = () => {
   editDialogOpen.value = false;
   selectedSeason.value = null;
+  selectedSeasonMapIds.value = [];
 };
 
 const removeSeason = async (seasonIdVal) => {

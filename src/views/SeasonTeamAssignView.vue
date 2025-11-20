@@ -133,52 +133,11 @@
     </v-row>
 
     <!-- Player details dialog (open when clicking a player's name) -->
-    <v-dialog v-model="showPlayerDetails" max-width="65vw">
-      <v-card>
-        <v-card-title>Player Details</v-card-title>
-        <v-card-text>
-          <v-table border density="compact" class="pb-2">
-            <tbody>
-              <tr>
-                <th class="text-left"></th>
-                <th class="text-right">MMR</th>
-                <th class="text-right">Wins</th>
-                <th class="text-right">Losses</th>
-                <th class="text-right">Total</th>
-                <th class="text-right">Winrate</th>
-              </tr>
-            </tbody>
-            <tbody>
-              <tr>
-                <td class="text-left text-overline">{{ gnlStatsForSelected?.season?.name || seasonName }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
-                <td class="text-left text-overline">{{ playerDetails.mmr ?? 'N/A' }}</td>
-                <td class="text-right text-green">{{ gnlStatsForSelected?.wins ?? '-' }}</td>
-                <td class="text-right text-red">{{ gnlStatsForSelected?.losses ?? '-' }}</td>
-                <td class="text-right">{{ gnlStatsForSelected?.games ?? '-' }}</td>
-                <td class="text-right">
-                  {{ (gnlStatsForSelected && gnlStatsForSelected.games) ? (Math.round( (gnlStatsForSelected.wins / gnlStatsForSelected.games) * 100 ) + '%') : 'N/A' }}
-                </td>
-              </tr>
-              <tr>
-                <td>W3Champion Stats: 
-                  <a :href="`https://w3champions.com/player/${encodeURIComponent(playerDetails.battleTag)}`" target="_blank">
-                    <img src="https://w3champions.com/assets/logos/small-logo-full-black.png" alt="W3Champions" width="100" style="margin-left: 10px;">
-                  </a>
-                </td>
-              </tr>
-              <tr v-for="stat in playerDetails.w3c_stats" v-if="!isObjectEmpty( playerDetails.w3c_stats )">
-                <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                <td class="text-right text-green">{{ stat.wins }}</td>
-                <td class="text-right text-red">{{ stat.losses }}</td>
-                <td class="text-right">{{ stat.games }}</td>
-                <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+    <PlayerDetailsDialog
+      v-model="showPlayerDetails"
+      :player="playerDetails"
+      :seasonId="seasonId"
+    />
 
     <!-- Teams grid below -->
     <v-row>
@@ -255,6 +214,8 @@ import { computed, onMounted, ref } from 'vue';
 import { usePlayerStore, useTeamStore, useSeasonStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
+import RaceIcon from '@/components/RaceIcon.vue';
+import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 
 defineOptions({ name: 'SeasonTeamAssignView' });
 
@@ -397,23 +358,6 @@ const showStats = async (player) => {
   playerDetails.value = player;
   showPlayerDetails.value = true;
 };
-
-// small helper used by the player details template
-const isObjectEmpty = (obj) => {
-  if (!obj) return true;
-  if (typeof obj !== 'object') return false;
-  return Object.keys(obj).length === 0;
-};
-
-// pick the GNL stats row for the current season when showing player details
-const gnlStatsForSelected = computed(() => {
-  const p = playerDetails.value;
-  if (!p) return null;
-  const sid = String(seasonId.value);
-  const arr = p.gnl_stats || [];
-  // prefer stats that match the current season id, otherwise fallback to first entry
-  return arr.find(s => String(s.season?.id) === sid) || null;
-});
 
 // Get W3C MMR for player's signed up race
 const getW3CMMR = (player) => {

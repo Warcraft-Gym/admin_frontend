@@ -24,7 +24,8 @@ export const useSeasonStore = defineStore({
             const updatedSeason = await fetchWrapper.put(`${backendUrl}/seasons/${seasonId}`, season);
         },
         async createSeason(season) {
-            const updatedSeason = await fetchWrapper.post(`${backendUrl}/seasons`, season);
+            const createdSeason = await fetchWrapper.post(`${backendUrl}/seasons`, season);
+            return createdSeason;
         },
         async deleteSeason(season_id) {
             await fetchWrapper.delete(`${backendUrl}/seasons/${season_id}`);

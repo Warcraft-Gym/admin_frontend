@@ -295,50 +295,11 @@
     </v-item-group>
   </div>
 
-  <v-dialog v-model="showPlayerDetails" max-width="65vw">
-      <v-card>
-        <v-card-title>Player Details</v-card-title>
-        <v-card-text>
-          <v-table border density="compact" class="pb-2">
-            <tbody>
-              <tr>
-                <th class="text-left"></th>
-                <th class="text-right">MMR</th>
-                <th class="text-right">Wins</th>
-                <th class="text-right">Losses</th>
-                <th class="text-right">Total</th>
-                <th class="text-right">Winrate</th>
-              </tr>
-            </tbody>
-            <tbody>
-              <tr>
-                <td class="text-left text-overline">{{ selectedGnl?.season?.name || 'N/A' }} <RaceIcon :raceIdentifier="playerDetails.race" /></td>
-                <td class="text-left text-overline">{{ playerDetails.mmr }}</td>
-                <td class="text-right text-green">{{ selectedGnl?.wins || 0 }}</td>
-                <td class="text-right text-red">{{ selectedGnl?.losses || 0 }}</td>
-                <td class="text-right">{{ selectedGnl?.games || 0 }}</td>
-                <td class="text-right">{{ selectedGnl && selectedGnl.games ? (Math.round( selectedGnl.wins / selectedGnl.games * 100 ) + '%') : '0%' }}</td>
-              </tr>
-              <tr>
-                <td>W3Champion Stats: 
-                  <a :href="`https://w3champions.com/player/${encodeURIComponent(playerDetails.battleTag)}`" target="_blank">
-                    <img src="https://w3champions.com/assets/logos/small-logo-full-black.png" alt="W3Champions" width="100" style="margin-left: 10px;">
-                  </a>
-                </td>
-              </tr>
-              <tr v-for="stat in playerDetails.w3c_stats" v-if="!isObjectEmpty( playerDetails.w3c_stats )">
-                <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-                <td class="text-left text-overline">{{ stat.mmr  }}</td>
-                <td class="text-right text-green">{{ stat.wins }}</td>
-                <td class="text-right text-red">{{ stat.losses }}</td>
-                <td class="text-right">{{ stat.games }}</td>
-                <td class="text-right">{{ stat.winrate!=null ? Math.round( stat.winrate * 100 ): 0   + '%' }}</td>
-              </tr>
-            </tbody>
-          </v-table>
-        </v-card-text>
-          </v-card>
-        </v-dialog>
+  <PlayerDetailsDialog 
+    v-model="showPlayerDetails" 
+    :player="playerDetails" 
+    :seasonId="match?.season_id" 
+  />
 
         <!-- Edit Series Modal -->
         <v-dialog v-model="editSeriesDialogOpen" max-width="65vw" persistent>
@@ -722,6 +683,7 @@ import { storeToRefs } from 'pinia';
 import FlagIcon from '../components/FlagIcon.vue';
 import SimpleTimePicker from '../components/SimpleTimePicker.vue';
 import SimpleDatePicker from '../components/SimpleDatePicker.vue';
+import PlayerDetailsDialog from '../components/PlayerDetailsDialog.vue';
 
 defineOptions({
   name: 'MatchDetailsView'
@@ -925,19 +887,7 @@ const customFilterSeries = (value, search, item) => {
   );
 }
 
-// Helper to check for empty objects/arrays
-const isObjectEmpty = (obj) => {
-  return obj == null || (typeof obj === 'object' && Object.keys(obj).length === 0);
-}
 
-// Compute the season-specific GNL stats for the currently shown player
-const selectedGnl = computed(() => {
-  if (!playerDetails.value) return null;
-  const sid = match.value?.season_id;
-  const stats = playerDetails.value.gnl_stats || [];
-  const found = stats.find(s => String(s.season?.id) === String(sid));
-  return found || null;
-});
 
 const seriesHeaders = [
   { title: 'ID', value: 'id' },

@@ -66,15 +66,42 @@
             <template v-slot:item="{ item }">
               <tr class="text-no-wrap">
                 <td>{{ item.id }}</td>
-                <td>{{ item.name }}</td>
+                <td>
+                  <span @click.stop="showStats(item)" style="cursor: pointer; text-decoration: underline;">
+                    {{ item.name }}
+                  </span>
+                </td>
                 <td>{{ item.battleTag }}</td>
-                <td>{{ item.country }}</td>
+                <td>
+                  <div v-if="item.country">
+                    <FlagIcon :countryIdentifier="item.country" />
+                  </div>
+                </td>
                 <td>{{ item.discordTag }}</td>
                 <td>{{ item.mmr }}</td>
-                <td>{{ item.race }}</td>     
-                <!-- Have a button with click | opens a pannel | with each race's mmr / WR / Wins + losses AND Link to w3c -->           
-                <td>stats</td>
-                <td>fantasy</td>
+                <td>
+                  <div v-if="item.race">
+                    <RaceIcon :raceIdentifier="item.race" />                                          
+                  </div>
+                </td>     
+                <td>
+                  <div v-if="item.signup_seasons && item.signup_seasons.length > 0">
+                    <template v-for="s in item.signup_seasons.slice().sort((a,b) => b.id - a.id).slice(0,2)" :key="s.id">
+                      <v-chip small class="ma-1">{{ s.name }}</v-chip>
+                    </template>
+                    <v-menu v-if="item.signup_seasons.length > 2" offset-y>
+                      <template #activator="{ props }">
+                        <v-chip v-bind="props" class="ma-1" small>+{{ item.signup_seasons.length - 2 }}</v-chip>
+                      </template>
+                      <v-list>
+                        <v-list-item v-for="s in item.signup_seasons.slice().sort((a,b) => b.id - a.id)" :key="s.id">
+                          <v-list-item-title>{{ s.name }}</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </div>
+                  <div v-else>—</div>
+                </td>
                 <td>
                   <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="removePlayerFromTeam(item.id)"></v-btn>                   
                 </td>
@@ -188,6 +215,11 @@
                 <v-toolbar-title>Available Players</v-toolbar-title>
               </v-toolbar>
             </template>
+            <template v-slot:[`item.name`]="{ item }">
+              <span @click.stop="showStats(item)" style="cursor: pointer; text-decoration: underline;">
+                {{ item.name }}
+              </span>
+            </template>
           </v-data-table>
         </v-card-text>
         <v-card-actions>
@@ -197,6 +229,13 @@
       </v-card>
     </v-dialog>
 
+    <!-- Player Details Modal -->
+    <PlayerDetailsDialog 
+      v-model="showPlayerDetails" 
+      :player="playerDetails" 
+      :seasonId="seasonId" 
+    />
+
 </template>
 
 <script setup>
@@ -205,6 +244,9 @@ import { useRouter } from 'vue-router';
 import { useTeamStore, usePlayerStore } from '@/stores';
 import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import FlagIcon from '@/components/FlagIcon.vue';
+import RaceIcon from '@/components/RaceIcon.vue';
+import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 
 defineOptions({ name: 'SeasonTeamDetailsView' });
 
@@ -228,6 +270,10 @@ const players = ref([]);
 const showNewPlayerModal = ref(false);
 const selectedPlayers = ref([]);
 
+// Player details state
+const showPlayerDetails = ref(false);
+const playerDetails = ref(null);
+
 // Search state
 const searchRace = ref(null);
 const searchName = ref(null);
@@ -243,8 +289,7 @@ const tableHeader = [
   { title: 'Discord Name', value: 'discordTag', sortable: true }, 
   { title: 'GNL MMR', value: 'mmr', sortable: true }, 
   { title: 'Main Race', value: 'race', sortable: true },  
-  { title: 'W3C Stats', value: 'w3c_stats', sortable: false },  
-  { title: 'Fantasy Tier', value: 'fantasy_tier', sortable: false },    
+  { title: 'Signups', value: 'signups', sortable: false },    
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
 ];
 
@@ -355,10 +400,17 @@ const isRowDisabled = (item) => {
   return playerAlreadyInTeam;
 };
 
+const showStats = async (player) => {
+  showPlayerDetails.value = true;
+  playerDetails.value = player;
+};
+
 const searchPlayer = async () => {
   // Use client-side filtering for the Add Player modal (allPlayers already fetched).
   searchEnabled.value = true;
 };
+
+
 
 const filteredAllPlayers = computed(() => {
   let list = allPlayers.value || [];
