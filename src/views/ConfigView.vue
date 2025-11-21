@@ -93,6 +93,82 @@
                   ></v-select>
                 </v-col>
 
+                <!-- Public Access Settings -->
+                <v-col cols="12" class="mt-4">
+                  <h3 class="text-h6 mb-2">Public Access Settings</h3>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="settingsMap.signups_enabled"
+                    color="primary"
+                    label="Player Signups Enabled"
+                    hint="Allow new players to sign up"
+                    hide-details="auto"
+                    true-value="true"
+                    false-value="false"
+                  ></v-switch>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="settingsMap.fantasy_team_creation_enabled"
+                    color="primary"
+                    label="Fantasy Team Creation Enabled"
+                    hint="Allow captains to create fantasy teams"
+                    hide-details="auto"
+                    true-value="true"
+                    false-value="false"
+                  ></v-switch>
+                </v-col>
+
+                <!-- Fantasy Betting Settings -->
+                <v-col cols="12" class="mt-4">
+                  <h3 class="text-h6 mb-2">Fantasy Betting Settings</h3>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="settingsMap.fantasy_fixed_bet_points"
+                    color="primary"
+                    label="Use Fixed Bet Points"
+                    hint="If enabled, all bets use a fixed point value instead of user input"
+                    hide-details="auto"
+                    true-value="true"
+                    false-value="false"
+                  ></v-switch>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="settingsMap.fantasy_bet_points_value"
+                    label="Fixed Bet Points Value"
+                    hint="Point value for bets when using fixed bet points"
+                    type="number"
+                    :disabled="settingsMap.fantasy_fixed_bet_points !== 'true'"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="settingsMap.fantasy_min_bet_points"
+                    label="Minimum Bet Points"
+                    hint="Minimum point value allowed when using custom bet points"
+                    type="number"
+                    :disabled="settingsMap.fantasy_fixed_bet_points === 'true'"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="settingsMap.fantasy_max_bet_points"
+                    label="Maximum Bet Points"
+                    hint="Maximum point value allowed when using custom bet points"
+                    type="number"
+                    :disabled="settingsMap.fantasy_fixed_bet_points === 'true'"
+                  ></v-text-field>
+                </v-col>
+
                 <!-- Discord Settings -->
                 <v-col cols="12" class="mt-4">
                   <h3 class="text-h6 mb-2">Discord Bot Settings</h3>
@@ -178,8 +254,9 @@
           <v-card-text>
             <ul>
               <li><strong>Database Storage:</strong> Settings are stored in the database and persist across backend restarts.</li>
+              <li><strong>Public Access Toggles:</strong> Enable/disable player signups and fantasy team creation independently.</li>
               <li><strong>Discord IDs:</strong> Role and channel IDs can be found by enabling Developer Mode in Discord and right-clicking on roles/channels.</li>
-              <li><strong>Current Season:</strong> Setting a current GNL season helps the system know which season is active for operations.</li>
+              <li><strong>Current GNL Season:</strong> The current season is used for public player signups, fantasy team registration, and all league operations.</li>
               <li><strong>W3Champions:</strong> The W3C season and URL are used for fetching player statistics and MMR data.</li>
             </ul>
           </v-card-text>
@@ -213,6 +290,12 @@ const settingsMap = ref({
   current_wc3_season: '',
   w3c_url: '',
   current_gnl_season: '',
+  signups_enabled: 'false',
+  fantasy_team_creation_enabled: 'false',
+  fantasy_fixed_bet_points: 'false',
+  fantasy_bet_points_value: '',
+  fantasy_min_bet_points: '',
+  fantasy_max_bet_points: '',
   captain_coach_role: '',
   admin_role: '',
   signup_channel_id: '',
@@ -229,10 +312,17 @@ const fetchSettings = async () => {
     // Convert settings array to map
     settings.forEach(setting => {
       if (settingsMap.value.hasOwnProperty(setting.key)) {
-        // Convert current_gnl_season to number for proper v-select matching
+        // Convert season settings to number for proper v-select matching
         if (setting.key === 'current_gnl_season' && setting.value) {
           settingsMap.value[setting.key] = parseInt(setting.value, 10);
-        } else {
+        } 
+        // Keep boolean settings as strings "true"/"false" for v-switch
+        else if (setting.key === 'signups_enabled' || 
+                 setting.key === 'fantasy_team_creation_enabled' || 
+                 setting.key === 'fantasy_fixed_bet_points') {
+          settingsMap.value[setting.key] = setting.value || 'false';
+        }
+        else {
           settingsMap.value[setting.key] = setting.value || '';
         }
       }

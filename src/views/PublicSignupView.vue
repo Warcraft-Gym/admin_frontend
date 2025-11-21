@@ -61,7 +61,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 // token validation/consumption is handled server-side via backend endpoints
-import { useSeasonStore } from '@/stores';
+import { useSeasonStore, useConfigStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 
 const route = useRoute();
@@ -87,6 +87,7 @@ const submitError = ref('');
 const seasonName = ref('');
 
 const seasonStore = useSeasonStore();
+const configStore = useConfigStore();
 const { seasons } = storeToRefs(seasonStore);
 
 onMounted(async () => {
@@ -100,6 +101,20 @@ onMounted(async () => {
 
   try {
     const backend = import.meta.env.VITE_BACKEND_URL || '';
+    
+    // Check if signups are enabled
+    try {
+      const setting = await configStore.fetchSetting('signups_enabled');
+      if (setting && setting.value && setting.value.toLowerCase() === 'false') {
+        tokenInvalid.value = true;
+        tokenInvalidReason.value = 'Signups are currently closed. Please check back later.';
+        loading.value = false;
+        return;
+      }
+    } catch (err) {
+      console.log('Could not check signups_enabled setting, continuing...');
+    }
+    
     // Use the public token endpoint (updated API): /public-token/<token>
     const res = await fetch(`${backend}/public-token/${token.value}`);
     if (!res.ok) {

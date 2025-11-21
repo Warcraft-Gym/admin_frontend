@@ -113,7 +113,123 @@
         </template>
       </v-data-table>
     </v-card>
+
+    <!-- Fantasy Bets Section (for team captains) -->
+    <v-card v-if="isFantasyCaptain" class="mt-6">
+      <v-card-title class="text-h5 d-flex justify-space-between align-center">
+        <div>
+          <v-icon left>mdi-crystal-ball</v-icon>
+          My Fantasy Bets
+        </div>
+        <v-chip color="purple" variant="outlined">
+          {{ fantasyBets.length }} bets
+        </v-chip>
+      </v-card-title>
+      
+      <v-data-table
+        :headers="fantasyHeaders"
+        :items="fantasySeriesWithBets"
+        :loading="isLoading"
+        class="elevation-1"
+        item-key="id"
+      >
+        <template #item.players="{ item }">
+          <div>
+            <strong>{{ item.player1?.name }}</strong> vs <strong>{{ item.player2?.name }}</strong>
+          </div>
+        </template>
+
+        <template #item.date_time="{ item }">
+          {{ formatDateTime(item.date_time) }}
+        </template>
+
+        <template #item.my_bet="{ item }">
+          <v-chip
+            v-if="item.myBet"
+            :color="getBetResultColor(item.myBet)"
+            size="small"
+          >
+            {{ getBetPlayerName(item, item.myBet) }}
+          </v-chip>
+          <span v-else class="text-grey">No bet</span>
+        </template>
+
+        <template #item.score="{ item }">
+          <v-chip
+            v-if="isSeriesPlayed(item)"
+            :color="getScoreColor(item)"
+            variant="outlined"
+            size="small"
+          >
+            {{ item.player1_score || 0 }} - {{ item.player2_score || 0 }}
+          </v-chip>
+          <span v-else class="text-grey">Not played</span>
+        </template>
+
+        <template #item.result="{ item }">
+          <v-chip
+            v-if="item.myBet && isSeriesPlayed(item)"
+            :color="item.myBet.bet_result === 'WIN' ? 'success' : item.myBet.bet_result === 'LOSS' ? 'error' : 'grey'"
+            size="small"
+          >
+            {{ item.myBet.bet_result || 'PENDING' }}
+          </v-chip>
+          <span v-else-if="!isSeriesPlayed(item)" class="text-grey">-</span>
+          <span v-else class="text-grey">No bet</span>
+        </template>
+
+        <template #item.actions="{ item }">
+          <v-btn
+            v-if="!isSeriesPlayed(item)"
+            color="purple"
+            variant="outlined"
+            size="small"
+            @click="placeBet(item)"
+            :disabled="isBetSaving"
+          >
+            {{ item.myBet ? 'Change Bet' : 'Place Bet' }}
+          </v-btn>
+          <v-chip v-else size="small" color="grey">Locked</v-chip>
+        </template>
+      </v-data-table>
+    </v-card>
   </div>
+
+  <!-- Place Bet Dialog -->
+  <v-dialog v-model="betDialog" max-width="500px">
+    <v-card>
+      <v-card-title class="text-h5">Place Fantasy Bet</v-card-title>
+      <v-card-text>
+        <div class="mb-4">
+          <strong>{{ betSeries.player1?.name }}</strong> vs <strong>{{ betSeries.player2?.name }}</strong>
+        </div>
+        <v-radio-group v-model="selectedBetWinnerId">
+          <v-radio
+            :label="betSeries.player1?.name"
+            :value="betSeries.player1_id"
+            color="primary"
+          ></v-radio>
+          <v-radio
+            :label="betSeries.player2?.name"
+            :value="betSeries.player2_id"
+            color="primary"
+          ></v-radio>
+        </v-radio-group>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn color="grey" variant="text" @click="closeBet" :disabled="isBetSaving">Cancel</v-btn>
+        <v-btn 
+          color="purple" 
+          :disabled="!selectedBetWinnerId || isBetSaving" 
+          :loading="isBetSaving" 
+          @click="saveBet"
+        >
+          Save Bet
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <!-- Schedule Dialog -->
   <v-dialog v-model="scheduleDialog" max-width="500px">
@@ -191,6 +307,7 @@ import '@/assets/base.css';
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { fetchWrapper } from '@/helpers';
+import { useFantasyStore } from '@/stores';
 import SimpleTimePicker from '@/components/SimpleTimePicker.vue';
 import SimpleDatePicker from '@/components/SimpleDatePicker.vue';
 import { DateTime } from 'luxon';
@@ -199,6 +316,7 @@ defineOptions({ name: 'PlayerDashboardView' })
 
 const route = useRoute();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const fantasyStore = useFantasyStore();
 
 // State
 const isLoading = ref(true);
@@ -207,6 +325,15 @@ const successMessage = ref(null);
 const playerData = ref(null);
 const series = ref([]);
 const token = ref(null);
+
+// Fantasy betting state
+const fantasyTeam = ref(null);
+const fantasyBets = ref([]);
+const fantasySeries = ref([]);
+const betDialog = ref(false);
+const betSeries = ref({});
+const selectedBetWinnerId = ref(null);
+const isBetSaving = ref(false);
 
 // Schedule / Result dialog state
 const scheduleDialog = ref(false);
@@ -226,6 +353,43 @@ const userTimezone = computed(() => {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 });
 
+// Check if current player is a fantasy team captain
+const isFantasyCaptain = computed(() => {
+  return fantasyTeam.value && fantasyTeam.value.captain_id === playerData.value?.player?.id;
+});
+
+// Combine fantasy series with their bets
+const fantasySeriesWithBets = computed(() => {
+  return fantasySeries.value.map(s => {
+    const myBet = fantasyBets.value.find(b => b.series_id === s.id);
+    return { ...s, myBet };
+  });
+});
+
+// Check if a series has been played (has a score)
+const isSeriesPlayed = (series) => {
+  if (!series) return false;
+  const p1 = series.player1_score || 0;
+  const p2 = series.player2_score || 0;
+  return p1 > 0 || p2 > 0;
+};
+
+// Get player name for bet
+const getBetPlayerName = (series, bet) => {
+  if (!bet || !bet.winner_id) return '';
+  if (bet.winner_id === series.player1_id) return series.player1?.name || 'Player 1';
+  if (bet.winner_id === series.player2_id) return series.player2?.name || 'Player 2';
+  return '';
+};
+
+// Get color for bet result
+const getBetResultColor = (bet) => {
+  if (!bet) return 'grey';
+  if (bet.bet_result === 'WIN') return 'success';
+  if (bet.bet_result === 'LOSS') return 'error';
+  return 'purple';
+};
+
 // Validation rules
 const rules = {
   required: (value) => !!value || 'This field is required'
@@ -236,6 +400,15 @@ const headers = [
   { title: 'Date & Time', key: 'date_time', sortable: true },
   { title: 'Score', key: 'score', sortable: false },
   { title: 'Week', key: 'week', sortable: true },
+  { title: 'Actions', key: 'actions', sortable: false }
+];
+
+const fantasyHeaders = [
+  { title: 'Players', key: 'players', sortable: false },
+  { title: 'Date & Time', key: 'date_time', sortable: true },
+  { title: 'My Bet', key: 'my_bet', sortable: false },
+  { title: 'Score', key: 'score', sortable: false },
+  { title: 'Result', key: 'result', sortable: false },
   { title: 'Actions', key: 'actions', sortable: false }
 ];
 
@@ -264,6 +437,9 @@ const fetchPlayerData = async () => {
     playerData.value = response;
     series.value = response.series || [];
 
+    // Fetch fantasy team and bets if player is a captain
+    await fetchFantasyData();
+
   } catch (error) {
     console.error('Error fetching player data:', error);
     if (error?.message?.includes('token_not_found_or_expired')) {
@@ -275,6 +451,80 @@ const fetchPlayerData = async () => {
     }
   } finally {
     isLoading.value = false;
+  }
+};
+
+const fetchFantasyData = async () => {
+  if (!playerData.value?.player?.id) return;
+
+  try {
+    // Check if player is a fantasy team captain
+    const teams = await fantasyStore.fetchTeams();
+    fantasyTeam.value = teams.find(t => t.captain_id === playerData.value.player.id);
+
+    if (!fantasyTeam.value) return; // Not a captain
+
+    // Fetch fantasy series (where is_fantasy_match = true and no score)
+    const seasonId = playerData.value.season_id;
+    if (seasonId) {
+      const allSeriesResponse = await fetchWrapper.get(`${backendUrl}/series/season/${seasonId}`);
+      fantasySeries.value = allSeriesResponse.filter(s => 
+        s.is_fantasy_match === true
+      );
+    }
+
+    // Fetch user's fantasy bets
+    const betsQuery = `user_id == ${playerData.value.player.id}`;
+    fantasyBets.value = await fantasyStore.searchBets(betsQuery);
+
+  } catch (error) {
+    console.error('Error fetching fantasy data:', error);
+    // Don't show error to user, fantasy is optional
+  }
+};
+
+// Fantasy betting handlers
+const placeBet = (series) => {
+  betSeries.value = series;
+  selectedBetWinnerId.value = series.myBet?.winner_id || null;
+  betDialog.value = true;
+};
+
+const closeBet = () => {
+  betDialog.value = false;
+  betSeries.value = {};
+  selectedBetWinnerId.value = null;
+};
+
+const saveBet = async () => {
+  isBetSaving.value = true;
+  try {
+    const betData = {
+      series_id: betSeries.value.id,
+      season_id: playerData.value.season_id,
+      user_id: playerData.value.player.id,
+      winner_id: selectedBetWinnerId.value,
+      bet_points: 0, // Will be calculated by backend
+      bet_result: null // Will be determined when series is complete
+    };
+
+    if (betSeries.value.myBet) {
+      // Update existing bet
+      await fantasyStore.updateBet(betSeries.value.myBet.id, betData);
+      successMessage.value = 'Bet updated successfully!';
+    } else {
+      // Create new bet
+      await fantasyStore.createBet(betData);
+      successMessage.value = 'Bet placed successfully!';
+    }
+
+    closeBet();
+    await fetchFantasyData(); // Refresh fantasy data
+  } catch (error) {
+    console.error('Error saving bet:', error);
+    errorMessage.value = error.message || 'Error saving bet. Please try again.';
+  } finally {
+    isBetSaving.value = false;
   }
 };
 

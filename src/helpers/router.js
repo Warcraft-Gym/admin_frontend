@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
-import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView } from '@/views';
+import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView, FantasyLeaderboardView, FantasyBetsView, FantasyDashboardView } from '@/views';
 
 export const router = createRouter({
     history: createWebHashHistory(),
@@ -12,6 +12,7 @@ export const router = createRouter({
         { path: '/seasons', component: SeasonsView },
         { path: '/signup', component: PublicSignupView },
         { path: '/player-dashboard', component: PlayerDashboardView },
+        { path: '/fantasy-registration', component: FantasyDashboardView },
         { path: '/players', component: PlayersView },
         { path: '/seasons/:id', component: SeasonDetailsView },
         { path: '/seasons/:id/assign', component: SeasonTeamAssignView },
@@ -20,13 +21,15 @@ export const router = createRouter({
         { path: '/maps', component: MapsView},
         { path: '/teams', component: TeamsView},
         { path: '/config', component: ConfigView},
+        { path: '/fantasy', component: FantasyLeaderboardView},
+        { path: '/fantasy/bets', component: FantasyBetsView},
         
     ]
 });
 
 router.beforeEach(async (to) => {
     // redirect to login page if not logged in and trying to access a restricted page
-    const publicPages = ['/login','/signup','/signup-token','/player-dashboard'];
+    const publicPages = ['/login','/signup','/signup-token','/player-dashboard','/fantasy-registration'];
     const authRequired = !publicPages.includes(to.path);
     const auth = useAuthStore();
 
@@ -34,7 +37,7 @@ router.beforeEach(async (to) => {
         auth.returnUrl = to.fullPath;
         return '/login';
     }
-    if(authRequired && auth.isTokenExpired(auth.user.access_token)) {
+    if(authRequired && auth.user && auth.isTokenExpired(auth.user.access_token)) {
         if (auth.isTokenExpired(auth.user.refresh_token)) {
             auth.returnUrl = to.fullPath;
             return '/login';
