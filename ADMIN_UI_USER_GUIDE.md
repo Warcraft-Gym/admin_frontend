@@ -24,6 +24,7 @@
  4. Click **Save Settings** at the bottom
 
 **Use Cases:**
+
 - Enable before season registration period
 - Disable after registration deadline
 - Disable during off-season
@@ -44,6 +45,7 @@
 4. Click **Save Settings**
 
 **Finding Discord IDs:**
+
 1. Enable Developer Mode in Discord: Settings → Advanced → Developer Mode
 2. Right-click on channel/role → Copy ID
 
@@ -59,9 +61,9 @@
 2. Click **Create Player** (green plus button in top-right)
 3. Fill in player information:
    - **Name**: Player's display name (required)
-   - **Discord Tag**: Discord username (optional)
-   - **Discord ID**: Numeric Discord user ID (optional)
-   - **Battle Tag**: Battle.net tag for W3Champions (optional)
+   - **Discord Tag**: Discord username (required)
+   - **Discord ID**: Numeric Discord user ID (required)
+   - **Battle Tag**: Battle.net tag for W3Champions (required)
    - **Country**: Player's country (dropdown)
    - **Race**: Primary race (Human/Orc/Night Elf/Undead/Random)
    - **MMR**: Current MMR rating (number)
@@ -81,6 +83,7 @@
 5. Click **Save**
 
 **Common Updates:**
+
 - Update MMR after season
 - Assign Fantasy Tier (see Fantasy League Setup)
 - Update Battle Tag if changed
@@ -90,6 +93,7 @@
 **Navigation:** Players → Edit player
 
 Fantasy tiers are used to balance the fantasy league draft:
+
 - **Tier 1 (Diamond)**: Highest MMR players
 - **Tier 2 (Platinum)**: High MMR players
 - **Tier 3 (Gold)**: Mid-high MMR players
@@ -99,7 +103,7 @@ Fantasy tiers are used to balance the fantasy league draft:
 
 1. Navigate to **Players**
 2. Click **pencil icon** to edit player
-3. Set **Fantasy Tier** dropdown (1-6)
+3. Set **Fantasy Tier** number (1-6)
 4. Click **Save**
 
 **Tip:** Assign tiers based on MMR distribution to ensure balanced fantasy drafting.
@@ -130,6 +134,7 @@ Fantasy tiers are used to balance the fantasy league draft:
 3. Click **Save Settings**
 
 **Important:** The current season is used for:
+
 - Player signups via Discord
 - Fantasy team registration
 - All active league operations
@@ -145,6 +150,7 @@ Fantasy tiers are used to balance the fantasy league draft:
 5. Click **Save**
 
 **Bulk Assignment:**
+
 1. Create all teams first
 2. Create the season
 3. Edit each team to assign to the new season
@@ -271,11 +277,13 @@ Each team can have different players assigned per season through the season assi
 **Navigation:** Series → Edit existing series
 
 **To Update Schedule:**
+
 1. Click **Edit Schedule** icon on the series
 2. Modify date/time
 3. Click **Save**
 
 **To Update Result:**
+
 1. Click **Edit Result** icon on series with results
 2. Modify scores or replace replay files
 3. Click **Save**
@@ -299,6 +307,7 @@ Use the **Schedule Week** view to see all series for a specific week and update 
 4. Click **Save Settings**
 
 **Timeline:**
+
 - Enable before fantasy draft period
 - Disable after registration deadline
 - Can be toggled per season
@@ -312,11 +321,13 @@ Use the **Schedule Week** view to see all series for a specific week and update 
 3. Configure bet points system:
 
 **Option A: Fixed Bet Points**
+
 1. Toggle **Use Fixed Bet Points** to ON
 2. Set **Fixed Bet Points Value** (e.g., 100)
 3. All bets will use this fixed value
 
 **Option B: Variable Bet Points with Min/Max**
+
 1. Toggle **Use Fixed Bet Points** to OFF
 2. Set **Minimum Bet Points** (e.g., 10)
 3. Set **Maximum Bet Points** (e.g., 500)
@@ -329,6 +340,7 @@ Use the **Schedule Week** view to see all series for a specific week and update 
 **Navigation:** Players → Edit player
 
 **Tier Distribution Strategy:**
+
 1. Calculate MMR distribution across all players
 2. Divide into 6 equal tiers or by MMR brackets
 3. Assign each player to appropriate tier:
@@ -340,6 +352,7 @@ Use the **Schedule Week** view to see all series for a specific week and update 
    - **Tier 6**: Bottom ~17% (Grass)
 
 **To Assign:**
+
 1. Navigate to **Players**
 2. Click **Edit** (pencil icon) on each player
 3. Set **Fantasy Tier** (1-6)
@@ -360,6 +373,7 @@ Fantasy matches are series that captains can bet on:
 5. Click **Save**
 
 **Best Practices:**
+
 - Mark featured/important matches for betting
 - Define fantasy matches per week to maintain engagement
 - Typically 3-7 fantasy matches per week works well
@@ -369,16 +383,19 @@ Fantasy matches are series that captains can bet on:
 **Planning Strategy:**
 
 **Weekly Fantasy Match Selection:**
+
 1. Identify high-profile matchups each week
 2. Balance across different player tiers
 3. Include close skill matchups for interesting betting
 
 **Recommended per Week:**
+
 - **Small League** (8-16 players): 3-4 fantasy matches
 - **Medium League** (16-32 players): 5-7 fantasy matches
 - **Large League** (32+ players): 7-10 fantasy matches
 
 **To Set Up:**
+
 1. Navigate to **Series**
 2. Filter by week number
 3. Mark selected series as **Is Fantasy Match**
@@ -410,6 +427,7 @@ Admins can create fantasy teams on behalf of captains:
 Admins can create/edit/delete bets on behalf of captains:
 
 **Create Bet:**
+
 1. Navigate to **Fantasy** → **Fantasy Bets**
 2. Click **Add Bet** (green button)
 3. Fill in:
@@ -421,6 +439,7 @@ Admins can create/edit/delete bets on behalf of captains:
 4. Click **Save**
 
 **Edit Bet:**
+
 1. Find bet in the table
 2. Click **Edit** (pencil icon)
 3. Modify winner or bet points
@@ -447,6 +466,7 @@ After matches are completed:
 5. Leaderboard updates automatically
 
 **Frequency:**
+
 - Run after each play week completes
 - Run after updating any match results
 - Run before publishing leaderboard to captains
@@ -494,21 +514,25 @@ After matches are completed:
 ## Tips & Best Practices
 
 ### Player Management
+
 - Import players from W3Champions before season starts
 - Keep MMR updated for accurate tier assignments
 - Use Battle Tags for automatic stat fetching
 
 ### Season Planning
+
 - Create matches for all weeks at once for better overview
 - Use consistent naming: "Week 1", "Week 2", etc.
 - Set Date Frame to help players know scheduling windows
 
 ### Match Scheduling
+
 - Schedule high-profile matches as fantasy matches
 - Spread fantasy matches across the week for engagement
 - Use timezone-aware scheduling (displays in user's local time)
 
 ### Fantasy League
+
 - Balance tier distribution for fair drafting
 - Start with fixed bet points for simplicity
 - Add min/max betting after captains understand the system
@@ -516,6 +540,7 @@ After matches are completed:
 - Feature 3-7 fantasy matches per week for optimal engagement
 
 ### Data Management
+
 - Regularly backup replay files
 - Keep player Discord IDs updated for bot integration
 - Review configuration settings before each season
@@ -526,24 +551,28 @@ After matches are completed:
 ## Troubleshooting
 
 ### Players Can't Sign Up
+
 - Check **Player Signups Enabled** is ON
 - Verify **Current GNL Season** is set
 - Ensure **Signup Channel ID** is correct in configuration
 - Restart Discord bot after configuration changes
 
 ### Fantasy Teams Can't Register
+
 - Check **Fantasy Team Creation Enabled** is ON
 - Verify **Current GNL Season** is set
 - Ensure **Fantasy Dashboard Channel ID** is correct
 - Verify player tiers are assigned (6 tiers required)
 
 ### Bets Not Saving
+
 - Check bet points are within min/max range
 - Verify **Fantasy Betting Settings** are configured
 - Ensure series is marked as **Is Fantasy Match**
 - Check series hasn't been played yet (locked after results)
 
 ### Scores Not Calculating
+
 - Verify all series results are reported
 - Check replay files are uploaded
 - Ensure teams and players are properly assigned
