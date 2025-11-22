@@ -213,6 +213,14 @@
                     hint="Discord channel for match results"
                   ></v-text-field>
                 </v-col>
+
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="settingsMap.fantasy_dashboard_channel_id"
+                    label="Fantasy Dashboard Channel ID"
+                    hint="Discord channel for fantasy league dashboard"
+                  ></v-text-field>
+                </v-col>
               </v-row>
             </v-form>
           </v-card-text>
@@ -300,7 +308,8 @@ const settingsMap = ref({
   admin_role: '',
   signup_channel_id: '',
   scheduling_channel_id: '',
-  results_channel_id: ''
+  results_channel_id: '',
+  fantasy_dashboard_channel_id: ''
 });
 
 // Fetch settings on mount

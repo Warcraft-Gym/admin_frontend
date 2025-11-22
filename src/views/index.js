@@ -14,3 +14,4 @@ export { default as ConfigView } from './ConfigView.vue';
 export { default as FantasyLeaderboardView } from './FantasyLeaderboardView.vue';
 export { default as FantasyBetsView } from './FantasyBetsView.vue';
 export { default as FantasyDashboardView } from './FantasyDashboardView.vue';
+export { default as UserGuideView } from './UserGuideView.vue';
