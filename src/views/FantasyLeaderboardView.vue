@@ -94,8 +94,11 @@
                 <v-btn icon size="small" @click="viewTeamDetails(item.id)" class="mr-1">
                   <v-icon>mdi-eye</v-icon>
                 </v-btn>
-                <v-btn icon size="small" @click="openEditDialog(item)" color="primary">
+                <v-btn icon size="small" @click="openEditDialog(item)" color="primary" class="mr-1">
                   <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn icon size="small" @click="openDeleteDialog(item)" color="error">
+                  <v-icon>mdi-delete</v-icon>
                 </v-btn>
               </template>
             </v-data-table>
@@ -209,6 +212,18 @@
         {{ isEditing ? 'Edit Fantasy Team' : 'Create Fantasy Team' }}
       </v-card-title>
       <v-card-text class="pt-4">
+        <v-alert
+          v-if="dialogErrorMessage"
+          type="error"
+          variant="tonal"
+          border="start"
+          border-color="red"
+          class="mb-4"
+          closable
+          @click:close="dialogErrorMessage = null"
+        >
+          {{ dialogErrorMessage }}
+        </v-alert>
         <v-form ref="teamForm">
           <v-row>
             <v-col cols="12" md="6">
@@ -271,23 +286,25 @@
           <v-row>
             <v-col cols="12">
               <v-divider class="my-2"></v-divider>
-              <h3 class="text-h6 mb-3">Drafted Players</h3>
+              <h3 class="text-h6 mb-3">Drafted Players (Select 1 per Tier) *</h3>
+              <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+                You must select exactly one player from each tier (1-6)
+              </v-alert>
             </v-col>
-            <v-col cols="12">
+            <v-col cols="12" md="6" v-for="tier in [1, 2, 3, 4, 5, 6]" :key="tier">
               <v-autocomplete
-                v-model="editedTeam.player_ids"
-                :items="players"
+                v-model="selectedTierPlayers[tier]"
+                :items="tierPlayers[tier]"
                 item-title="name"
                 item-value="id"
-                label="Select Players"
+                :label="`Tier ${tier} Player *`"
                 variant="outlined"
                 density="comfortable"
-                multiple
-                chips
-                closable-chips
+                :rules="[v => !!v || `Tier ${tier} player is required`]"
+                clearable
               >
-                <template v-slot:chip="{ props, item }">
-                  <v-chip v-bind="props" :text="item.raw.name"></v-chip>
+                <template v-slot:prepend-inner>
+                  <v-chip size="small" :color="getTierColor(tier)">T{{ tier }}</v-chip>
                 </template>
               </v-autocomplete>
             </v-col>
@@ -298,6 +315,25 @@
         <v-spacer />
         <v-btn color="grey" variant="text" @click="closeEditDialog" :disabled="isSaving">Cancel</v-btn>
         <v-btn color="primary" @click="saveTeam" :loading="isSaving">{{ isEditing ? 'Update' : 'Create' }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Delete Confirmation Dialog -->
+  <v-dialog v-model="deleteDialog" max-width="500px">
+    <v-card>
+      <v-card-title class="text-h5 bg-error">
+        <v-icon class="mr-2">mdi-alert</v-icon>
+        Confirm Delete
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <p>Are you sure you want to delete the fantasy team "{{ teamToDelete?.name }}"?</p>
+        <p class="text-error font-weight-bold mt-2">This action cannot be undone.</p>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn color="grey" variant="text" @click="closeDeleteDialog" :disabled="isDeleting">Cancel</v-btn>
+        <v-btn color="error" @click="confirmDelete" :loading="isDeleting">Delete</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -325,16 +361,25 @@ const { teams } = storeToRefs(fantasyStore);
 const isLoading = ref(false);
 const isCalculating = ref(false);
 const isSaving = ref(false);
+const isDeleting = ref(false);
 const errorMessage = ref(null);
 const seasons = ref([]);
 const selectedSeasonId = ref(null);
 const teamDialog = ref(false);
 const selectedTeam = ref(null);
 const editDialog = ref(false);
+const deleteDialog = ref(false);
+const teamToDelete = ref(null);
 const isEditing = ref(false);
 const players = ref([]);
 const gnlTeams = ref([]);
-const races = ref(['Human', 'Orc', 'Night Elf', 'Undead', 'Random']);
+const races = ref([
+  { title: 'Human', value: 'HU' },
+  { title: 'Orc', value: 'OC' },
+  { title: 'Night Elf', value: 'NE' },
+  { title: 'Undead', value: 'UD' },
+  { title: 'Random', value: 'RANDOM' }
+]);
 const editedTeam = ref({
   id: null,
   name: '',
@@ -345,6 +390,23 @@ const editedTeam = ref({
   player_ids: []
 });
 const teamForm = ref(null);
+const dialogErrorMessage = ref(null);
+const tierPlayers = ref({
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: []
+});
+const selectedTierPlayers = ref({
+  1: null,
+  2: null,
+  3: null,
+  4: null,
+  5: null,
+  6: null
+});
 
 const headers = [
   { title: 'Rank', value: 'rank', sortable: false, width: '80px' },
@@ -373,6 +435,18 @@ const getRankColor = (rank) => {
   if (rank === 2) return 'silver';
   if (rank === 3) return '#CD7F32'; // bronze
   return 'grey';
+};
+
+const getTierColor = (tier) => {
+  const colors = {
+    1: 'purple',
+    2: 'blue',
+    3: 'green',
+    4: 'orange',
+    5: 'brown',
+    6: 'grey'
+  };
+  return colors[tier] || 'grey';
 };
 
 const fetchData = async () => {
@@ -445,8 +519,9 @@ const closeTeamDialog = () => {
   selectedTeam.value = null;
 };
 
-const openCreateDialog = () => {
+const openCreateDialog = async () => {
   isEditing.value = false;
+  dialogErrorMessage.value = null;
   editedTeam.value = {
     id: null,
     name: '',
@@ -456,11 +531,22 @@ const openCreateDialog = () => {
     drafted_race: null,
     player_ids: []
   };
+  selectedTierPlayers.value = {
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null
+  };
+  await loadPlayersAndTeams();
   editDialog.value = true;
 };
 
-const openEditDialog = (team) => {
+const openEditDialog = async (team) => {
   isEditing.value = true;
+  dialogErrorMessage.value = null;
+  
   editedTeam.value = {
     id: team.id,
     name: team.name,
@@ -468,13 +554,40 @@ const openEditDialog = (team) => {
     captain_id: team.captain_id,
     drafted_team_id: team.drafted_team_id,
     drafted_race: team.drafted_race,
-    player_ids: team.drafted_players?.map(p => p.id) || []
+    player_ids: team.drafted_players?.map(p => p.user_id) || []
   };
+  
+  // Load players and teams first to ensure tier dropdowns are populated
+  await loadPlayersAndTeams();
+  
+  // Reset tier selections
+  selectedTierPlayers.value = {
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null
+  };
+  
+  // Populate tier selections from existing players AFTER players are loaded
+  if (team.drafted_players && team.drafted_players.length > 0) {
+    team.drafted_players.forEach(dp => {
+      // Try different possible property names
+      const playerId = dp.user_id || dp.id || dp.player_id;
+      const player = players.value.find(p => p.id === playerId);
+      if (player && player.fantasy_tier) {
+        selectedTierPlayers.value[player.fantasy_tier] = player.id;
+      }
+    });
+  }
+  
   editDialog.value = true;
 };
 
 const closeEditDialog = () => {
   editDialog.value = false;
+  dialogErrorMessage.value = null;
   editedTeam.value = {
     id: null,
     name: '',
@@ -484,6 +597,14 @@ const closeEditDialog = () => {
     drafted_race: null,
     player_ids: []
   };
+  selectedTierPlayers.value = {
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null
+  };
 };
 
 const saveTeam = async () => {
@@ -491,8 +612,29 @@ const saveTeam = async () => {
   const { valid } = await teamForm.value.validate();
   if (!valid) return;
 
+  // Validate all 6 tiers are selected
+  const missingTiers = [];
+  for (let tier = 1; tier <= 6; tier++) {
+    if (!selectedTierPlayers.value[tier]) {
+      missingTiers.push(tier);
+    }
+  }
+  
+  if (missingTiers.length > 0) {
+    dialogErrorMessage.value = `Please select players for tier(s): ${missingTiers.join(', ')}`;
+    return;
+  }
+
+  // Build player_ids array from tier selections
+  const playerIds = Object.values(selectedTierPlayers.value).filter(id => id !== null);
+  
+  if (playerIds.length !== 6) {
+    dialogErrorMessage.value = 'You must select exactly 6 players (one from each tier)';
+    return;
+  }
+
   isSaving.value = true;
-  errorMessage.value = null;
+  dialogErrorMessage.value = null;
   try {
     const teamData = {
       name: editedTeam.value.name,
@@ -508,25 +650,25 @@ const saveTeam = async () => {
       
       // Update players if changed
       const team = teams.value.find(t => t.id === editedTeam.value.id);
-      const currentPlayerIds = team.drafted_players?.map(p => p.id) || [];
-      const newPlayerIds = editedTeam.value.player_ids || [];
+      // Get current player IDs - use the same property lookup as in openEditDialog
+      const currentPlayerIds = team.drafted_players?.map(p => p.user_id || p.id || p.player_id).filter(id => id) || [];
       
-      const playersToAdd = newPlayerIds.filter(id => !currentPlayerIds.includes(id));
-      const playersToRemove = currentPlayerIds.filter(id => !newPlayerIds.includes(id));
+      const playersToAdd = playerIds.filter(id => !currentPlayerIds.includes(id));
+      const playersToRemove = currentPlayerIds.filter(id => !playerIds.includes(id));
       
-      if (playersToAdd.length > 0) {
-        await fantasyStore.addTeamPlayers(editedTeam.value.id, playersToAdd);
-      }
       if (playersToRemove.length > 0) {
-        await fantasyStore.removeTeamPlayers(editedTeam.value.id, playersToRemove);
+        await fantasyStore.removePlayers(editedTeam.value.id, playersToRemove);
+      }
+      if (playersToAdd.length > 0) {
+        await fantasyStore.addPlayers(editedTeam.value.id, playersToAdd);
       }
     } else {
       // Create new team
       const newTeam = await fantasyStore.createTeam(teamData);
       
-      // Add players if any selected
-      if (editedTeam.value.player_ids && editedTeam.value.player_ids.length > 0) {
-        await fantasyStore.addTeamPlayers(newTeam.id, editedTeam.value.player_ids);
+      // Add players
+      if (playerIds.length > 0) {
+        await fantasyStore.addPlayers(newTeam.id, playerIds);
       }
     }
 
@@ -534,7 +676,7 @@ const saveTeam = async () => {
     await fetchData(); // Refresh the list
   } catch (error) {
     console.error('Failed to save team:', error);
-    errorMessage.value = `Failed to ${isEditing.value ? 'update' : 'create'} team: ${error.message}`;
+    dialogErrorMessage.value = `Failed to ${isEditing.value ? 'update' : 'create'} team: ${error.message || 'Unknown error'}`;
   } finally {
     isSaving.value = false;
   }
@@ -545,12 +687,56 @@ const loadPlayersAndTeams = async () => {
     await playerStore.fetchPlayers();
     players.value = playerStore.players || [];
     
+    // Organize players by tier
+    tierPlayers.value = {
+      1: [],
+      2: [],
+      3: [],
+      4: [],
+      5: [],
+      6: []
+    };
+    
+    players.value.forEach(player => {
+      if (player.fantasy_tier >= 1 && player.fantasy_tier <= 6) {
+        tierPlayers.value[player.fantasy_tier].push(player);
+      }
+    });
+    
     if (selectedSeasonId.value) {
       await teamStore.fetchTeamsBySeasonBasic(selectedSeasonId.value);
       gnlTeams.value = teamStore.teams || [];
     }
   } catch (error) {
     console.error('Failed to load players and teams:', error);
+  }
+};
+
+const openDeleteDialog = (team) => {
+  teamToDelete.value = team;
+  deleteDialog.value = true;
+};
+
+const closeDeleteDialog = () => {
+  deleteDialog.value = false;
+  teamToDelete.value = null;
+};
+
+const confirmDelete = async () => {
+  if (!teamToDelete.value) return;
+  
+  isDeleting.value = true;
+  errorMessage.value = null;
+  try {
+    await fantasyStore.deleteTeam(teamToDelete.value.id);
+    closeDeleteDialog();
+    await fetchData(); // Refresh the list
+  } catch (error) {
+    console.error('Failed to delete team:', error);
+    errorMessage.value = `Failed to delete team: ${error.message || 'Unknown error'}`;
+    closeDeleteDialog();
+  } finally {
+    isDeleting.value = false;
   }
 };
 
