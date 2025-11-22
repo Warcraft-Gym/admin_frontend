@@ -16,12 +16,12 @@
 
 **Navigation:** Configuration → Application Settings
 
-1. Navigate to **Configuration** in the sidebar
-2. Scroll to **Public Access Settings** section
-3. Toggle **Player Signups Enabled**
+ 1. Navigate to **Configuration** in the sidebar
+ 2. Scroll to **Public Access Settings** section
+ 3. Toggle **Player Signups Enabled**
    - **ON (green)**: Players can sign up via Discord bot
    - **OFF (gray)**: Signup functionality is disabled
-4. Click **Save Settings** at the bottom
+ 4. Click **Save Settings** at the bottom
 
 **Use Cases:**
 - Enable before season registration period
