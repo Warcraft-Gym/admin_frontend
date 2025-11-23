@@ -1,144 +1,182 @@
 <template>
-  <v-overlay v-model="isLoading" persistent absolute>
-        <v-progress-circular
-          indeterminate
-          size="64" 
-          width="8"
-          color="primary"
-        ></v-progress-circular>
-    </v-overlay>
-    <div>
-      <h1>Map Information</h1>
-      <!-- Maps -->
-      <div id="mapList">
-        <!-- Error Message -->
-        <v-row justify="center" v-if="errorMessage" class="error-message">
-          <v-col cols="auto">
-            <p>{{ errorMessage }}</p>
-          </v-col>
-        </v-row>  
-        <!-- Table -->
-        <v-row v-else-if="maps.length > 0">
-          <v-col cols="12">
-            <v-data-table
-              :headers="tableHeader"
-              :items="maps"
-              fixed-header
-              hover>
-              <template v-slot:top>
-                <v-toolbar flat>
-                  <v-spacer />
-                  <v-btn
-                    class="toolbar-btn"
-                    variant="tonal"
-                    prepend-icon="mdi-plus"
-                    @click="showNewMapModal = true"
-                  >Add New Map</v-btn>
-                </v-toolbar>
-              </template>
-              <template v-slot:[`item.actions`]="{ item }">
-                  <td>
-              <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click.stop.prevent="editMap(item)"></v-btn>
-              <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop.prevent="openDeleteDialog(item.id, removeMap)"></v-btn>
-                  </td>
-              </template>
-            </v-data-table>
-          </v-col>
-        </v-row>          
-        <!-- No Maps Found -->
-        <v-row v-else justify="center">
-          <v-col cols="auto">
-            <p>No maps found.</p>
-          </v-col>
-        </v-row>
-      </div>
-      <!-- Add New Map Modal -->
-      <v-dialog
-        id="newMapModal"
-        v-model="showNewMapModal"
-        max-width="65vw">
-        <v-card>
-          <template v-slot:title>
-            <span class="modal-title">
-              <v-icon icon="mdi-account-plus"></v-icon>
-              Add Map
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newMap.name" 
-                  label="Map name">
-                </v-text-field>
-              </v-col>
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newMap.shortname" 
-                  label="Map shortname">
-                </v-text-field>
-              </v-col>
-            </v-row>       
-          </template>       
-              
-          <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-plus"
-              @click="createNewMap"
-              color="light-green"
-              variant="tonal">
-              Add
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelAddNewMap"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
-        </v-card>
-      </v-dialog>
+  <v-overlay v-model="isLoading" persistent contained class="align-center justify-center">
+    <v-progress-circular indeterminate size="64" width="8" color="primary"></v-progress-circular>
+  </v-overlay>
 
-      <!-- Edit Map Modal -->
-      <v-dialog id="editMapModal" v-model="editDialogOpen" max-width="65vw">
-        <v-card v-if="selectedMap">
-          <template v-slot:title>
-            <span class="modal-title">
-              <v-icon icon="mdi-account-edit"></v-icon>
-              {{ selectedMap.name }}
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field v-model="selectedMap.name" label="Map name" />
-              </v-col>
-              <v-col cols="6">
-                <v-text-field v-model="selectedMap.shortname" label="Map shortname" />
-              </v-col>
-            </v-row>
+  <v-container fluid class="pa-4">
+    <!-- Page Header -->
+    <v-row class="mb-4">
+      <v-col>
+        <h1>
+          <v-icon class="mr-2">mdi-map</v-icon>
+          Maps
+        </h1>
+      </v-col>
+    </v-row>
+
+    <!-- Main Card -->
+    <v-card elevation="2">
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-map</v-icon>
+        <span>Maps Overview</span>
+        <v-spacer />
+        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="showNewMapModal = true">
+          Add New Map
+        </v-btn>
+      </v-card-title>
+
+      <v-card-text v-if="!errorMessage" class="pa-0">
+        <v-data-table
+          :headers="tableHeader"
+          :items="maps"
+          :loading="isLoading"
+          :row-props="getRowClass"
+          fixed-header
+          hover
+        >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
           </template>
 
-          <v-card-actions>
-            <v-btn prepend-icon="mdi-pencil" @click="updateMap" color="light-green" variant="tonal">Save</v-btn>
-            <v-btn prepend-icon="mdi-close" @click="cancelEdit" color="orange" variant="tonal">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </div>
-    <v-dialog v-model="showDeleteDialog" max-width="400">
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-menu location="bottom end">
+              <template v-slot:activator="{ props }">
+                <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props" size="small"></v-btn>
+              </template>
+              <v-list density="compact">
+                <v-list-item @click="editMap(item)" prepend-icon="mdi-pencil">
+                  <v-list-item-title>Edit</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="openDeleteDialog(item.id, removeMap)" prepend-icon="mdi-delete">
+                  <v-list-item-title>Delete</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
+        </v-data-table>
+      </v-card-text>
+
+      <!-- Enhanced Empty State -->
+      <v-card-text v-else class="text-center pa-8">
+        <v-icon size="64" color="grey-lighten-1">mdi-map-outline</v-icon>
+        <div class="text-h6 text-grey mt-4 mb-2">No maps found</div>
+        <p class="text-grey-darken-1 mb-4">Get started by adding your first map</p>
+        <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="showNewMapModal = true">
+          Add First Map
+        </v-btn>
+      </v-card-text>
+    </v-card>
+
+    <!-- Add New Map Dialog -->
+    <v-dialog v-model="showNewMapModal" max-width="600">
       <v-card>
-        <v-card-title>Confirm Deletion</v-card-title>
-        <v-card-text>
-          Are you sure you want to delete this item? This action cannot be undone.
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-map-plus</v-icon>
+          Add New Map
+        </v-card-title>
+
+        <v-alert v-if="creationError" type="error" variant="tonal" border="start" border-color="red" class="mx-4 my-2" closable @click:close="creationError = null">
+          {{ creationError }}
+        </v-alert>
+
+        <v-card-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newMap.name"
+                label="Map Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-map"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newMap.shortname"
+                label="Short Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-text-short"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
         </v-card-text>
+
         <v-card-actions>
-          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
-          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+          <v-spacer />
+          <v-btn @click="cancelAddNewMap">Cancel</v-btn>
+          <v-btn @click="createNewMap" color="primary" variant="elevated" prepend-icon="mdi-plus">
+            Add Map
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Edit Map Dialog -->
+    <v-dialog v-model="editDialogOpen" max-width="600">
+      <v-card v-if="selectedMap">
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-pencil</v-icon>
+          Edit Map: {{ selectedMap.name }}
+        </v-card-title>
+
+        <v-alert v-if="updateError" type="error" variant="tonal" border="start" border-color="red" class="mx-4 my-2" closable @click:close="updateError = null">
+          {{ updateError }}
+        </v-alert>
+
+        <v-card-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedMap.name"
+                label="Map Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-map"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedMap.shortname"
+                label="Short Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-text-short"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="cancelEdit">Cancel</v-btn>
+          <v-btn @click="updateMap" color="primary" variant="elevated" prepend-icon="mdi-content-save">
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title class="bg-error text-white">
+          <v-icon class="mr-2">mdi-alert</v-icon>
+          Confirm Deletion
+        </v-card-title>
+        <v-card-text class="pt-4">
+          Are you sure you want to delete this map? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="cancelDeleteDialog" variant="text">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="error" variant="elevated" prepend-icon="mdi-delete">
+            Delete
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 <script setup>
 import '@/assets/base.css';
@@ -160,6 +198,8 @@ const isLoading = ref(false);
 const errorMessage = ref(null);
 const showNewMapModal = ref(false);
 const editDialogOpen = ref(false);
+const creationError = ref(null);
+const updateError = ref(null);
 
 // Form state
 const newMap = ref({
@@ -176,11 +216,15 @@ const deleteAction = ref(null);
 const tableHeader = [
   { title: 'ID', value: 'id', align: 'start', sortable: true },
   { title: 'Name', value: 'name', sortable: true },  
-  { title: 'shortname', value: 'shortname', sortable: true }, 
-  { title: 'Actions', value: 'actions' }
+  { title: 'Short Name', value: 'shortname', sortable: true }, 
+  { title: 'Actions', value: 'actions', align: 'end', sortable: false }
 ];
 
 // Methods
+const getRowClass = () => ({
+  class: 'map-row'
+});
+
 const fetchMaps = async () => {
   isLoading.value = true;
   errorMessage.value = null;
@@ -198,31 +242,37 @@ const fetchMaps = async () => {
 
 const editMap = (map) => {
   selectedMap.value = { ...map };
+  updateError.value = null;
   editDialogOpen.value = true;
 };
 
 const updateMap = async () => {
+  updateError.value = null;
   try {
     await mapStore.updateMap(selectedMap.value);
     await fetchMaps();
     cancelEdit();
   } catch (error) {
     console.error('Error updating map:', error);
+    updateError.value = 'Failed to update map. Please try again.';
   }
 };
 
 const cancelEdit = () => {
   selectedMap.value = null;
+  updateError.value = null;
   editDialogOpen.value = false;
 };
 
 const createNewMap = async () => {
+  creationError.value = null;
   try {
     await mapStore.createMap(newMap.value);
     await fetchMaps();
     cancelAddNewMap();
   } catch (error) {
     console.error('Error creating map:', error);
+    creationError.value = 'Failed to create map. Please try again.';
   }
 };
 
@@ -237,6 +287,7 @@ const removeMap = async (mapId) => {
 
 const cancelAddNewMap = () => {
   showNewMapModal.value = false;
+  creationError.value = null;
   newMap.value = {
     name: '',
     shortname: ''
@@ -270,21 +321,13 @@ onMounted(() => {
 });
 </script>
 
-<style>
-
-/* Table */
-.table-action {
-  margin-right: 15px;
+<style scoped>
+.map-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Toolbar */
-.toolbar-btn {
-  margin-right : 15px !important;
+.map-row:hover {
+  background-color: rgba(var(--v-theme-primary), 0.05) !important;
 }
-
-/* pannel */
-.pannel-title {
-  margin: 0;
-}
-
 </style>

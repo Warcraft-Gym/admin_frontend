@@ -75,38 +75,49 @@ onMounted(() => {
     <v-progress-circular indeterminate size="64"></v-progress-circular>
   </v-overlay>
 
-  <v-alert
-    v-if="errorMessage"
-    type="error"
-    variant="tonal"
-    border="start"
-    border-color="red"
-    class="mx-4 my-2"
-    closable
-    @click:close="errorMessage = null"
-  >
-    {{ errorMessage }}
-  </v-alert>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1><v-icon class="mr-2">mdi-book-open-page-variant</v-icon> User Guide</h1>
+      </v-col>
+    </v-row>
 
-  <v-card class="ma-4">
-    <v-card-title class="d-flex justify-space-between align-center">
-      <span>User Guide</span>
-      <v-btn
-        color="primary"
-        variant="tonal"
-        prepend-icon="mdi-refresh"
-        @click="fetchMarkdown"
-      >
-        Refresh
-      </v-btn>
-    </v-card-title>
-    
-    <v-divider></v-divider>
-    
-    <v-card-text>
-      <div class="markdown-body" v-html="htmlContent" @click="handleClick"></div>
-    </v-card-text>
-  </v-card>
+    <v-alert
+      v-if="errorMessage"
+      type="error"
+      variant="tonal"
+      border="start"
+      border-color="red"
+      class="mb-4"
+      closable
+      @click:close="errorMessage = null"
+    >
+      {{ errorMessage }}
+    </v-alert>
+
+    <v-card elevation="2">
+      <v-card-title class="bg-primary d-flex justify-space-between align-center">
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-file-document</v-icon>
+          <span>Documentation</span>
+        </div>
+        <v-btn
+          color="white"
+          variant="elevated"
+          prepend-icon="mdi-refresh"
+          @click="fetchMarkdown"
+        >
+          Refresh
+        </v-btn>
+      </v-card-title>
+      
+      <v-divider></v-divider>
+      
+      <v-card-text class="pa-6">
+        <div class="markdown-body" v-html="htmlContent" @click="handleClick"></div>
+      </v-card-text>
+    </v-card>
+  </v-container>
 </template>
 
 <style>

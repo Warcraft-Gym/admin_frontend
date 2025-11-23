@@ -1,118 +1,126 @@
 <template>
-    <div>
-      <raceIcon />
-      <h1>Player Information</h1>
-      <!-- Filters -->
-      <div id="playerFilters">
-        <v-row>
-          <v-col cols="12">
-            <v-expansion-panels>
-              <v-expansion-panel class="search-engine">
-                <v-expansion-panel-title>
-                    <v-row no-gutters>
-                      <v-col class="d-flex justify-start" cols="4">
-                        <h2 class="text-subtitle-2 pannel-title">Filters</h2>
-                      </v-col>
-                    </v-row>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <v-row>
-                    <v-col cols="4">
-                      <v-text-field
-                        v-model="searchName"
-                        label="Search a player name...">
-                      </v-text-field>
-                    </v-col>
-                    <v-col cols="4">
-                      <RaceSelect v-model="searchRace" />
-                    </v-col>
-                    <v-col cols="4">
-                      <v-select
-                        v-model="selectedSeasonFilter"
-                        :items="seasons"
-                        item-title="name"
-                        item-value="id"
-                        clearable
-                        label="Filter by Season"
-                      ></v-select>
-                    </v-col>
-                  </v-row>
-                  <v-row>
-                    <v-col cols="12">
-                      <h3 class="text-subtitle-2 text-center">MMR range</h3>
-                      <v-range-slider
-                        v-model="rangeValues"
-                        :min="0"
-                        :max="3000"
-                        strict
-                        step="10"
-                        class="align-center"
-                        hide-details>
-                        <template v-slot:prepend>
-                          <v-text-field
-                            v-model="rangeValues[0]"
-                            density="compact"
-                            disabled
-                            type="number"
-                            hide-details
-                            single-line></v-text-field>
-                        </template>
-                        <template v-slot:append>
-                          <v-text-field
-                            v-model="rangeValues[1]"
-                            density="compact"
-                            disabled
-                            type="number"
-                            hide-details
-                            single-line></v-text-field>
-                        </template>
-                      </v-range-slider>
-                    </v-col>
-                  </v-row>
-                  <v-row justify="center">
-                    <v-col cols="auto">
-                      <v-btn v-if="searchEnabled" @click="fetchPlayers" variant="tonal" prepend-icon="mdi-refresh">Reset</v-btn>
-                    </v-col>
-                  </v-row>
-                </v-expansion-panel-text>              
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </v-col>
-        </v-row>   
-      </div>
-      <!-- Players -->
-      <div id="playerList">
-        <!-- Error Message -->
-        <v-row justify="center" v-if="errorMessage" class="error-message">
-          <v-col cols="auto">
-            <p>{{ errorMessage }}</p>
-          </v-col>
-        </v-row>  
-        <!-- Table -->
-        <v-row v-else-if="players.length > 0">
-          <v-col cols="12">
-            <v-data-table
-              :headers="tableHeader"
-              :loading="isLoading"
-              :items="filteredPlayers"
-              fixed-header
-              hover>
-              <template v-slot:loading>
-                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-              </template>
-              <template v-slot:top>
-                <v-toolbar flat>
-                  <v-toolbar-title>
-                    <v-icon icon="mdi-account"></v-icon>
-                  </v-toolbar-title>                    
-                  <v-btn 
-                    @click="openCreateNew"
-                    class="toolbar-btn"
-                    variant="tonal"
-                    prepend-icon="mdi-plus"
-                  >Add New Player</v-btn>
-                </v-toolbar>
-              </template>
+  <raceIcon />
+  <v-container fluid class="pa-4">
+    <!-- Page Header -->
+    <v-row class="mb-4">
+      <v-col>
+        <h1>
+          <v-icon class="mr-2">mdi-account-group</v-icon>
+          Players
+        </h1>
+      </v-col>
+    </v-row>
+
+    <!-- Filters -->
+    <v-expansion-panels class="mb-4">
+      <v-expansion-panel>
+        <v-expansion-panel-title class="bg-primary">
+          <v-icon class="mr-2">mdi-filter</v-icon>
+          <span>Filters</span>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="searchName"
+                label="Search Player Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-magnify"
+                density="comfortable"
+                clearable
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="4">
+              <RaceSelect v-model="searchRace" />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="selectedSeasonFilter"
+                :items="seasons"
+                item-title="name"
+                item-value="id"
+                clearable
+                label="Filter by Season"
+                variant="outlined"
+                prepend-inner-icon="mdi-calendar"
+                density="comfortable"
+              ></v-select>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <div class="text-subtitle-1 font-weight-medium mb-2">
+                <v-icon class="mr-1" size="small">mdi-numeric</v-icon>
+                MMR Range
+              </div>
+              <v-range-slider
+                v-model="rangeValues"
+                :min="0"
+                :max="3000"
+                strict
+                step="10"
+                color="primary"
+                class="align-center"
+                hide-details
+              >
+                <template v-slot:prepend>
+                  <v-text-field
+                    v-model="rangeValues[0]"
+                    density="compact"
+                    disabled
+                    type="number"
+                    hide-details
+                    single-line
+                    variant="outlined"
+                    style="width: 80px"
+                  ></v-text-field>
+                </template>
+                <template v-slot:append>
+                  <v-text-field
+                    v-model="rangeValues[1]"
+                    density="compact"
+                    disabled
+                    type="number"
+                    hide-details
+                    single-line
+                    variant="outlined"
+                    style="width: 80px"
+                  ></v-text-field>
+                </template>
+              </v-range-slider>
+            </v-col>
+          </v-row>
+          <v-row v-if="searchEnabled" justify="center" class="mt-2">
+            <v-col cols="auto">
+              <v-btn @click="fetchPlayers" variant="elevated" prepend-icon="mdi-refresh" color="primary">Reset Filters</v-btn>
+            </v-col>
+          </v-row>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+    <!-- Main Card -->
+    <v-card elevation="2">
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-account-group</v-icon>
+        <span>Players Overview</span>
+        <v-spacer />
+        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="openCreateNew">
+          Add New Player
+        </v-btn>
+      </v-card-title>
+
+      <v-card-text v-if="!errorMessage" class="pa-0">
+        <v-data-table
+          :headers="tableHeader"
+          :loading="isLoading"
+          :items="filteredPlayers"
+          :row-props="getRowClass"
+          fixed-header
+          hover
+        >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          </template>
               <template v-slot:item="{ item }">
                 <tr class="text-no-wrap">
                   <td>{{ item.id }}</td>
@@ -150,284 +158,315 @@
                     <div v-else>—</div>
                   </td>
                   <td>
-                    <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click="editPlayer(item)"></v-btn>
-                    <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click="openDeleteDialog(item.id, removePlayer)"></v-btn>
-                    <!-- per-player sync status: icon-only button inside table -->
-                    <v-btn
-                      class="table-action"
-                      density="compact"
-                      color="green"
-                      icon
-                      @click.stop.prevent="syncW3CPlayer(item.id)"
-                      :loading="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'"
-                      :disabled="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'"
-                    >
-                      <template v-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'success'">
-                        <v-icon small color="green">mdi-check-circle</v-icon>
+                    <v-menu location="bottom end">
+                      <template v-slot:activator="{ props }">
+                        <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props" size="small"></v-btn>
                       </template>
-                      <template v-else-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'error'">
-                        <v-tooltip>
-                          <template #activator="{ props }">
-                            <v-icon v-bind="props" small color="red" @click.stop.prevent="syncW3CPlayer(item.id)">mdi-alert-circle</v-icon>
-                          </template>
-                          <span>{{ perPlayerSyncStatus[item.id].message || 'Sync failed — click to retry' }}</span>
-                        </v-tooltip>
-                      </template>
-                      <template v-else>
-                        <v-icon small class="text--secondary">mdi-sync</v-icon>
-                      </template>
-                    </v-btn>
+                      <v-list density="compact">
+                        <v-list-item @click="editPlayer(item)" prepend-icon="mdi-pencil">
+                          <v-list-item-title>Edit</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item 
+                          @click="syncW3CPlayer(item.id)"
+                          prepend-icon="mdi-sync"
+                          :disabled="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'"
+                        >
+                          <v-list-item-title>
+                            <span v-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'success'">
+                              <v-icon small color="green" class="mr-1">mdi-check-circle</v-icon> Synced
+                            </span>
+                            <span v-else-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'error'">
+                              <v-icon small color="red" class="mr-1">mdi-alert-circle</v-icon> Retry Sync
+                            </span>
+                            <span v-else>Sync W3C</span>
+                          </v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="openDeleteDialog(item.id, removePlayer)" prepend-icon="mdi-delete">
+                          <v-list-item-title>Delete</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
                   </td>
                 </tr>
               </template>
-            </v-data-table>
-          </v-col>
-        </v-row>          
-        <!-- No User Found -->
-        <v-row v-else justify="center">
-          <v-col cols="auto">
-            <p>No users found.</p>
-          </v-col>
-        </v-row>
-      </div>
-      <!-- Add New Player Modal -->
-      <v-dialog
-        id="newPlayerModal"
-        v-if="showNewPlayerModal"
-        v-model="showNewPlayerModal"
-        max-width="65vw">
-        <v-card>
-          <v-alert
-            v-if="creationError"
-            type="error"
-            class="mx-4 my-2"
-            dense
-            border="start"
-            border-color="red"
-          >
+        </v-data-table>
+      </v-card-text>
+
+      <!-- Enhanced Empty State -->
+      <v-card-text v-else class="text-center pa-8">
+        <v-icon size="64" color="grey-lighten-1">mdi-account-off</v-icon>
+        <div class="text-h6 text-grey mt-4 mb-2">No players found</div>
+        <p class="text-grey-darken-1 mb-4">Get started by adding your first player</p>
+        <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="openCreateNew">
+          Add First Player
+        </v-btn>
+      </v-card-text>
+    </v-card>
+    <!-- Add New Player Dialog -->
+    <v-dialog v-model="showNewPlayerModal" max-width="800">
+      <v-card>
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-account-plus</v-icon>
+          Add New Player
+        </v-card-title>
+
+        <v-alert
+          v-if="creationError"
+          type="error"
+          variant="tonal"
+          border="start"
+          border-color="red"
+          class="mx-4 my-2"
+          closable
+          @click:close="creationError = null"
+        >
           {{ creationError }}
         </v-alert>
-          <template v-slot:title>
-            <span class="modal-title">
-              <v-icon icon="mdi-account-plus"></v-icon>
-              Add New Player
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.name" 
-                  label="Player name">
-                </v-text-field>
-              </v-col>
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.battleTag" 
-                  label="Player BattleTag">
-                </v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <CountrySelect v-model="newPlayer.country" />
-              </v-col>
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.discordTag" 
-                  label="Player Discord Tag">
-                </v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.discordId"
-                  label="Player Discord ID"
-                  hint="Numeric Discord user id (required)"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-number-input
-                  v-model="newPlayer.mmr" 
-                  control-variant="hidden"
-                  label="Player MMR"
-                  :hideInput="false"
-                  :inset="false"
-                ></v-number-input>
-              </v-col>
-              <v-col cols="6">
-                <RaceSelect v-model="newPlayer.race" />
-              </v-col>
-            </v-row> 
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="newPlayer.fantasy_tier" 
-                  label="Player Fantasy Tier">
-                </v-text-field>
-              </v-col>
-              <v-col cols="6">
-                <v-select
-                  v-model="selectedSignupSeasonIdsNew"
-                  :items="seasons"
-                  item-title="name"
-                  item-value="id"
-                  multiple
-                  chips
-                  label="Signed-up Seasons"
-                  clearable
-                ></v-select>
-              </v-col>
-            </v-row>           
-          </template>       
-              
-          <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-plus"
-              @click="createNewPlayer"
-              color="light-green"
-              variant="tonal"
-              :loading="isCreating"
-              :disabled="isCreating">
-              Add
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelAddNewPlayer"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
-        </v-card>
-      </v-dialog>
 
-      <!-- Edit Player Modal -->
-      <v-dialog
-        id="EditPlayerModal"
-        v-model="showEditPlayerModal"
-        max-width="65vw">
-        <v-card>
-          <v-alert
-            v-if="updateError"
-            type="error"
-            class="mx-4 my-2"
-            dense
-            border="start"
-            border-color="red"
-          >
-            {{ updateError }}
-          </v-alert>
-          <template v-slot:title>
-            <span class="modal-title">
-              <v-icon icon="mdi-account-edit"></v-icon>
-              {{ selectedPlayer.name }}
-            </span>
-          </template>
-          <template v-slot:text>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="selectedPlayer.name" 
-                  label="Player name">
-                </v-text-field>
-              </v-col>
-              <v-col cols="6">
-                <v-text-field
-                  v-model="selectedPlayer.battleTag" 
-                  label="Player BattleTag">
-                </v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">                
-                <CountrySelect v-model="selectedPlayer.country" />
-              </v-col>
-              <v-col cols="6">
-                <v-text-field
-                  v-model="selectedPlayer.discordTag" 
-                  label="Player Discord Tag">
-                </v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="selectedPlayer.discordId"
-                  label="Player Discord ID"
-                  hint="Numeric Discord user id (required)"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-number-input
-                  v-model="selectedPlayer.mmr" 
-                  control-variant="hidden"
-                  label="Player MMR"
-                  :hideInput="false"
-                  :inset="false"
-                ></v-number-input>
-              </v-col>
-              <v-col cols="6">
-                <RaceSelect v-model="selectedPlayer.race" />
-              </v-col>
-            </v-row> 
-            <v-row :dense="true">
-              <v-col cols="6">
-                <v-text-field
-                  v-model="selectedPlayer.fantasy_tier" 
-                  label="Player Fantasy Tier">
-                </v-text-field>
-              </v-col>
-              <v-col cols="6">
-                <v-select
-                  v-model="selectedSignupSeasonIds"
-                  :items="seasons"
-                  item-title="name"
-                  item-value="id"
-                  multiple
-                  chips
-                  label="Signed-up Seasons"
-                ></v-select>
-              </v-col>
-            </v-row>           
-          </template>       
-              
-          <v-card-actions>
-            <v-btn 
-              prepend-icon="mdi-pencil"
-              @click="updatePlayer"
-              color="light-green"
-              variant="tonal">
-              Edit
-            </v-btn>
-            <v-btn 
-              prepend-icon="mdi-close" 
-              @click="cancelEdit"
-              color="orange"
-              variant="tonal">
-              Cancel
-            </v-btn>
-          </v-card-actions>        
-        </v-card>
-      </v-dialog>
-    </div>
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card>
-        <v-card-title>Confirm Deletion</v-card-title>
-        <v-card-text>
-          Are you sure you want to delete this item? This action cannot be undone.
+        <v-card-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newPlayer.name"
+                label="Player Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newPlayer.battleTag"
+                label="BattleTag"
+                variant="outlined"
+                prepend-inner-icon="mdi-shield-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <CountrySelect v-model="newPlayer.country" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newPlayer.discordTag"
+                label="Discord Tag"
+                variant="outlined"
+                prepend-inner-icon="mdi-discord"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newPlayer.discordId"
+                label="Discord ID"
+                hint="Numeric Discord user ID (required)"
+                variant="outlined"
+                prepend-inner-icon="mdi-identifier"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-number-input
+                v-model="newPlayer.mmr"
+                control-variant="hidden"
+                label="Player MMR"
+                :hideInput="false"
+                :inset="false"
+              ></v-number-input>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <RaceSelect v-model="newPlayer.race" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="newPlayer.fantasy_tier"
+                label="Fantasy Tier"
+                variant="outlined"
+                prepend-inner-icon="mdi-trophy"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-select
+                v-model="selectedSignupSeasonIdsNew"
+                :items="seasons"
+                item-title="name"
+                item-value="id"
+                multiple
+                chips
+                label="Signed-up Seasons"
+                clearable
+                variant="outlined"
+                prepend-inner-icon="mdi-calendar-check"
+                density="comfortable"
+              ></v-select>
+            </v-col>
+          </v-row>
         </v-card-text>
+
         <v-card-actions>
-          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
-          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
+          <v-spacer />
+          <v-btn @click="cancelAddNewPlayer">Cancel</v-btn>
+          <v-btn
+            @click="createNewPlayer"
+            color="primary"
+            variant="elevated"
+            prepend-icon="mdi-plus"
+            :loading="isCreating"
+            :disabled="isCreating"
+          >
+            Add Player
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Edit Player Dialog -->
+    <v-dialog v-model="showEditPlayerModal" max-width="800">
+      <v-card v-if="selectedPlayer">
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-pencil</v-icon>
+          Edit Player: {{ selectedPlayer.name }}
+        </v-card-title>
+
+        <v-alert
+          v-if="updateError"
+          type="error"
+          variant="tonal"
+          border="start"
+          border-color="red"
+          class="mx-4 my-2"
+          closable
+          @click:close="updateError = null"
+        >
+          {{ updateError }}
+        </v-alert>
+
+        <v-card-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.name"
+                label="Player Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.battleTag"
+                label="BattleTag"
+                variant="outlined"
+                prepend-inner-icon="mdi-shield-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <CountrySelect v-model="selectedPlayer.country" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.discordTag"
+                label="Discord Tag"
+                variant="outlined"
+                prepend-inner-icon="mdi-discord"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.discordId"
+                label="Discord ID"
+                hint="Numeric Discord user ID (required)"
+                variant="outlined"
+                prepend-inner-icon="mdi-identifier"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-number-input
+                v-model="selectedPlayer.mmr"
+                control-variant="hidden"
+                label="Player MMR"
+                :hideInput="false"
+                :inset="false"
+              ></v-number-input>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <RaceSelect v-model="selectedPlayer.race" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.fantasy_tier"
+                label="Fantasy Tier"
+                variant="outlined"
+                prepend-inner-icon="mdi-trophy"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-select
+                v-model="selectedSignupSeasonIds"
+                :items="seasons"
+                item-title="name"
+                item-value="id"
+                multiple
+                chips
+                label="Signed-up Seasons"
+                variant="outlined"
+                prepend-inner-icon="mdi-calendar-check"
+                density="comfortable"
+              ></v-select>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="cancelEdit">Cancel</v-btn>
+          <v-btn @click="updatePlayer" color="primary" variant="elevated" prepend-icon="mdi-content-save">
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title class="bg-error text-white">
+          <v-icon class="mr-2">mdi-alert</v-icon>
+          Confirm Deletion
+        </v-card-title>
+        <v-card-text class="pt-4">
+          Are you sure you want to delete this player? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="cancelDeleteDialog" variant="text">Cancel</v-btn>
+          <v-btn @click="confirmDelete" color="error" variant="elevated" prepend-icon="mdi-delete">
+            Delete
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 <script setup>
 import { usePlayerStore, useSeasonStore } from '@/stores';
@@ -611,6 +650,10 @@ const cancelDeleteDialog = () => {
 };
 
 // Methods
+const getRowClass = () => ({
+  class: 'player-row'
+});
+
 const searchPlayer = async () => {
   // Apply client-side filters only. Backend is not queried here.
   searchEnabled.value = true;
@@ -748,21 +791,13 @@ const cancelAddNewPlayer = () => {
 };
 </script>
 
-<style>
-
-/* Table */
-.table-action {
-  margin-right: 15px;
+<style scoped>
+.player-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Toolbar */
-.toolbar-btn {
-  margin-right : 15px !important;
+.player-row:hover {
+  background-color: rgba(var(--v-theme-primary), 0.05) !important;
 }
-
-/* pannel */
-.pannel-title {
-  margin: 0;
-}
-
 </style>

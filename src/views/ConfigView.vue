@@ -8,8 +8,12 @@
     ></v-progress-circular>
   </v-overlay>
   
-  <div>
-    <h1>Configuration Management</h1>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1><v-icon class="mr-2">mdi-cog</v-icon> Configuration Management</h1>
+      </v-col>
+    </v-row>
     
     <!-- Error Message -->
     <v-alert
@@ -18,7 +22,7 @@
       variant="tonal"
       border="start"
       border-color="red"
-      class="mx-4 my-2"
+      class="mb-4"
       closable
       @click:close="errorMessage = null"
     >
@@ -32,7 +36,7 @@
       variant="tonal"
       border="start"
       border-color="green"
-      class="mx-4 my-2"
+      class="mb-4"
       closable
       @click:close="successMessage = null"
     >
@@ -42,12 +46,12 @@
     <!-- Application Settings Section -->
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title>
-            <v-icon icon="mdi-cog" class="mr-2"></v-icon>
+        <v-card elevation="2">
+          <v-card-title class="bg-primary">
+            <v-icon class="mr-2">mdi-cog</v-icon>
             Application Settings
           </v-card-title>
-          <v-card-subtitle>
+          <v-card-subtitle class="mt-2">
             Manage application configuration settings stored in the database.
           </v-card-subtitle>
           
@@ -64,6 +68,8 @@
                     v-model="settingsMap.current_wc3_season"
                     label="Current WC3 Season"
                     hint="Current Warcraft 3 Champions season number"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-trophy"
                     type="number"
                   ></v-text-field>
                 </v-col>
@@ -73,6 +79,8 @@
                     v-model="settingsMap.w3c_url"
                     label="W3Champions API URL"
                     hint="Base URL for W3Champions API"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-api"
                   ></v-text-field>
                 </v-col>
 
@@ -89,6 +97,8 @@
                     item-value="id"
                     label="Current GNL Season"
                     hint="Active league season"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-calendar"
                     clearable
                   ></v-select>
                 </v-col>
@@ -144,6 +154,8 @@
                     v-model="settingsMap.fantasy_bet_points_value"
                     label="Fixed Bet Points Value"
                     hint="Point value for bets when using fixed bet points"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-numeric"
                     type="number"
                     :disabled="settingsMap.fantasy_fixed_bet_points !== 'true'"
                   ></v-text-field>
@@ -154,6 +166,8 @@
                     v-model="settingsMap.fantasy_min_bet_points"
                     label="Minimum Bet Points"
                     hint="Minimum point value allowed when using custom bet points"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-arrow-down"
                     type="number"
                     :disabled="settingsMap.fantasy_fixed_bet_points === 'true'"
                   ></v-text-field>
@@ -164,6 +178,8 @@
                     v-model="settingsMap.fantasy_max_bet_points"
                     label="Maximum Bet Points"
                     hint="Maximum point value allowed when using custom bet points"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-arrow-up"
                     type="number"
                     :disabled="settingsMap.fantasy_fixed_bet_points === 'true'"
                   ></v-text-field>
@@ -179,6 +195,8 @@
                     v-model="settingsMap.captain_coach_role"
                     label="Captain/Coach Role ID"
                     hint="Discord role ID for team captains and coaches"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-account-star"
                   ></v-text-field>
                 </v-col>
 
@@ -187,6 +205,8 @@
                     v-model="settingsMap.admin_role"
                     label="Admin Role ID"
                     hint="Discord role ID for administrators"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-shield-account"
                   ></v-text-field>
                 </v-col>
 
@@ -195,6 +215,8 @@
                     v-model="settingsMap.signup_channel_id"
                     label="Signup Channel ID"
                     hint="Discord channel for player signups"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-account-plus"
                   ></v-text-field>
                 </v-col>
 
@@ -203,6 +225,8 @@
                     v-model="settingsMap.scheduling_channel_id"
                     label="Scheduling Channel ID"
                     hint="Discord channel for match scheduling"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-calendar-clock"
                   ></v-text-field>
                 </v-col>
 
@@ -211,6 +235,8 @@
                     v-model="settingsMap.results_channel_id"
                     label="Results Channel ID"
                     hint="Discord channel for match results"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-trophy-outline"
                   ></v-text-field>
                 </v-col>
 
@@ -219,6 +245,8 @@
                     v-model="settingsMap.fantasy_dashboard_channel_id"
                     label="Fantasy Dashboard Channel ID"
                     hint="Discord channel for fantasy league dashboard"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-view-dashboard"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -228,7 +256,7 @@
           <v-card-actions class="px-4 pb-4">
             <v-btn
               color="primary"
-              variant="tonal"
+              variant="elevated"
               prepend-icon="mdi-content-save"
               @click="saveSettings"
               :loading="isSaving"
@@ -238,8 +266,7 @@
             </v-btn>
 
             <v-btn
-              color="grey"
-              variant="tonal"
+              variant="outlined"
               prepend-icon="mdi-reload"
               @click="resetSettings"
               :disabled="isSaving"
@@ -254,12 +281,12 @@
     <!-- Info Card -->
     <v-row class="mt-4">
       <v-col cols="12">
-        <v-card color="info" variant="tonal">
-          <v-card-title>
-            <v-icon icon="mdi-information"></v-icon>
+        <v-card elevation="2">
+          <v-card-title class="bg-primary">
+            <v-icon class="mr-2">mdi-information</v-icon>
             About Settings
           </v-card-title>
-          <v-card-text>
+          <v-card-text class="pt-4">
             <ul>
               <li><strong>Database Storage:</strong> Settings are stored in the database and persist across backend restarts.</li>
               <li><strong>Public Access Toggles:</strong> Enable/disable player signups and fantasy team creation independently.</li>
@@ -271,7 +298,7 @@
         </v-card>
       </v-col>
     </v-row>
-  </div>
+  </v-container>
 </template>
 
 <script setup>

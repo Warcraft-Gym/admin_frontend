@@ -1,8 +1,17 @@
 <template>
-  <v-container class="pa-4">
-    <v-card>
-      <v-card-title>{{ seasonName ? `Signup for Season: ${seasonName}` : 'Signup' }}</v-card-title>
-      <v-card-text>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1><v-icon class="mr-2">mdi-account-plus</v-icon> Player Signup</h1>
+      </v-col>
+    </v-row>
+
+    <v-card elevation="2">
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-clipboard-account</v-icon>
+        {{ seasonName ? `Signup for Season: ${seasonName}` : 'Player Registration' }}
+      </v-card-title>
+      <v-card-text class="pt-4">
         <div v-if="loading">Loading token...</div>
         <div v-else-if="tokenInvalid">
           <v-alert type="error">Token is invalid: {{ tokenInvalidReason }}</v-alert>
@@ -11,19 +20,45 @@
           <v-form ref="formRef" @submit.prevent="onSubmit">
             <v-row :dense="true">
               <v-col cols="12" md="6">
-                <v-text-field disabled v-model="discordId" label="Discord ID" readonly />
+                <v-text-field 
+                  disabled 
+                  v-model="discordId" 
+                  label="Discord ID" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-identifier"
+                  readonly 
+                />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field disabled v-model="discordTag" label="Discord Tag" readonly />
+                <v-text-field 
+                  disabled 
+                  v-model="discordTag" 
+                  label="Discord Tag" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-discord"
+                  readonly 
+                />
               </v-col>
             </v-row>
 
             <v-row :dense="true">
               <v-col cols="12" md="6">
-                <v-text-field v-model="name" label="Player name (EAShibby)" required />
+                <v-text-field 
+                  v-model="name" 
+                  label="Player name (EAShibby)" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-account"
+                  required 
+                />
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model="battleTag" label="Player BattleTag (#EAShibby12342)" required />
+                <v-text-field 
+                  v-model="battleTag" 
+                  label="Player BattleTag (#EAShibby12342)" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-pound"
+                  required 
+                />
               </v-col>
             </v-row>
 
@@ -38,13 +73,29 @@
 
             <v-row :dense="true">
               <v-col cols="12" md="6">
-                <v-number-input v-model="mmr" control-variant="hidden" label="Signup Race MMR" :hideInput="false" :inset="false" />
+                <v-number-input 
+                  v-model="mmr" 
+                  control-variant="hidden" 
+                  label="Signup Race MMR" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-chart-line"
+                  :hideInput="false" 
+                  :inset="false" 
+                />
               </v-col>
             </v-row>
 
             <v-row>
               <v-col>
-                <v-btn color="primary" type="submit" :disabled="submitting || success">Complete signup</v-btn>
+                <v-btn 
+                  color="primary" 
+                  variant="elevated"
+                  prepend-icon="mdi-check"
+                  type="submit" 
+                  :disabled="submitting || success"
+                >
+                  Complete signup
+                </v-btn>
                 <v-progress-circular v-if="submitting" indeterminate size="18" class="ml-2" />
               </v-col>
             </v-row>

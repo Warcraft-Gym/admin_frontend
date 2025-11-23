@@ -1,169 +1,372 @@
 <template>
-  <div>
-    <h1>Seasons</h1>
-
-    <v-overlay v-model="isLoading" persistent absolute>
-      <v-progress-circular indeterminate size="64" width="8" color="primary" />
-    </v-overlay>
-
-    <v-expansion-panels>
-      <v-expansion-panel>
-        <v-expansion-panel-title>
-          <v-icon left>mdi-file-upload</v-icon>
-          Import Excel File
-        </v-expansion-panel-title>
-        <v-expansion-panel-text>
-          <v-form>
-            <v-row dense>
-              <v-col cols="3">
-                <v-text-field v-model="seasonName" label="Season Name" placeholder="Enter season name" />
-              </v-col>
-              <v-col cols="1">
-                <v-divider>OR</v-divider>
-              </v-col>
-              <v-col cols="2">
-                <v-text-field v-model="seasonId" label="Season ID" type="number" placeholder="Enter season ID" />
-              </v-col>
-              <v-col cols="6">
-                <v-file-input v-model="file" label="Upload Excel File" accept=".xlsx" />
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="auto">
-                <v-btn
-                  :disabled="!isFileFormValid || isLoading"
-                  @click="uploadFile"
-                  class="toolbar-btn"
-                  variant="tonal"
-                  prepend-icon="mdi-upload"
-                >
-                  Upload File
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <v-alert v-if="uploadMessage" type="success" class="mt-2">{{ uploadMessage }}</v-alert>
-          </v-form>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-
-    <v-row justify="center" v-if="errorMessage" class="error-message">
-      <v-col cols="auto">
-        <p>{{ errorMessage }}</p>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1 class="text-h3 font-weight-bold">
+          <v-icon class="mr-2" size="large">mdi-trophy</v-icon>
+          Seasons
+        </h1>
       </v-col>
     </v-row>
 
-    <section v-else>
-      <v-data-table :headers="tableHeader" :items="seasons" :loading="isLoading" fixed-header hover>
-        <template #loading>
-          <v-skeleton-loader type="table-row@10" />
-        </template>
+    <v-overlay v-model="isLoading" persistent class="loading-overlay">
+      <v-progress-circular indeterminate size="64" width="8" color="primary" />
+    </v-overlay>
 
-        <template #top>
-          <v-toolbar flat>
-            <v-spacer />
-            <v-btn @click.stop="addNewSeason" class="toolbar-btn" variant="tonal" prepend-icon="mdi-plus">Add New Season</v-btn>
-          </v-toolbar>
-        </template>
-
-        <template #item="{ item }">
-          <tr @click="$router.push(`/seasons/${item.id}`)" class="text-no-wrap">
-            <td>{{ item.id }}</td>
-            <td>{{ item.name }}</td>
-            <td>{{ item.number_weeks }}</td>
-            <td>{{ item.pick_ban }}</td>
-            <td>{{ item.series_per_week }}</td>
-            <td>
-              <v-btn class="table-action" density="compact" color="blue" icon="mdi-account-edit" @click.stop.prevent="editSeason(item)" />
-              <v-btn class="table-action" density="compact" color="red" icon="mdi-trash-can" @click.stop.prevent="openDeleteDialog(item.id, removeSeason)" />
-            </td>
-          </tr>
-        </template>
-      </v-data-table>
-
-      <!-- Add / Edit Dialogs -->
-      <v-dialog v-model="addNewDialogOpen" max-width="65vw">
-        <v-card v-if="newSeason">
-          <v-alert v-if="creationError" type="error" class="mx-4 my-2" dense border="start" border-color="red">{{ creationError }}</v-alert>
-          <v-card-title>Add New Season</v-card-title>
-          <v-card-text>
-            <v-form>
+    <!-- Import Excel Panel -->
+    <v-card class="mb-4" elevation="2">
+      <v-expansion-panels>
+        <v-expansion-panel>
+          <v-expansion-panel-title class="bg-grey-lighten-4">
+            <v-icon class="mr-2">mdi-file-upload</v-icon>
+            Import Excel File
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <v-form class="pa-4">
               <v-row dense>
-                <v-col cols="6"><v-text-field v-model="newSeason.name" label="Season Name" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.number_weeks" label="Number of Weeks" type="number" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.pick_ban" label="Pick Ban Order" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.series_per_week" label="Series per Week" type="number" /></v-col>
-                <v-col cols="6"><v-text-field v-model="newSeason.discordRole" label="Discord Role ID" /></v-col>
-                <v-col cols="6">
-                  <v-autocomplete
-                    v-model="newSeasonMapIds"
-                    :items="maps"
-                    item-title="name"
-                    item-value="id"
-                    label="Map Pool"
-                    multiple
-                    chips
-                    closable-chips
+                <v-col cols="12" md="3">
+                  <v-text-field 
+                    v-model="seasonName" 
+                    label="Season Name" 
+                    placeholder="Enter season name"
+                    variant="outlined"
+                    density="comfortable"
+                  />
+                </v-col>
+                <v-col cols="12" md="1" class="d-flex align-center justify-center">
+                  <span class="text-grey">OR</span>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field 
+                    v-model="seasonId" 
+                    label="Season ID" 
+                    type="number" 
+                    placeholder="Enter season ID"
+                    variant="outlined"
+                    density="comfortable"
+                  />
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-file-input 
+                    v-model="file" 
+                    label="Upload Excel File" 
+                    accept=".xlsx"
+                    variant="outlined"
+                    density="comfortable"
+                    prepend-icon=""
+                    prepend-inner-icon="mdi-paperclip"
                   />
                 </v-col>
               </v-row>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn @click="createNewSeason" color="light-green" variant="tonal" prepend-icon="mdi-check">Save</v-btn>
-            <v-btn @click="cancelAddNewSeason" color="orange" variant="tonal" prepend-icon="mdi-close">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
 
-      <v-dialog v-model="editDialogOpen" max-width="65vw">
-        <v-card v-if="selectedSeason">
-          <v-alert v-if="updateError" type="error" class="mx-4 my-2" dense border="start" border-color="red">{{ updateError }}</v-alert>
-          <v-card-title>Edit Season: {{ selectedSeason.name }}</v-card-title>
-          <v-card-text>
-            <v-form>
-              <v-row dense>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.name" label="Season Name" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.number_weeks" label="Number of Weeks" type="number" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.pick_ban" label="Pick Ban Order" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.series_per_week" label="Series per Week" type="number" /></v-col>
-                <v-col cols="6"><v-text-field v-model="selectedSeason.discordRole" label="Discord Role ID" /></v-col>
-                <v-col cols="6">
-                  <v-autocomplete
-                    v-model="selectedSeasonMapIds"
-                    :items="maps"
-                    item-title="name"
-                    item-value="id"
-                    label="Map Pool"
-                    multiple
-                    chips
-                    closable-chips
-                  />
+              <v-row>
+                <v-col cols="auto">
+                  <v-btn
+                    :disabled="!isFileFormValid || isLoading"
+                    @click="uploadFile"
+                    color="primary"
+                    variant="elevated"
+                    prepend-icon="mdi-upload"
+                  >
+                    Upload File
+                  </v-btn>
                 </v-col>
               </v-row>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn @click="updateSeason" color="light-green" variant="tonal" prepend-icon="mdi-check">Save</v-btn>
-            <v-btn @click="cancelEdit" color="orange" variant="tonal" prepend-icon="mdi-close">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
 
-      <v-dialog v-model="showDeleteDialog" max-width="400">
-        <v-card>
-          <v-card-title>Confirm Deletion</v-card-title>
-          <v-card-text>Are you sure you want to delete this item? This action cannot be undone.</v-card-text>
-          <v-card-actions>
-            <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
-            <v-btn @click="confirmDelete" color="red">Delete</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </section>
-  </div>
+              <v-alert v-if="uploadMessage" type="success" variant="tonal" class="mt-4" closable>
+                {{ uploadMessage }}
+              </v-alert>
+            </v-form>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </v-card>
+
+    <!-- Error Message -->
+    <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="errorMessage = null">
+      {{ errorMessage }}
+    </v-alert>
+
+    <!-- Seasons Table -->
+    <v-card v-if="!errorMessage" elevation="2">
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-format-list-bulleted</v-icon>
+        All Seasons
+      </v-card-title>
+      
+      <v-card-text class="pa-0">
+        <v-data-table 
+          :headers="tableHeader" 
+          :items="seasons" 
+          :loading="isLoading" 
+          fixed-header 
+          hover
+          density="comfortable"
+        >
+          <template #loading>
+            <v-skeleton-loader type="table-row@10" />
+          </template>
+
+          <template #top>
+            <v-toolbar flat>
+              <v-spacer />
+              <v-btn 
+                @click.stop="addNewSeason" 
+                color="primary" 
+                variant="elevated" 
+                prepend-icon="mdi-plus"
+              >
+                Add New Season
+              </v-btn>
+            </v-toolbar>
+          </template>
+
+          <template #item="{ item }">
+            <tr @click="$router.push(`/seasons/${item.id}`)" class="season-row">
+              <td>{{ item.id }}</td>
+              <td><strong>{{ item.name }}</strong></td>
+              <td>{{ item.number_weeks }}</td>
+              <td>{{ item.pick_ban }}</td>
+              <td>{{ item.series_per_week }}</td>
+              <td class="text-end">
+                <v-menu location="bottom end">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon="mdi-dots-vertical"
+                      variant="text"
+                      size="small"
+                      v-bind="props"
+                      @click.stop
+                    ></v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item @click.stop="editSeason(item)" prepend-icon="mdi-pencil">
+                      <v-list-item-title>Edit Season</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click.stop="openDeleteDialog(item.id, removeSeason)" prepend-icon="mdi-delete" class="text-error">
+                      <v-list-item-title>Delete Season</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </td>
+            </tr>
+          </template>
+
+          <template #no-data>
+            <div class="text-center pa-8">
+              <v-icon size="64" color="grey-lighten-1">mdi-trophy-broken</v-icon>
+              <div class="text-h6 mt-4 text-grey">No seasons found</div>
+              <v-btn 
+                color="primary" 
+                variant="tonal" 
+                class="mt-4"
+                prepend-icon="mdi-plus"
+                @click="addNewSeason"
+              >
+                Create First Season
+              </v-btn>
+            </div>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+
+    <!-- Add New Season Dialog -->
+    <v-dialog v-model="addNewDialogOpen" max-width="800px" persistent>
+      <v-card v-if="newSeason">
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-plus-circle</v-icon>
+          Add New Season
+        </v-card-title>
+        
+        <v-alert v-if="creationError" type="error" variant="tonal" class="mx-4 mt-4 mb-2" border="start" border-color="red" closable @click:close="creationError = null">
+          {{ creationError }}
+        </v-alert>
+        
+        <v-card-text class="pt-4">
+          <v-form>
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.name" 
+                  label="Season Name"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-trophy"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.number_weeks" 
+                  label="Number of Weeks" 
+                  type="number"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-range"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.pick_ban" 
+                  label="Pick Ban Order"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-format-list-numbered"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.series_per_week" 
+                  label="Series per Week" 
+                  type="number"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-trophy-variant"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.discordRole" 
+                  label="Discord Role ID"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-discord"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-model="newSeasonMapIds"
+                  :items="maps"
+                  item-title="name"
+                  item-value="id"
+                  label="Map Pool"
+                  multiple
+                  chips
+                  closable-chips
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-map"
+                />
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        
+        <v-card-actions class="px-4 py-3">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelAddNewSeason">Cancel</v-btn>
+          <v-btn color="primary" prepend-icon="mdi-check" @click="createNewSeason">Create Season</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Edit Season Dialog -->
+    <v-dialog v-model="editDialogOpen" max-width="800px" persistent>
+      <v-card v-if="selectedSeason">
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-pencil</v-icon>
+          Edit Season: {{ selectedSeason.name }}
+        </v-card-title>
+        
+        <v-alert v-if="updateError" type="error" variant="tonal" class="mx-4 mt-4 mb-2" border="start" border-color="red" closable @click:close="updateError = null">
+          {{ updateError }}
+        </v-alert>
+        
+        <v-card-text class="pt-4">
+          <v-form>
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.name" 
+                  label="Season Name"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-trophy"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.number_weeks" 
+                  label="Number of Weeks" 
+                  type="number"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-range"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.pick_ban" 
+                  label="Pick Ban Order"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-format-list-numbered"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.series_per_week" 
+                  label="Series per Week" 
+                  type="number"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-trophy-variant"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.discordRole" 
+                  label="Discord Role ID"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-discord"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-autocomplete
+                  v-model="selectedSeasonMapIds"
+                  :items="maps"
+                  item-title="name"
+                  item-value="id"
+                  label="Map Pool"
+                  multiple
+                  chips
+                  closable-chips
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-map"
+                />
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        
+        <v-card-actions class="px-4 py-3">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelEdit">Cancel</v-btn>
+          <v-btn color="primary" prepend-icon="mdi-check" @click="updateSeason">Save Changes</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title class="bg-error">
+          <v-icon class="mr-2">mdi-alert</v-icon>
+          Confirm Deletion
+        </v-card-title>
+        <v-card-text class="pt-4">
+          Are you sure you want to delete this season? This action cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelDeleteDialog">Cancel</v-btn>
+          <v-btn color="error" @click="confirmDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script setup>
@@ -362,8 +565,13 @@ const uploadFile = async () => {
 };
 </script>
 
-<style>
-.table-action { margin-right: 12px; }
-.toolbar-btn { margin-right: 12px !important; }
-.text-no-wrap { white-space: nowrap; }
+<style scoped>
+.season-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.season-row:hover {
+  background-color: rgba(var(--v-theme-primary), 0.05) !important;
+}
 </style>

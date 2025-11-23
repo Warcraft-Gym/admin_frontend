@@ -1,67 +1,94 @@
 <template>
-  <div>
+  <v-container fluid class="pa-4">
+    <!-- Page Header -->
+    <v-row class="mb-4">
+      <v-col>
+        <h1>
+          <v-icon class="mr-2">mdi-account-multiple-check</v-icon>
+          Draft Players for Season
+        </h1>
+      </v-col>
+    </v-row>
 
     <!-- Top: Filters + Draft players for season -->
-    <v-row>
-      <v-col cols="12">
-        <v-card>
-          <v-card-title>
-            <div class="d-flex align-center" style="width:100%">
-              <div class="d-flex align-center">
-                <v-icon left icon="mdi-account-multiple"></v-icon>
-                Draft players for Season: {{ seasonName }}
-              </div>
-              <v-spacer></v-spacer>
-              <div>
-                <v-btn
-                  small
-                  color="green"
-                  @click="syncAllDraftPlayers"
-                  :loading="syncAllLoading"
-                >
-                  <v-icon left>mdi-sync</v-icon>
-                  Sync wc3 info
-                </v-btn>
-              </div>
-            </div>
-          </v-card-title>
-          <v-card-text>
-            <v-row>
-              <v-col cols="2">
-                <v-text-field v-model="searchName" label="Search name" density="compact"></v-text-field>
-              </v-col>
-              <v-col cols="2">
-                <v-select
-                  v-model="searchRace"
-                  :items="races"
-                  item-title="name"
-                  item-value="name"
-                  clearable
-                  label="Race"
-                  density="compact"
-                ></v-select>
-              </v-col>
-              <v-col cols="6">
-                <v-range-slider
-                  v-model="rangeValues"
-                  :min="0"
-                  :max="3000"
-                  step="10"
-                  hide-details
-                  density="compact"
-                >
-                  <template v-slot:prepend>
-                    <v-text-field v-model="rangeValues[0]" density="compact" single-line type="number" hide-spin-buttons style="width: 80px;"></v-text-field>
-                  </template>
-                  <template v-slot:append>
-                    <v-text-field v-model="rangeValues[1]" density="compact" single-line type="number" hide-spin-buttons style="width: 80px;"></v-text-field>
-                  </template>
-                </v-range-slider>
-              </v-col>
-              <v-col cols="2" class="d-flex align-center">
-                <v-btn color="primary" @click="clearFilters">Clear filters</v-btn>
-              </v-col>
-            </v-row>
+    <v-card elevation="2" class="mb-4">
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-account-multiple</v-icon>
+        <span>{{ seasonName }}</span>
+        <v-spacer />
+        <v-btn
+          variant="elevated"
+          color="primary"
+          @click="syncAllDraftPlayers"
+          :loading="syncAllLoading"
+          prepend-icon="mdi-sync"
+        >
+          Sync W3C Info
+        </v-btn>
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <v-row>
+          <v-col cols="12" md="3">
+            <v-text-field 
+              v-model="searchName" 
+              label="Search Name" 
+              variant="outlined"
+              prepend-inner-icon="mdi-magnify"
+              density="comfortable"
+              clearable
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="searchRace"
+              :items="races"
+              item-title="name"
+              item-value="name"
+              clearable
+              label="Race"
+              variant="outlined"
+              prepend-inner-icon="mdi-sword"
+              density="comfortable"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="4">
+            <div class="text-subtitle-2 mb-2">MMR Range</div>
+            <v-range-slider
+              v-model="rangeValues"
+              :min="0"
+              :max="3000"
+              step="10"
+              hide-details
+              color="primary"
+            >
+              <template v-slot:prepend>
+                <v-text-field 
+                  v-model="rangeValues[0]" 
+                  density="compact" 
+                  single-line 
+                  type="number" 
+                  hide-spin-buttons 
+                  variant="outlined"
+                  style="width: 80px;"
+                ></v-text-field>
+              </template>
+              <template v-slot:append>
+                <v-text-field 
+                  v-model="rangeValues[1]" 
+                  density="compact" 
+                  single-line 
+                  type="number" 
+                  hide-spin-buttons 
+                  variant="outlined"
+                  style="width: 80px;"
+                ></v-text-field>
+              </template>
+            </v-range-slider>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center">
+            <v-btn color="primary" variant="outlined" @click="clearFilters" block>Clear Filters</v-btn>
+          </v-col>
+        </v-row>
 
             <v-data-table
               :headers="playerTableHeaders"
@@ -115,22 +142,20 @@
                 <div>No available signed-up players for this season.</div>
               </template>
             </v-data-table>
-          </v-card-text>
-          <v-card-actions class="px-4 pb-4">
-            <v-btn
-              color="primary"
-              variant="tonal"
-              prepend-icon="mdi-account-multiple-plus"
-              @click="assignAllPlayers"
-              :loading="assignAllLoading"
-              :disabled="assignAllLoading || playersWithTeamSelected === 0"
-            >
-              Assign {{ playersWithTeamSelected }} Player{{ playersWithTeamSelected !== 1 ? 's' : '' }} to Teams
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
+      </v-card-text>
+      <v-card-actions class="px-4 pb-4">
+        <v-btn
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-account-multiple-plus"
+          @click="assignAllPlayers"
+          :loading="assignAllLoading"
+          :disabled="assignAllLoading || playersWithTeamSelected === 0"
+        >
+          Assign {{ playersWithTeamSelected }} Player{{ playersWithTeamSelected !== 1 ? 's' : '' }} to Teams
+        </v-btn>
+      </v-card-actions>
+    </v-card>
 
     <!-- Player details dialog (open when clicking a player's name) -->
     <PlayerDetailsDialog
@@ -142,16 +167,16 @@
     <!-- Teams grid below -->
     <v-row>
       <v-col cols="12">
+        <h2 class="mb-4">
+          <v-icon class="mr-2">mdi-shield-account</v-icon>
+          Team Assignments
+        </h2>
         <div class="teams-grid" :style="{ gridTemplateColumns: `repeat(${colsCount}, 1fr)` }">
           <div v-for="team in teams" :key="team.id" class="team-card-grid">
-            <v-card>
-              <v-card-title>
-                <div class="d-flex justify-space-between align-center" style="width:100%">
-                  <div>
-                    <v-icon left icon="mdi-account-group"></v-icon>
-                    {{ team.name }}
-                  </div>
-                </div>
+            <v-card elevation="2">
+              <v-card-title class="bg-primary">
+                <v-icon class="mr-2">mdi-shield-account</v-icon>
+                {{ team.name }}
               </v-card-title>
               <v-card-text>
                 <div>
@@ -205,7 +230,7 @@
         </div>
       </v-col>
     </v-row>
-  </div>
+  </v-container>
 </template>
 
 <script setup>

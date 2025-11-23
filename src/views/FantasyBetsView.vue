@@ -3,39 +3,44 @@
     <v-progress-circular indeterminate size="64" width="8" color="primary"></v-progress-circular>
   </v-overlay>
 
-  <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mx-4 my-2" closable>
-    {{ errorMessage }}
-  </v-alert>
+  <v-container fluid class="pa-4">
+    <!-- Page Header -->
+    <v-row class="mb-4">
+      <v-col>
+        <h1>
+          <v-icon class="mr-2">mdi-casino</v-icon>
+          Fantasy Bets
+        </h1>
+      </v-col>
+    </v-row>
 
-  <v-container fluid>
-    <v-row>
-      <v-col cols="12">
-        <v-card>
-          <v-card-title class="d-flex justify-space-between align-center">
-            <div>
-              <v-icon left>mdi-casino</v-icon>
-              Fantasy Bets Management
-            </div>
-            <div class="d-flex gap-2 align-center">
-              <v-select
-                v-model="selectedSeasonId"
-                :items="seasons"
-                item-title="name"
-                item-value="id"
-                label="Season"
-                variant="outlined"
-                density="compact"
-                style="min-width: 200px; margin-right: 16px;"
-                @update:modelValue="onSeasonChange"
-              ></v-select>
-              <v-btn color="success" prepend-icon="mdi-plus" @click="openAddBetDialog">
-                Add Bet
-              </v-btn>
-              <v-btn color="primary" prepend-icon="mdi-refresh" @click="fetchData" :loading="isLoading">
-                Refresh
-              </v-btn>
-            </div>
-          </v-card-title>
+    <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mb-4" closable @click:close="errorMessage = null">
+      {{ errorMessage }}
+    </v-alert>
+
+    <v-card elevation="2">
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-casino</v-icon>
+        <span>Bets Management</span>
+        <v-spacer />
+        <v-select
+          v-model="selectedSeasonId"
+          :items="seasons"
+          item-title="name"
+          item-value="id"
+          label="Season"
+          variant="outlined"
+          density="compact"
+          style="min-width: 200px; margin-right: 16px;"
+          @update:modelValue="onSeasonChange"
+        ></v-select>
+        <v-btn variant="elevated" color="primary" prepend-icon="mdi-refresh" @click="fetchData" :loading="isLoading" class="mr-2">
+          Refresh
+        </v-btn>
+        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="openAddBetDialog">
+          Add Bet
+        </v-btn>
+      </v-card-title>
           <v-card-text>
             <v-alert v-if="enrichedBets.length === 0 && !isLoading" type="info" variant="tonal" class="mb-4">
               No fantasy bets found. Bets will appear here once team captains place them.
@@ -89,38 +94,36 @@
               </template>
 
               <template v-slot:[`item.actions`]="{ item }">
-                <v-btn
-                  icon
-                  size="small"
-                  @click="editBet(item)"
-                  :disabled="isSeriesPlayed(item.series)"
-                  :title="isSeriesPlayed(item.series) ? 'Series already played' : 'Edit bet'"
-                >
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  size="small"
-                  color="error"
-                  @click="confirmDeleteBet(item)"
-                  :title="'Delete bet'"
-                  class="ml-2"
-                >
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
+                <v-menu location="bottom end">
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props" size="small"></v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item 
+                      @click="editBet(item)" 
+                      prepend-icon="mdi-pencil"
+                      :disabled="isSeriesPlayed(item.series)"
+                    >
+                      <v-list-item-title>Edit</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="confirmDeleteBet(item)" prepend-icon="mdi-delete">
+                      <v-list-item-title>Delete</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
               </template>
             </v-data-table>
           </v-card-text>
         </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
 
   <!-- Add Bet Dialog -->
   <v-dialog v-model="addBetDialog" max-width="600px" persistent>
     <v-card>
-      <v-card-title class="text-h5">Add New Fantasy Bet</v-card-title>
-      <v-card-text>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-plus</v-icon>
+        Add New Fantasy Bet
+      </v-card-title>
+      <v-card-text class="pt-4">
         <v-form ref="addBetForm">
           <v-autocomplete
             v-model="newBet.captain_id"
@@ -208,10 +211,11 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="closeAddBetDialog" :disabled="isBetSaving">Cancel</v-btn>
+        <v-btn @click="closeAddBetDialog" :disabled="isBetSaving">Cancel</v-btn>
         <v-btn 
-          color="success" 
-          variant="text" 
+          color="primary" 
+          variant="elevated" 
+          prepend-icon="mdi-plus"
           @click="createNewBet" 
           :loading="isBetSaving"
           :disabled="!newBet.captain_id || !newBet.series_id || !newBet.winner_id || (!useFixedBetPoints && (betPointsError || !newBet.bet_points))"
@@ -225,8 +229,11 @@
   <!-- Edit Bet Dialog -->
   <v-dialog v-model="betDialog" max-width="500px" persistent>
     <v-card>
-      <v-card-title class="text-h5">Edit Fantasy Bet</v-card-title>
-      <v-card-text>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-pencil</v-icon>
+        Edit Fantasy Bet
+      </v-card-title>
+      <v-card-text class="pt-4">
         <div v-if="editingBet && editingBet.series" class="mb-4">
           <div class="text-subtitle-1 mb-2">
             <strong>Series:</strong> {{ editingBet.series.player1?.name || 'Player 1' }} vs {{ editingBet.series.player2?.name || 'Player 2' }}
@@ -271,15 +278,16 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="closeBetDialog" :disabled="isBetSaving">Cancel</v-btn>
+        <v-btn @click="closeBetDialog" :disabled="isBetSaving">Cancel</v-btn>
         <v-btn 
           color="primary" 
-          variant="text" 
+          variant="elevated" 
+          prepend-icon="mdi-content-save"
           @click="saveBet" 
           :loading="isBetSaving"
           :disabled="!selectedWinnerId || (!useFixedBetPoints && (editBetPointsError || !selectedBetPoints))"
         >
-          Save
+          Save Changes
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -288,8 +296,11 @@
   <!-- Delete Confirmation Dialog -->
   <v-dialog v-model="deleteDialog" max-width="400px">
     <v-card>
-      <v-card-title class="text-h5">Confirm Delete</v-card-title>
-      <v-card-text>
+      <v-card-title class="bg-error text-white">
+        <v-icon class="mr-2">mdi-alert</v-icon>
+        Confirm Delete
+      </v-card-title>
+      <v-card-text class="pt-4">
         Are you sure you want to delete this bet?
         <div v-if="deletingBet" class="mt-2">
           <strong>Captain:</strong> {{ deletingBet.user?.name }}<br>
@@ -298,11 +309,12 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="deleteDialog = false">Cancel</v-btn>
-        <v-btn color="error" variant="text" @click="deleteBet" :loading="isDeleting">Delete</v-btn>
+        <v-btn @click="deleteDialog = false" variant="text">Cancel</v-btn>
+        <v-btn color="error" variant="elevated" prepend-icon="mdi-delete" @click="deleteBet" :loading="isDeleting">Delete</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+  </v-container>
 </template>
 
 <script setup>

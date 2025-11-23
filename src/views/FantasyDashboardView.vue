@@ -3,39 +3,34 @@
     <v-progress-circular indeterminate size="64" width="8" color="primary"></v-progress-circular>
   </v-overlay>
 
-  <v-container class="pa-4">
-    <v-row justify="center">
-      <v-col cols="12" md="10" lg="8">
-        <v-card>
-          <v-card-title class="text-h4 text-center py-6">
-            <v-icon size="large" class="mr-2">mdi-trophy-variant</v-icon>
-            Fantasy Dashboard
-          </v-card-title>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1>
+          <v-icon class="mr-2">mdi-trophy-variant</v-icon>
+          Fantasy Dashboard
+        </h1>
+      </v-col>
+    </v-row>
 
-          <v-card-text>
-            <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mb-4" closable @click:close="errorMessage = null">
-              {{ errorMessage }}
-            </v-alert>
+    <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mb-4" closable @click:close="errorMessage = null">
+      {{ errorMessage }}
+    </v-alert>
 
-            <v-alert v-if="successMessage" type="success" variant="tonal" border="start" border-color="success" class="mb-4" closable @click:close="successMessage = null">
-              {{ successMessage }}
-            </v-alert>
+    <v-alert v-if="successMessage" type="success" variant="tonal" border="start" border-color="success" class="mb-4" closable @click:close="successMessage = null">
+      {{ successMessage }}
+    </v-alert>
 
-            <!-- Expandable Sections -->
-            <v-expansion-panels v-model="expandedPanels" multiple>
-              
-              <!-- Team Section -->
-              <v-expansion-panel value="team">
-                <v-expansion-panel-title>
-                  <div class="d-flex align-center">
-                    <v-icon class="mr-2">mdi-account-group</v-icon>
-                    <span class="text-h6">Fantasy Team</span>
-                    <v-chip v-if="existingTeam" class="ml-3" size="small" color="success">
-                      Registered
-                    </v-chip>
-                  </div>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
+    <!-- Fantasy Team Card -->
+    <v-card elevation="2" class="mb-6">
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-account-group</v-icon>
+        Fantasy Team
+        <v-chip v-if="existingTeam" class="ml-3" size="small" color="white" variant="outlined">
+          Registered
+        </v-chip>
+      </v-card-title>
+      <v-card-text class="pt-4">
                   
                   <!-- Team Creation Disabled Message -->
                   <v-alert v-if="!isCreationEnabled && !existingTeam" type="warning" variant="tonal" class="mb-4">
@@ -382,29 +377,26 @@
                         </v-btn>
                         <v-btn color="success" type="submit" size="large" :loading="isSaving">
                           <v-icon start>{{ isEditing ? 'mdi-content-save' : 'mdi-check-circle' }}</v-icon>
-                          {{ isEditing ? 'Update Team' : 'Register Team' }}
-                        </v-btn>
-                      </v-col>
-                    </v-row>
-                  </v-form>
+                        {{ isEditing ? 'Update Team' : 'Register Team' }}
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-form>
+      </v-card-text>
+    </v-card>
 
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-
-              <!-- Bets Section -->
-              <v-expansion-panel value="bets">
-                <v-expansion-panel-title>
-                  <div class="d-flex align-center">
-                    <v-icon class="mr-2">mdi-crystal-ball</v-icon>
-                    <span class="text-h6">Fantasy Bets</span>
-                    <v-chip v-if="existingTeam" class="ml-3" size="small" color="purple" variant="outlined">
-                      {{ fantasyBets.length }} bets
-                    </v-chip>
-                  </div>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  
-                  <!-- No Team Message -->
+    <!-- Fantasy Bets Card -->
+    <v-card elevation="2">
+      <v-card-title class="bg-primary d-flex justify-space-between align-center">
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-crystal-ball</v-icon>
+          <span>Fantasy Bets</span>
+        </div>
+        <v-chip v-if="existingTeam" color="white" variant="outlined">
+          {{ fantasyBets.length }} bets
+        </v-chip>
+      </v-card-title>
+      <v-card-text class="pt-4">                  <!-- No Team Message -->
                   <v-alert v-if="!existingTeam" type="info" variant="tonal">
                     <v-alert-title>Register a Team First</v-alert-title>
                     You need to register a fantasy team before you can place bets on matches.
@@ -486,15 +478,8 @@
                       </template>
                     </v-data-table>
                   </div>
-
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-
-            </v-expansion-panels>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+      </v-card-text>
+    </v-card>
   </v-container>
 
   <!-- Place Bet Dialog -->

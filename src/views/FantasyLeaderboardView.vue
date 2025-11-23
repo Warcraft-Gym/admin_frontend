@@ -3,18 +3,23 @@
     <v-progress-circular indeterminate size="64" width="8" color="primary"></v-progress-circular>
   </v-overlay>
 
-  <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mx-4 my-2" closable>
-    {{ errorMessage }}
-  </v-alert>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1><v-icon class="mr-2">mdi-trophy</v-icon> Fantasy Teams Leaderboard</h1>
+      </v-col>
+    </v-row>
 
-  <v-container fluid>
+    <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mb-4" closable>
+      {{ errorMessage }}
+    </v-alert>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title class="d-flex justify-space-between align-center">
-            <div>
-              <v-icon left>mdi-trophy</v-icon>
-              Fantasy Teams Leaderboard
+        <v-card elevation="2">
+          <v-card-title class="bg-primary d-flex justify-space-between align-center">
+            <div class="d-flex align-center">
+              <v-icon class="mr-2">mdi-chart-bar</v-icon>
+              <span>Season Leaderboard</span>
             </div>
             <div class="d-flex gap-2 align-center">
               <v-select
@@ -25,21 +30,22 @@
                 label="Season"
                 variant="outlined"
                 density="compact"
+                hide-details
                 style="min-width: 200px; margin-right: 16px;"
                 @update:modelValue="onSeasonChange"
               ></v-select>
-              <v-btn color="success" prepend-icon="mdi-plus" @click="openCreateDialog">
+              <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateDialog">
                 Create Team
               </v-btn>
-              <v-btn color="secondary" prepend-icon="mdi-casino" @click="router.push('/fantasy/bets')">
+              <v-btn variant="elevated" color="secondary" prepend-icon="mdi-casino" @click="router.push('/fantasy/bets')">
                 Manage Bets
               </v-btn>
-              <v-btn color="primary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId">
+              <v-btn variant="elevated" color="primary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId">
                 Calculate Scores
               </v-btn>
             </div>
           </v-card-title>
-          <v-card-text>
+          <v-card-text class="pa-0">
             <v-data-table
               :headers="headers"
               :items="sortedTeams"
@@ -91,15 +97,22 @@
               </template>
 
               <template v-slot:[`item.actions`]="{ item }">
-                <v-btn icon size="small" @click="viewTeamDetails(item.id)" class="mr-1">
-                  <v-icon>mdi-eye</v-icon>
-                </v-btn>
-                <v-btn icon size="small" @click="openEditDialog(item)" color="primary" class="mr-1">
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-                <v-btn icon size="small" @click="openDeleteDialog(item)" color="error">
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
+                <v-menu location="bottom end">
+                  <template v-slot:activator="{ props }">
+                    <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props" size="small"></v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item prepend-icon="mdi-eye" @click="viewTeamDetails(item.id)">
+                      <v-list-item-title>View Details</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item prepend-icon="mdi-pencil" @click="openEditDialog(item)">
+                      <v-list-item-title>Edit</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item prepend-icon="mdi-delete" @click="openDeleteDialog(item)">
+                      <v-list-item-title>Delete</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
               </template>
             </v-data-table>
           </v-card-text>
@@ -111,7 +124,7 @@
   <!-- Team Details Dialog -->
   <v-dialog v-model="teamDialog" max-width="800px">
     <v-card>
-      <v-card-title class="text-h5 bg-purple">
+      <v-card-title class="bg-primary">
         <v-icon class="mr-2">mdi-trophy-variant</v-icon>
         Team Details
       </v-card-title>
@@ -199,7 +212,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeTeamDialog">Close</v-btn>
+        <v-btn variant="text" @click="closeTeamDialog">Close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -231,6 +244,7 @@
                 v-model="editedTeam.name"
                 label="Team Name *"
                 variant="outlined"
+                prepend-inner-icon="mdi-account-group"
                 density="comfortable"
                 :rules="[v => !!v || 'Team name is required']"
               ></v-text-field>
@@ -243,6 +257,7 @@
                 item-value="id"
                 label="Season *"
                 variant="outlined"
+                prepend-inner-icon="mdi-calendar"
                 density="comfortable"
                 :rules="[v => !!v || 'Season is required']"
               ></v-select>
@@ -255,6 +270,7 @@
                 item-value="id"
                 label="Captain *"
                 variant="outlined"
+                prepend-inner-icon="mdi-account-star"
                 density="comfortable"
                 :rules="[v => !!v || 'Captain is required']"
               ></v-autocomplete>
@@ -267,6 +283,7 @@
                 item-value="id"
                 label="Drafted Team *"
                 variant="outlined"
+                prepend-inner-icon="mdi-shield"
                 density="comfortable"
                 :rules="[v => !!v || 'Drafted team is required']"
               ></v-autocomplete>
@@ -277,6 +294,7 @@
                 :items="races"
                 label="Drafted Race *"
                 variant="outlined"
+                prepend-inner-icon="mdi-sword"
                 density="comfortable"
                 :rules="[v => !!v || 'Drafted race is required']"
               ></v-select>
@@ -313,8 +331,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeEditDialog" :disabled="isSaving">Cancel</v-btn>
-        <v-btn color="primary" @click="saveTeam" :loading="isSaving">{{ isEditing ? 'Update' : 'Create' }}</v-btn>
+        <v-btn variant="text" @click="closeEditDialog" :disabled="isSaving">Cancel</v-btn>
+        <v-btn color="primary" variant="elevated" @click="saveTeam" :loading="isSaving">{{ isEditing ? 'Update' : 'Create' }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -322,8 +340,8 @@
   <!-- Delete Confirmation Dialog -->
   <v-dialog v-model="deleteDialog" max-width="500px">
     <v-card>
-      <v-card-title class="text-h5 bg-error">
-        <v-icon class="mr-2">mdi-alert</v-icon>
+      <v-card-title class="bg-error text-white">
+        <v-icon class="mr-2" color="white">mdi-alert</v-icon>
         Confirm Delete
       </v-card-title>
       <v-card-text class="pt-4">
@@ -332,8 +350,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeDeleteDialog" :disabled="isDeleting">Cancel</v-btn>
-        <v-btn color="error" @click="confirmDelete" :loading="isDeleting">Delete</v-btn>
+        <v-btn variant="text" @click="closeDeleteDialog" :disabled="isDeleting">Cancel</v-btn>
+        <v-btn color="error" variant="elevated" prepend-icon="mdi-delete" @click="confirmDelete" :loading="isDeleting">Delete</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

@@ -1,299 +1,439 @@
 <template>
-    <v-overlay v-model="isLoading" persistent absolute>
-        <v-progress-circular
-          indeterminate
-          size="64" 
-          width="8"
-          color="primary"
-        ></v-progress-circular>
-    </v-overlay>
-  <!-- Match Header -->
-  <div id="matchHeader">
-    <v-parallax class="banner-image" :src="bannerImg"></v-parallax>
-    <div class="banner-overlay"></div>
-    <div class="banner-content h-100">
-      <v-container>
-        <v-row class="justify-space-between align-center">
-          <!-- New Button to Navigate Back to Season -->
-          <v-btn
-            outlined
-            color="primary"
-            @click="$router.push(`/seasons/${match.season_id}`)"
-          >
-            <v-icon left>mdi-arrow-left</v-icon> Back to Season
-          </v-btn>
-        </v-row>
+  <v-overlay v-model="isLoading" persistent class="loading-overlay">
+    <v-progress-circular
+      indeterminate
+      size="64" 
+      width="8"
+      color="primary"
+    ></v-progress-circular>
+  </v-overlay>
 
-        <v-row class="justify-center">
-          <v-col cols="auto text-center">
-            <h1>Match</h1>
-            <p>Week {{ match.playday }}</p>
-            <p><v-icon icon="mdi-calendar-week"></v-icon>{{ match.date_frame }}</p>
+  <!-- Enhanced Match Header -->
+  <div id="matchHeader">
+    <v-parallax class="banner-image" :src="bannerImg" height="250">
+      <div class="banner-overlay"></div>
+      <v-container class="fill-height banner-content">
+        <v-row align="center" class="fill-height">
+          <!-- Back Button Column -->
+          <v-col cols="12" md="3" class="d-flex align-start">
+            <v-btn
+              variant="elevated"
+              color="white"
+              prepend-icon="mdi-arrow-left"
+              @click="$router.push(`/seasons/${match.season_id}#week-${match.playday}`)"
+            >
+              Back to Season
+            </v-btn>
           </v-col>
-        </v-row>
-        <v-row class="align-center justify-center">
-          <v-col cols="2 text-center">
-            <span class="text-h2">{{ team1.name }}</span>
-          </v-col>        
-          <v-col cols="4 text-center">
-            <span class="text-h1">
-              <v-icon icon="mdi-sword-cross"></v-icon>
-            </span>
-          </v-col>        
-          <v-col cols="2 text-center">
-            <span class="text-h2">{{ team2.name }}</span>
+
+          <!-- Spacer -->
+          <v-col cols="0" md="1" class="d-none d-md-block"></v-col>
+
+          <!-- Match Info Column -->
+          <v-col cols="12" md="6">
+            <div class="text-center mb-2">
+              <v-chip color="primary" size="large" class="mb-2">
+                <v-icon start>mdi-calendar-week</v-icon>
+                Week {{ match.playday }}
+              </v-chip>
+              <div v-if="match.date_frame" class="text-subtitle-2 mt-1 text-white">
+                <v-icon size="small" color="white">mdi-clock-outline</v-icon>
+                {{ match.date_frame }}
+              </div>
+            </div>
+
+            <!-- Teams Matchup -->
+            <v-row align="center" justify="center" class="teams-matchup">
+              <v-col cols="12" md="5" class="text-center">
+                <div class="team-section-header">
+                  <h2 class="text-h4 font-weight-bold team-name-header text-white">{{ team1.name }}</h2>
+                  <v-chip color="success" size="large" class="mt-2 score-chip-large">
+                    {{ match.team1_score || 0 }}
+                  </v-chip>
+                </div>
+              </v-col>
+              
+              <v-col cols="12" md="2" class="text-center">
+                <v-icon size="48" color="white">mdi-sword-cross</v-icon>
+              </v-col>
+              
+              <v-col cols="12" md="5" class="text-center">
+                <div class="team-section-header">
+                  <h2 class="text-h4 font-weight-bold team-name-header text-white">{{ team2.name }}</h2>
+                  <v-chip color="error" size="large" class="mt-2 score-chip-large">
+                    {{ match.team2_score || 0 }}
+                  </v-chip>
+                </div>
+              </v-col>
+            </v-row>
           </v-col>
+
+          <!-- Right Spacer -->
+          <v-col cols="0" md="2" class="d-none d-md-block"></v-col>
         </v-row>
       </v-container>
-    </div>
+    </v-parallax>
   </div>
 
-  <!-- Match Series-->
-  <div id="matchSeries">
-    <v-item-group>
-      <v-container>
-        <v-row class="justify-center">
-          <v-col cols="auto text-center">
-            <h2>Series</h2>
+  <v-container fluid class="pa-4">
+    <!-- Series Management Card -->
+    <v-card class="mb-4" elevation="2">
+      <v-card-title class="d-flex align-center justify-space-between bg-primary">
+        <div>
+          <v-icon class="mr-2">mdi-trophy-variant</v-icon>
+          Series Management
+        </div>
+        <div>
+          <v-btn
+            color="white"
+            variant="elevated"
+            prepend-icon="mdi-plus"
+            @click="openCreateNewSeries"
+            class="mr-2"
+          >
+            Add Series
+          </v-btn>
+          <v-btn
+            color="success"
+            variant="elevated"
+            prepend-icon="mdi-sync"
+            @click="syncW3CTeams"
+            :loading="isLoading"
+          >
+            Sync W3C Info
+          </v-btn>
+        </div>
+      </v-card-title>
+  <!-- Create Series Dialog -->
+  <v-dialog v-if="newMatch" v-model="isModalOpen" max-width="600px">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-calendar-plus</v-icon>
+        Create Match - Week {{ selectedWeek }}
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <v-row>
+          <v-col cols="12">
+            <v-text-field
+              v-model="newMatch.date_frame" 
+              label="Date/Time Frame"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-calendar-clock"
+            ></v-text-field>
           </v-col>
-        </v-row>
-        
-        <!-- Add New Series Modal -->
-        <v-row>          
-          <v-col cols="auto">
-            <v-btn
-              @click="openCreateNewSeries"
-              class="toolbar-btn"
-              variant="tonal"
-              prepend-icon="mdi-plus">
-              Add a New Series
-            </v-btn>
-            <v-dialog
-              id="newSeriesModal"
-              v-if="showNewSeriesModal"
-              v-model="showNewSeriesModal"
-              max-width="95vw"
-              max-height="95vh">
-              <v-card style="display: flex; flex-direction: column; height: 95vh;">
-                <v-alert
-                    v-if="creationSeriesError"
-                    type="error"
-                    class="mx-4 my-2"
-                    dense
-                    border="start"
-                    border-color="red"
-                  >
-                  {{ creationSeriesError }}
-                </v-alert>
-                <template v-slot:title>
-                  <span class="modal-title">
-                    <v-icon icon="mdi-account-plus"></v-icon>
-                    Add New Series
+          <v-col cols="12">
+            <v-select
+              :items="maps"
+              item-title="name"
+              item-value="id"
+              label="Fixed Map (Optional)"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-map"
+              clearable
+              v-model="newMatch.fixed_map_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 1"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="newMatch.team1_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 2"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="newMatch.team2_id"
+            ></v-select>
+          </v-col>
+        </v-row>      
+      </v-card-text>   
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="closeMatchCreationModal">Cancel</v-btn>
+        <v-btn color="primary" @click="confirmSelection">Create Match</v-btn>
+      </v-card-actions>        
+    </v-card>
+  </v-dialog>
+
+  <!-- Create New Series Dialog -->
+  <v-dialog v-model="createNewSeriesDialogOpen" max-width="95vw" max-height="95vh" persistent>
+    <v-card class="d-flex flex-column" style="height: 90vh;">
+      <v-card-title class="bg-primary flex-shrink-0">
+        <v-icon class="mr-2">mdi-plus-circle</v-icon>
+        Add New Series
+      </v-card-title>
+      
+      <v-alert
+        v-if="creationSeriesError"
+        type="error"
+        variant="tonal"
+        class="mx-4 mt-4 mb-2 flex-shrink-0"
+        border="start"
+        border-color="red"
+        closable
+        @click:close="creationSeriesError = null"
+      >
+        {{ creationSeriesError }}
+      </v-alert>
+
+      <v-card-text class="pa-4 flex-grow-1" style="overflow-y: auto;">
+        <v-row class="justify-space-between h-100" dense>
+          <v-col cols="12" md="5" class="d-flex flex-column">
+            <v-card elevation="2" class="d-flex flex-column flex-grow-1">
+              <v-toolbar color="primary" density="compact" class="flex-shrink-0">
+                <v-icon class="ml-3">mdi-shield</v-icon>
+                <v-toolbar-title>{{ team1.name }}</v-toolbar-title>
+                <v-spacer></v-spacer>
+                <v-text-field
+                  v-model="searchQueryT1"
+                  placeholder="Search by name"
+                  prepend-inner-icon="mdi-magnify"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  single-line
+                  clearable
+                  class="mr-2"
+                  style="max-width: 300px;"
+                ></v-text-field>
+              </v-toolbar>
+              <v-data-table
+                :headers="tablePlayerHeader"
+                :custom-filter="customFilter"
+                :search="searchQueryT1"
+                v-model="newSeries_Player_1"
+                :items="team1.player_by_season[match.season_id]"
+                select-strategy="single"
+                density="compact"
+                multi-sort
+                fixed-header
+                hover
+                return-object
+                show-select
+                class="flex-grow-1"
+              >
+                <template v-slot:loading>
+                  <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                </template>
+                <template v-slot:[`item.name`]="{ item }">
+                  <FlagIcon :countryIdentifier="item.country" />
+                  <span @click.stop="showStats(item)" class="player-name-link">
+                    <strong>{{ item.name }}</strong> ({{ item.discordTag }})
                   </span>
                 </template>
-                <template v-slot:text>
-                  <v-container>
-                    <v-row class="justify-space-between" dense>
-                      <v-col cols="5">
-                        <v-card flat>
-                          <v-data-table
-                            :headers="tablePlayerHeader"
-                            :custom-filter="customFilter"
-                            :search="searchQueryT1"
-                            v-model="newSeries_Player_1"
-                            :items="team1.player_by_season[match.season_id]"
-                            select-strategy="single"
-                            density="compact"
-                            multi-sort
-                            fixed-header
-                            hover
-                            return-object
-                            show-select
-                            height="350"
-                          >
-                          <template v-slot:loading>
-                            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-                          </template>
-                          <template v-slot:top>
-                            <v-toolbar flat height="30">
-                              <v-toolbar-title>
-                                <v-icon icon="mdi-account"></v-icon>
-                                {{ team1.name }}
-                              </v-toolbar-title>
-                              <v-spacer></v-spacer>
-                              <!-- Search Input -->
-                              <v-text-field
-                                v-model="searchQueryT1"
-                                placeholder="Search by name"
-                                append-icon="mdi-magnify"
-                                single-line
-                                hide-details
-                              ></v-text-field>
-                            </v-toolbar>
-                          </template>
-                          <template v-slot:[`item.name`]="{ item }">
-                            <FlagIcon :countryIdentifier="item.country" />
-                              <span @click.stop="showStats(item)">
-                              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
-                            </span>
-                          </template>
-                          </v-data-table>
-                        </v-card>                    
-                      </v-col>
-                      <v-col cols="1 text-center">
-                        <v-row>
-                          <v-col>
-                            <span class="text-h4">
-                              <v-icon icon="mdi-sword-cross"></v-icon>
-                            </span>
-                          </v-col>
-                          <v-col>
-                            <v-btn density="compact" color="green" @click="syncW3CTeams" :loading="isLoading" :disabled="isLoading">
-                              <v-icon left>mdi-sync</v-icon>
-                              Sync wc3 info
-                            </v-btn>
-                          </v-col>
-                        </v-row>
-                      </v-col> 
-                      <v-col cols="5">
-                        <v-card flat>
-                          <v-data-table
-                            :headers="tablePlayerHeader"
-                            :custom-filter="customFilter"
-                            :search="searchQueryT2"
-                            v-model="newSeries_Player_2"
-                            :items="team2.player_by_season[match.season_id]"
-                            select-strategy="single"
-                            density="compact"
-                            multi-sort
-                            fixed-header
-                            hover
-                            return-object
-                            show-select
-                            height="350px"
-                          >
-                          <template v-slot:loading>
-                            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-                          </template>
-                          <template v-slot:top>
-                            <v-toolbar flat height="30">
-                              <v-toolbar-title>
-                                <v-icon icon="mdi-account"></v-icon>
-                                {{ team2.name }}
-                              </v-toolbar-title>
-                              <v-spacer></v-spacer>
-                              <!-- Search Input -->
-                              <v-text-field
-                                v-model="searchQueryT2"
-                                placeholder="Search by name"
-                                append-icon="mdi-magnify"
-                                single-line
-                                hide-details
-                              ></v-text-field>
-                            </v-toolbar>
-                          </template>
-                          <template v-slot:[`item.name`]="{ item }">
-                            <FlagIcon :countryIdentifier="item.country" />
-                            <span @click.stop="showStats(item)">
-                              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
-                            </span>
-                          </template>
-                          </v-data-table>
-                        </v-card> 
-                      </v-col>
-                    </v-row> 
-                  </v-container>    
-                </template>       
-                    
-                <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
-                  <v-btn 
-                    prepend-icon="mdi-plus"
-                    @click="createSeries"
-                    color="light-green"
-                    variant="tonal">
-                    Add
-                  </v-btn>
-                  <v-btn 
-                    prepend-icon="mdi-close" 
-                    @click="cancelCreateSeries"
-                    color="orange"
-                    variant="tonal">
-                    Cancel
-                  </v-btn>
-                </v-card-actions>        
-              </v-card>
-            </v-dialog>
+              </v-data-table>
+            </v-card>                    
           </v-col>
-        </v-row>
 
-        <!-- Series List -->
-        <v-row>
-          <v-col >
-          <section id="series-table" v-if="series.length > 0">
-            <v-data-table
-              :headers="seriesTableHeader"
-              :items="series"
-              fixed-header
-              hover
+          <v-col cols="12" md="2" class="d-flex flex-column align-center justify-center">
+            <v-icon size="80" color="primary" class="mb-4">mdi-sword-cross</v-icon>
+            <v-btn 
+              color="success" 
+              variant="elevated"
+              prepend-icon="mdi-sync"
+              @click="syncW3CTeams" 
+              :loading="isLoading" 
+              :disabled="isLoading"
             >
-              <template v-slot:loading>
-                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-              </template>
-              <template v-slot:top>
-                <v-toolbar flat>
-                  <v-toolbar-title>
-                    <v-icon icon="mdi-account"></v-icon>
-                    Series List
-                  </v-toolbar-title>
-                  <v-spacer></v-spacer>
-                <v-btn variant="tonal" color="red" prepend-icon="mdi-trash-can" @click="openDeleteDialog(null, removeAllSeries)">
-                  Delete all
-                </v-btn>
-                </v-toolbar>
-              </template>
-              <template v-slot:item="{ item }">
-                <tr>
-                  <td>{{ item.id }}</td>
-                  <td>{{ item.caster }}</td>
-                  <td>
-                    <span v-if="item.date_time">
-                      {{ formateDate(item.date_time) }}
-                    </span>
-                  </td>
-                  <td @click.stop="showStats(item.player1)">{{ item.player1.name }}</td>
-                  <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
-                  <td>{{ item.player1_score }}</td>
-                  <td>{{ item.player2_score }}</td>
-                  <td @click.stop="showStats(item.player2)">{{ item.player2.name }}</td>
-                  <td>{{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}</td>
-                  <td>
-                    <span v-if="item.host_player_id === item.player1.id">
-                      {{ item.player1.name }}
-                    </span>
-                    <span v-else-if="item.host_player_id === item.player2.id">
-                      {{ item.player2.name }}
-                    </span>
-                    <span v-else>
-                    </span>
-                  </td>
-                  <td class="text-center">
-                    <v-icon v-if="item.is_fantasy_match" icon="mdi-sword-cross" color="purple" title="Fantasy match"></v-icon>
-                    <span v-else class="text-muted">—</span>
-                  </td>
-                  <td class="actions-cell">
-                      <v-btn class="table-action" density="compact" icon="mdi-account-edit" @click.stop="editSeries(item)" color="blue"></v-btn>
-                      <v-btn class="table-action" density="compact" icon="mdi-trash-can" @click.stop="openDeleteDialog(item.id, removeSeries)" color="red"></v-btn>
-                  </td>
-                  
-                </tr>
-              </template>
-            </v-data-table>
-        </section>  
+              Sync W3C Info
+            </v-btn>
+          </v-col> 
+
+          <v-col cols="12" md="5" class="d-flex flex-column">
+            <v-card elevation="2" class="d-flex flex-column flex-grow-1">
+              <v-toolbar color="primary" density="compact" class="flex-shrink-0">
+                <v-icon class="ml-3">mdi-shield</v-icon>
+                <v-toolbar-title>{{ team2.name }}</v-toolbar-title>
+                <v-spacer></v-spacer>
+                <v-text-field
+                  v-model="searchQueryT2"
+                  placeholder="Search by name"
+                  prepend-inner-icon="mdi-magnify"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  single-line
+                  clearable
+                  class="mr-2"
+                  style="max-width: 300px;"
+                ></v-text-field>
+              </v-toolbar>
+              <v-data-table
+                :headers="tablePlayerHeader"
+                :custom-filter="customFilter"
+                :search="searchQueryT2"
+                v-model="newSeries_Player_2"
+                :items="team2.player_by_season[match.season_id]"
+                select-strategy="single"
+                density="compact"
+                multi-sort
+                fixed-header
+                hover
+                return-object
+                show-select
+                class="flex-grow-1"
+              >
+                <template v-slot:loading>
+                  <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                </template>
+                <template v-slot:[`item.name`]="{ item }">
+                  <FlagIcon :countryIdentifier="item.country" />
+                  <span @click.stop="showStats(item)" class="player-name-link">
+                    <strong>{{ item.name }}</strong> ({{ item.discordTag }})
+                  </span>
+                </template>
+              </v-data-table>
+            </v-card> 
           </v-col>
-        </v-row>
-      </v-container>
-    </v-item-group>
-  </div>
+        </v-row>     
+      </v-card-text>
+                    
+      <v-card-actions class="px-4 py-3 flex-shrink-0" style="border-top: 1px solid rgba(0,0,0,0.12);">
+        <v-spacer></v-spacer>
+        <v-btn 
+          variant="text"
+          @click="cancelCreateSeries"
+        >
+          Cancel
+        </v-btn>
+        <v-btn 
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="createSeries"
+          :disabled="!newSeries_Player_1 || !newSeries_Player_2"
+        >
+          Create Series
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+      <v-card-text v-if="series && series.length > 0" class="pa-0">
+        <v-data-table
+          :headers="seriesTableHeader"
+          :items="series"
+          fixed-header
+          hover
+          density="comfortable"
+        >
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          </template>
+          <template v-slot:item="{ item }">
+            <tr class="series-row">
+              <td>{{ item.id }}</td>
+              <td>{{ item.caster || '—' }}</td>
+              <td>
+                <span v-if="item.date_time">
+                  {{ formateDate(item.date_time) }}
+                </span>
+                <span v-else class="text-grey">Not scheduled</span>
+              </td>
+              <td @click.stop="showStats(item.player1)" class="player-cell">
+                <strong>{{ item.player1.name }}</strong>
+              </td>
+              <td class="text-end">
+                <v-chip size="small" color="info">
+                  {{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}
+                </v-chip>
+              </td>
+              <td class="text-center">
+                <v-chip :color="item.player1_score > item.player2_score ? 'success' : 'default'" size="small">
+                  {{ item.player1_score }}
+                </v-chip>
+              </td>
+              <td class="text-center">
+                <v-chip :color="item.player2_score > item.player1_score ? 'success' : 'default'" size="small">
+                  {{ item.player2_score }}
+                </v-chip>
+              </td>
+              <td @click.stop="showStats(item.player2)" class="player-cell">
+                <strong>{{ item.player2.name }}</strong>
+              </td>
+              <td class="text-end">
+                <v-chip size="small" color="info">
+                  {{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}
+                </v-chip>
+              </td>
+              <td>
+                <span v-if="item.host_player_id === item.player1.id">
+                  {{ item.player1.name }}
+                </span>
+                <span v-else-if="item.host_player_id === item.player2.id">
+                  {{ item.player2.name }}
+                </span>
+                <span v-else class="text-grey">—</span>
+              </td>
+              <td class="text-center">
+                <v-icon v-if="item.is_fantasy_match" icon="mdi-star" color="purple" title="Fantasy match"></v-icon>
+                <span v-else class="text-grey">—</span>
+              </td>
+              <td class="text-center">
+                <v-menu location="bottom end">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon="mdi-dots-vertical"
+                      variant="text"
+                      size="small"
+                      v-bind="props"
+                    ></v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item @click="editSeries(item)" prepend-icon="mdi-pencil">
+                      <v-list-item-title>Edit Series</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click="openDeleteDialog(item.id, removeSeries)" prepend-icon="mdi-delete" class="text-error">
+                      <v-list-item-title>Delete Series</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </td>
+            </tr>
+          </template>
+        </v-data-table>
+      </v-card-text>
+
+      <!-- Empty State -->
+      <v-card-text v-else class="text-center pa-8">
+        <v-icon size="64" color="grey-lighten-1">mdi-trophy-broken</v-icon>
+        <div class="text-h6 mt-4 text-grey">No series scheduled yet</div>
+        <v-btn 
+          color="primary" 
+          variant="tonal" 
+          class="mt-4"
+          prepend-icon="mdi-plus"
+          @click="openCreateNewSeries"
+        >
+          Create First Series
+        </v-btn>
+      </v-card-text>
+
+      <v-card-actions v-if="series && series.length > 0">
+        <v-spacer></v-spacer>
+        <v-btn 
+          variant="text" 
+          color="error" 
+          prepend-icon="mdi-delete-sweep"
+          @click="openDeleteDialog(null, removeAllSeries)"
+        >
+          Delete All Series
+        </v-btn>
+      </v-card-actions>
+    </v-card>
 
   <PlayerDetailsDialog 
     v-model="showPlayerDetails" 
@@ -378,107 +518,245 @@
       </v-card>
     </v-dialog>
 
-  <!-- Team Details-->
-  <div id="teamDetails">
-    <v-row class="justify-center">
-      <v-col cols="auto text-center">
-          <h2>Team Details</h2>
-          <v-btn density="compact" color="green" @click="syncW3CTeams" :loading="isLoading" :disabled="isLoading">
-            <v-icon left>mdi-sync</v-icon>
-            Sync wc3 info
-          </v-btn>
-        </v-col>
-      <v-col>
-        <v-btn
-          @click="openProposeSeries"
-          :disabled="!isProposeValid"
-          class="toolbar-btn"
-          variant="tonal"
-          prepend-icon="mdi-plus">
-          Propose series
-        </v-btn>
-        
-      </v-col>
-      <v-col cols="5 text-center">
-        <v-text-field
-          v-model="proposeSeriesMMRDiff"
-          label="MMR Differance"
-          placeholder="Enter season name"
-        ></v-text-field>
-      </v-col>
-      <v-col cols="auto">
-        <v-dialog
-          id="proposeSeriesModal"
-          v-if="showProposeSeriesModal"
-          v-model="showProposeSeriesModal"
-          max-width="95vw"
-          max-height="95vh">
-          <v-card style="display: flex; flex-direction: column; height: 95vh;">
-            <template v-slot:title>
-              <span class="modal-title">
-                <v-icon icon="mdi-account-plus"></v-icon>
-                  Proposed Series
-              </span>
-            </template>
-            <template v-slot:text>
-              <v-container>
-                <!-- Header modal -->
-                <v-row class="align-center justify-center">
-                  <v-col cols="5 text-center">
-                    <p class="text-h5">{{ team1.name }}</p>
-                  </v-col>        
-                  <v-col cols="2 text-center">
-                    <span class="text-h4">
-                      <v-icon icon="mdi-sword-cross"></v-icon>
-                    </span>
-                  </v-col>        
-                  <v-col cols="5 text-center">
-                    <p class="text-h5">{{ team2.name }}</p>
-                  </v-col>
-                </v-row>
-                <v-row class="justify-space-between" dense>
-                </v-row> 
-              </v-container>    
-            </template>       
-            <v-row>
-          <v-col >
-          <section id="proposed-series-table" v-if="proposedSeries.length > 0">
-            <v-data-table
-              :headers="proposedSeriesTableHeader"
-              :items="proposedSeries"
-              :custom-filter="customFilterSeries"
-              :search="searchQuerySeries"
-              select-strategy="all"
-              density="compact"
-              v-model="selectedProposedSeries"
-              multi-sort
-              fixed-header
-              hover
-              return-object
-              show-select
-              :row-props="getRowClass"
-            >
+    <!-- Team Rosters Expansion Panel -->
+    <v-expansion-panels class="mt-4" v-model="teamRostersPanel">
+      <v-expansion-panel>
+        <v-expansion-panel-title class="text-h6">
+          <v-icon class="mr-2">mdi-account-group</v-icon>
+          Team Rosters & Series Proposal
+          <template v-slot:actions="{ expanded }">
+            <v-icon :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></v-icon>
+          </template>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <!-- Propose Series Controls -->
+          <v-card class="mb-4" variant="tonal" color="primary">
+            <v-card-text>
+              <v-row align="center">
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="proposeSeriesMMRDiff"
+                    label="Max MMR Difference"
+                    type="number"
+                    variant="outlined"
+                    density="comfortable"
+                    prepend-inner-icon="mdi-target"
+                    hint="Maximum MMR difference for matchmaking"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="8" class="text-right">
+                  <v-btn
+                    @click="openProposeSeries"
+                    :disabled="!isProposeValid"
+                    color="primary"
+                    variant="elevated"
+                    prepend-icon="mdi-lightbulb-on"
+                    size="large"
+                  >
+                    Propose Series
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+          <!-- Team Rosters -->
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-card elevation="2">
+                <v-card-title class="bg-success">
+                  <v-icon class="mr-2">mdi-shield</v-icon>
+                  {{ team1.name }}
+                  <v-chip size="small" class="ml-2" color="white">
+                    {{ proposePlayersTeam_1.length }} selected
+                  </v-chip>
+                </v-card-title>
+                <v-card-text class="pa-0">
+                  <v-data-table
+                    :headers="tablePlayerHeader"
+                    :items="team1.player_by_season?.[match.season_id] || []"
+                    :custom-filter="customFilter"
+                    :search="searchQueryT1"
+                    v-model="proposePlayersTeam_1"
+                    select-strategy="all"
+                    density="comfortable"
+                    multi-sort
+                    fixed-header
+                    hover
+                    return-object
+                    show-select
+                  >
+                    <template v-slot:loading>
+                      <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                    </template>
+                    <template v-slot:top>
+                      <v-toolbar flat density="compact">
+                        <v-text-field
+                          v-model="searchQueryT1"
+                          placeholder="Search players..."
+                          prepend-inner-icon="mdi-magnify"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                          single-line
+                          clearable
+                        ></v-text-field>
+                      </v-toolbar>
+                    </template>
+                    <template v-slot:[`item.name`]="{ item }">
+                      <div class="d-flex align-center">
+                        <FlagIcon :countryIdentifier="item.country" class="mr-2" />
+                        <span @click.stop="showStats(item)" class="player-name-link">
+                          <strong>{{ item.name }}</strong>
+                          <span class="text-caption text-grey ml-1">({{ item.discordTag }})</span>
+                        </span>
+                      </div>
+                    </template>
+                    <template v-slot:[`item.w3c_mmr`]="{ item }">
+                      <v-chip size="small" color="info">
+                        {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                      </v-chip>
+                    </template>
+                  </v-data-table>
+                </v-card-text>
+              </v-card>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <v-card elevation="2">
+                <v-card-title class="bg-error">
+                  <v-icon class="mr-2">mdi-shield</v-icon>
+                  {{ team2.name }}
+                  <v-chip size="small" class="ml-2" color="white">
+                    {{ proposePlayersTeam_2.length }} selected
+                  </v-chip>
+                </v-card-title>
+                <v-card-text class="pa-0">
+                  <v-data-table
+                    :headers="tablePlayerHeader"
+                    :items="team2.player_by_season?.[match.season_id] || []"
+                    :custom-filter="customFilter"
+                    :search="searchQueryT2"
+                    v-model="proposePlayersTeam_2"
+                    select-strategy="all"
+                    density="comfortable"
+                    multi-sort
+                    fixed-header
+                    hover
+                    return-object
+                    show-select
+                  >
+                    <template v-slot:loading>
+                      <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                    </template>
+                    <template v-slot:top>
+                      <v-toolbar flat density="compact">
+                        <v-text-field
+                          v-model="searchQueryT2"
+                          placeholder="Search players..."
+                          prepend-inner-icon="mdi-magnify"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                          single-line
+                          clearable
+                        ></v-text-field>
+                      </v-toolbar>
+                    </template>
+                    <template v-slot:[`item.name`]="{ item }">
+                      <div class="d-flex align-center">
+                        <FlagIcon :countryIdentifier="item.country" class="mr-2" />
+                        <span @click.stop="showStats(item)" class="player-name-link">
+                          <strong>{{ item.name }}</strong>
+                          <span class="text-caption text-grey ml-1">({{ item.discordTag }})</span>
+                        </span>
+                      </div>
+                    </template>
+                    <template v-slot:[`item.w3c_mmr`]="{ item }">
+                      <v-chip size="small" color="info">
+                        {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                      </v-chip>
+                    </template>
+                  </v-data-table>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </v-container>
+
+  <!-- Propose Series Dialog -->
+  <v-dialog
+    id="proposeSeriesModal"
+    v-if="showProposeSeriesModal"
+    v-model="showProposeSeriesModal"
+    max-width="1400px">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-lightbulb-on</v-icon>
+        Proposed Series
+      </v-card-title>
+      <v-card-subtitle class="pa-3">
+        <v-row align="center" justify="center">
+          <v-col cols="5" class="text-center">
+            <v-chip color="success" size="large">
+              <v-icon start>mdi-shield</v-icon>
+              {{ team1.name }}
+            </v-chip>
+          </v-col>        
+          <v-col cols="2" class="text-center">
+            <v-icon size="large">mdi-sword-cross</v-icon>
+          </v-col>        
+          <v-col cols="5" class="text-center">
+            <v-chip color="error" size="large">
+              <v-icon start>mdi-shield</v-icon>
+              {{ team2.name }}
+            </v-chip>
+          </v-col>
+        </v-row>
+      </v-card-subtitle>
+      <v-card-text class="pa-0">
+        <v-data-table
+          v-if="proposedSeries.length > 0"
+          :headers="proposedSeriesTableHeader"
+          :items="proposedSeries"
+          :custom-filter="customFilterSeries"
+          :search="searchQuerySeries"
+          select-strategy="all"
+          density="comfortable"
+          v-model="selectedProposedSeries"
+          multi-sort
+          fixed-header
+          hover
+          return-object
+          show-select
+          :row-props="getRowClass"
+        >
               <template v-slot:loading>
                 <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
               </template>
-              <template v-slot:top>
-                <v-toolbar flat>
-                  <v-toolbar-title>
-                    <v-icon icon="mdi-account"></v-icon>
-                    Series List
-                  </v-toolbar-title>
-                  <span>Selected: {{ selectedProposedSeries.length }}</span>
-                  <v-spacer></v-spacer>
-                  <!-- Search Input -->
-                  <v-text-field
-                    v-model="searchQuerySeries"
-                    placeholder="Search by player name"
-                    append-icon="mdi-magnify"
-                    single-line
-                    hide-details
-                  ></v-text-field>
-                </v-toolbar>
-              </template>
+          <template v-slot:top>
+            <v-toolbar flat>
+              <v-toolbar-title>
+                <v-icon class="mr-2">mdi-format-list-bulleted</v-icon>
+                Matched Players
+              </v-toolbar-title>
+              <v-chip size="small" class="ml-2">{{ selectedProposedSeries.length }} selected</v-chip>
+              <v-spacer></v-spacer>
+              <v-text-field
+                v-model="searchQuerySeries"
+                placeholder="Search by player name..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="compact"
+                hide-details
+                single-line
+                clearable
+              ></v-text-field>
+            </v-toolbar>
+          </template>
               <template v-slot:[`item.player1.name`]="{ item }">
                   <FlagIcon :countryIdentifier="item.player1.country" />
                   <span @click.stop="showStats(item.player1)">{{ item.player1.name }}</span>
@@ -500,175 +778,83 @@
               <template v-slot:[`item.p2_w3c_high_mmr`]="{ item }">
                   <td>{{ item.player2.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
               </template>
-              <template v-slot:[`item.actions`]="{ item }">
-                  <td class="actions-cell"> 
-                      <v-btn class="table-action" icon density="compact" @click.stop="openDeleteDialog(item.proposedId, removeProposedSeries)" color="red">
-                        <v-icon>mdi-trash-can</v-icon>
-                      </v-btn>
-                  </td>
-              </template>
-            </v-data-table>
-        </section>  
-          </v-col>
-        </v-row>  
-            <v-card-actions style="position: sticky; bottom: 0; background: white; z-index: 10;">
-                    <v-btn
-                      prepend-icon="mdi-plus"
-                      @click="createSelectedProposedSeries"
-                      color="light-green"
-                      variant="tonal">
-                      Create Selected Series
-                    </v-btn>
-              <v-btn 
-                prepend-icon="mdi-close" 
-                @click="cancelProposeSeries"
-                color="orange"
-                variant="tonal">
-                Cancel
-              </v-btn>
-            </v-card-actions>        
-          </v-card>
-        </v-dialog>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="6">
-        <section id="player-table-T1"  v-if="team1.player_by_season && match.season_id">
-          <v-data-table
-            :headers="tablePlayerHeader"
-            :items="team1.player_by_season[match.season_id]"
-            :custom-filter="customFilter"
-            :search="searchQueryT1"
-            select-strategy="all"
-            density="compact"
-            v-model="proposePlayersTeam_1"
-            multi-sort
-            fixed-header
-            hover
-            return-object
-            show-select
-          >
-          <template v-slot:loading>
-            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-btn 
+              icon="mdi-delete" 
+              variant="text"
+              size="small"
+              color="error"
+              @click.stop="openDeleteDialog(item.proposedId, removeProposedSeries)"
+            ></v-btn>
           </template>
-          <template v-slot:top>
-            <v-toolbar flat>
-              <v-toolbar-title>
-                <v-icon icon="mdi-account"></v-icon>
-                {{ team1.name }}
-              </v-toolbar-title>
-              <span>Selected: {{ proposePlayersTeam_1.length }}</span>
-              <v-spacer></v-spacer>
-              <!-- Search Input -->
-              <v-text-field
-                v-model="searchQueryT1"
-                placeholder="Search by name"
-                append-icon="mdi-magnify"
-                single-line
-                hide-details
-              ></v-text-field>
-            </v-toolbar>
-          </template>
-          <template v-slot:[`item.name`]="{ item }">
-            <FlagIcon :countryIdentifier="item.country" />
-            <span @click.stop="showStats(item)">
-              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
-            </span>
-          </template>
-          <template v-slot:[`item.w3c_mmr`]="{ item }">
-            <td>{{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
-          </template>
-          </v-data-table>
-        </section>  
-      </v-col>
-      <v-col cols="6">
-        <section id="player-table-T2"  v-if="team2.player_by_season && match.season_id">
-          <v-data-table
-            :headers="tablePlayerHeader"
-            :items="team2.player_by_season[match.season_id]"
-            :custom-filter="customFilter"
-            :search="searchQueryT2"
-            select-strategy="all"
-            density="compact"
-            v-model="proposePlayersTeam_2"
-            multi-sort
-            fixed-header
-            hover
-            return-object
-            show-select
-          >
-          <template v-slot:loading>
-            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
-          </template>
-          <template v-slot:top>
-            <v-toolbar flat>
-              <v-toolbar-title>
-                <v-icon icon="mdi-account"></v-icon>
-                {{ team2.name }}
-              </v-toolbar-title>
-              <span>Selected: {{ proposePlayersTeam_2.length }}</span>
-              <v-spacer></v-spacer>
-              <!-- Search Input -->
-              <v-text-field
-                v-model="searchQueryT2"
-                placeholder="Search by name"
-                append-icon="mdi-magnify"
-                single-line
-                hide-details
-              ></v-text-field>
-            </v-toolbar>
-          </template>
-          <template v-slot:[`item.name`]="{ item }">
-            <FlagIcon :countryIdentifier="item.country" />
-            <span @click.stop="showStats(item)">
-              <strong>{{ item.name }}</strong> ({{ item.discordTag }})
-            </span>
-          </template>
-          <template v-slot:[`item.w3c_mmr`]="{ item }">
-            <td>{{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
-          </template>
-          </v-data-table>
-        </section>  
-      </v-col>
-    </v-row>
-  </div>
-  <div id="wc3Sync">
-    <template>
-      <v-dialog v-model="syncDialog" persistent max-width="500">
-        <v-card>
-          <v-card-title>Sync Results</v-card-title>
-          <v-card-text>
-            <div>
-              <strong>{{ team1.name }}: </strong>
-              <span v-if="syncError1" class="error--text">{{ syncMessage1 }}</span>
-              <span v-else>{{ syncMessage1 }}</span>
-            </div>
-            <div>
-              <strong>{{ team2.name }}: </strong>
-              <span v-if="syncError2" class="error--text">{{ syncMessage2 }}</span>
-              <span v-else>{{ syncMessage2 }}</span>
-            </div>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn color="primary" @click="syncDialog = false" :disabled="isLoading">OK</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </template>
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card>
-        <v-card-title>Confirm Deletion</v-card-title>
-        <v-card-text>
-          Are you sure you want to delete this item? This action cannot be undone.
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
-          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </v-data-table>
+        <v-alert v-else type="info" variant="tonal" class="ma-4">
+          No matchups found with current MMR criteria. Try adjusting the MMR difference.
+        </v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="cancelProposeSeries">Cancel</v-btn>
+        <v-btn 
+          color="primary"
+          @click="createSelectedProposedSeries"
+          :disabled="!selectedProposedSeries || selectedProposedSeries.length === 0"
+        >
+          Create {{ selectedProposedSeries?.length || 0 }} Series
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
-  </div>
+  <!-- Player Details Dialog -->
+  <PlayerDetailsDialog 
+    v-model="showPlayerDetails" 
+    :player="playerDetails" 
+    :seasonId="match?.season_id" 
+  />
+
+  <!-- Sync Results Dialog -->
+  <v-dialog v-model="syncDialog" persistent max-width="500">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-sync</v-icon>
+        Sync Results
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <div class="mb-2">
+          <strong>{{ team1.name }}: </strong>
+          <span :class="syncError1 ? 'text-error' : 'text-success'">{{ syncMessage1 }}</span>
+        </div>
+        <div>
+          <strong>{{ team2.name }}: </strong>
+          <span :class="syncError2 ? 'text-error' : 'text-success'">{{ syncMessage2 }}</span>
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="syncDialog = false" :disabled="isLoading">OK</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Delete Confirmation Dialog -->
+  <v-dialog v-model="showDeleteDialog" max-width="400">
+    <v-card>
+      <v-card-title class="bg-error">
+        <v-icon class="mr-2">mdi-alert</v-icon>
+        Confirm Deletion
+      </v-card-title>
+      <v-card-text class="pt-4">
+        Are you sure you want to delete this item? This action cannot be undone.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="cancelDeleteDialog">Cancel</v-btn>
+        <v-btn color="error" @click="confirmDelete">Delete</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
 </template>
 
 
@@ -778,6 +964,7 @@ const team2 = ref({});
 
 // Series state
 const showNewSeriesModal = ref(false);
+const createNewSeriesDialogOpen = ref(false);
 const newSeries_Player_1 = ref(null);
 const newSeries_Player_2 = ref(null);
 const editSeriesDialogOpen = ref(false);
@@ -787,6 +974,9 @@ const selectedDate = ref(null);
 const selectedTime = ref(null);
 const creationSeriesError = ref(null);
 const updateSeriesError = ref(false);
+
+// UI state
+const teamRostersPanel = ref(null);
 
 // Propose series state
 const showProposeSeriesModal = ref(false);
@@ -846,18 +1036,23 @@ const customFilter = (value, search, item) => {
 }
 
 const getRowClass = item => {
+  // Highlight if this exact matchup is selected
   const isMatchSelected = selectedProposedSeries.value.some(
     sel => sel.player1.id === item.item.player1.id && sel.player2.id === item.item.player2.id
   );
   if(isMatchSelected){
     return {class: 'highlight-selected-row'}; 
   }
-  const playerHasSeries = seriesStore.series.some(
+  
+  // Highlight if either player already has a series created
+  const playerHasSeries = series.value && series.value.some(
     sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
   );
   if(playerHasSeries){
     return {class: 'highlight-row'}; 
   }
+  
+  // Highlight if either player is in the selected proposed series
   const isPlayerSelected = selectedProposedSeries.value.some(
     sel => sel.player1.id === item.item.player1.id || sel.player2.id === item.item.player2.id
   );
@@ -898,14 +1093,14 @@ const seriesHeaders = [
 ];
 
 const openCreateNewSeries = () => {
-  showNewSeriesModal.value = true;
+  createNewSeriesDialogOpen.value = true;
   newSeries_Player_1.value = null;
   newSeries_Player_2.value = null;
   creationSeriesError.value = null;
 };
 
 const cancelCreateSeries = () => {
-  showNewSeriesModal.value = false;
+  createNewSeriesDialogOpen.value = false;
 };
 
 const fetchMatchDetails = async () => {
@@ -1218,7 +1413,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 
 .toolbar-btn { margin-right: 12px !important; }
 
@@ -1229,8 +1424,9 @@ onMounted(() => {
 
 #matchHeader {
   position: relative;
-  color: white;  
-  padding: 25px 0px;
+  color: white;
+  min-height: 300px;
+  height: 300px;
 }
 
 .banner-image {
@@ -1241,19 +1437,33 @@ onMounted(() => {
 }
 
 .banner-overlay {
-  z-index: 0;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: .75;
-  background-color: black;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.7));
+  z-index: 1;
 }
 
 .banner-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.teams-matchup {
+  margin-top: 2rem;
+}
+
+.team-name-header {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 1px;
+}
+
+.score-chip-large {
+  font-size: 2rem !important;
+  font-weight: bold;
+  min-width: 80px;
 }
 
 .vs {
@@ -1262,12 +1472,53 @@ onMounted(() => {
   font-style: normal;
 }
 
+.player-cell {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.player-cell:hover {
+  color: rgb(var(--v-theme-primary));
+}
+
+.player-name-link {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.player-name-link:hover {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+}
+
+.series-row {
+  transition: all 0.2s ease;
+}
+
+.series-row:hover {
+  background-color: rgba(var(--v-theme-primary), 0.05) !important;
+}
+
+@media (max-width: 960px) {
+  .team-name-header {
+    font-size: 1.5rem !important;
+  }
+  
+  .score-chip-large {
+    font-size: 1.5rem !important;
+    min-width: 60px;
+  }
+}
+
+</style>
+
+<style>
+/* Global styles for table row highlighting (cannot be scoped) */
 .highlight-row {
-  background-color: #ffc87a !important; /* Change to desired highlight color */
+  background-color: #ffc87a !important;
 }
 
 .highlight-selected-row {
-  background-color: #99ff7a !important; /* Change to desired highlight color */
+  background-color: #99ff7a !important;
 }
-
 </style>

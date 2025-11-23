@@ -3,38 +3,44 @@
     <v-progress-circular color="primary" indeterminate size="64"></v-progress-circular>
   </v-overlay>
 
-  <v-alert
-    v-if="errorMessage"
-    type="error"
-    variant="tonal"
-    border="start"
-    border-color="red"
-    class="mx-4 my-2"
-    closable
-    @click:close="errorMessage = null"
-  >
-    {{ errorMessage }}
-  </v-alert>
+  <v-container fluid class="pa-4">
+    <v-row class="mb-4">
+      <v-col>
+        <h1><v-icon class="mr-2">mdi-view-dashboard</v-icon> Player Dashboard</h1>
+      </v-col>
+    </v-row>
 
-  <v-alert
-    v-if="successMessage"
-    type="success"
-    variant="tonal"
-    border="start"
-    border-color="green"
-    class="mx-4 my-2"
-    closable
-    @click:close="successMessage = null"
-  >
-    {{ successMessage }}
-  </v-alert>
+    <v-alert
+      v-if="errorMessage"
+      type="error"
+      variant="tonal"
+      border="start"
+      border-color="red"
+      class="mb-4"
+      closable
+      @click:close="errorMessage = null"
+    >
+      {{ errorMessage }}
+    </v-alert>
 
-  <div v-if="!isLoading && playerData" class="pa-4">
-    <v-card class="mb-6">
-      <v-card-title class="text-h4 text-primary">
-        Player Dashboard
+    <v-alert
+      v-if="successMessage"
+      type="success"
+      variant="tonal"
+      border="start"
+      border-color="green"
+      class="mb-4"
+      closable
+      @click:close="successMessage = null"
+    >
+      {{ successMessage }}
+    </v-alert>
+    <v-card v-if="!isLoading && playerData" elevation="2" class="mb-6">
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-account-circle</v-icon>
+        Player Information
       </v-card-title>
-      <v-card-text>
+      <v-card-text class="pt-4">
         <v-chip color="secondary" class="mb-2">
           {{ playerData.discord_tag }}
         </v-chip>
@@ -46,14 +52,18 @@
       </v-card-text>
     </v-card>
 
-    <v-card>
-      <v-card-title class="text-h5 d-flex justify-space-between align-center">
-        My Series
-        <v-chip color="primary" variant="outlined">
+    <v-card v-if="!isLoading && playerData" elevation="2">
+      <v-card-title class="bg-primary d-flex justify-space-between align-center">
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-tournament</v-icon>
+          <span>My Series</span>
+        </div>
+        <v-chip color="white" variant="outlined">
           {{ series.length }} series
         </v-chip>
       </v-card-title>
       
+      <v-card-text class="pa-0">
       <v-data-table
         :headers="headers"
         :items="series"
@@ -91,8 +101,9 @@
         <template #item.actions="{ item }">
           <v-btn
             color="primary"
-            variant="outlined"
+            variant="elevated"
             size="small"
+            prepend-icon="mdi-calendar-edit"
             @click="editSchedule(item)"
             :loading="scheduleSavingId === item.id"
             :disabled="scheduleSavingId === item.id || scoreSavingId === item.id"
@@ -101,8 +112,9 @@
           </v-btn>
           <v-btn
             color="success"
-            variant="outlined"
+            variant="elevated"
             size="small"
+            prepend-icon="mdi-trophy"
             class="ml-2"
             @click="reportResult(item)"
             :loading="scoreSavingId === item.id"
@@ -112,130 +124,18 @@
           </v-btn>
         </template>
       </v-data-table>
-    </v-card>
-
-    <!-- Fantasy Bets Section (for team captains) -->
-    <v-card v-if="isFantasyCaptain" class="mt-6">
-      <v-card-title class="text-h5 d-flex justify-space-between align-center">
-        <div>
-          <v-icon left>mdi-crystal-ball</v-icon>
-          My Fantasy Bets
-        </div>
-        <v-chip color="purple" variant="outlined">
-          {{ fantasyBets.length }} bets
-        </v-chip>
-      </v-card-title>
-      
-      <v-data-table
-        :headers="fantasyHeaders"
-        :items="fantasySeriesWithBets"
-        :loading="isLoading"
-        class="elevation-1"
-        item-key="id"
-      >
-        <template #item.players="{ item }">
-          <div>
-            <strong>{{ item.player1?.name }}</strong> vs <strong>{{ item.player2?.name }}</strong>
-          </div>
-        </template>
-
-        <template #item.date_time="{ item }">
-          {{ formatDateTime(item.date_time) }}
-        </template>
-
-        <template #item.my_bet="{ item }">
-          <v-chip
-            v-if="item.myBet"
-            :color="getBetResultColor(item.myBet)"
-            size="small"
-          >
-            {{ getBetPlayerName(item, item.myBet) }}
-          </v-chip>
-          <span v-else class="text-grey">No bet</span>
-        </template>
-
-        <template #item.score="{ item }">
-          <v-chip
-            v-if="isSeriesPlayed(item)"
-            :color="getScoreColor(item)"
-            variant="outlined"
-            size="small"
-          >
-            {{ item.player1_score || 0 }} - {{ item.player2_score || 0 }}
-          </v-chip>
-          <span v-else class="text-grey">Not played</span>
-        </template>
-
-        <template #item.result="{ item }">
-          <v-chip
-            v-if="item.myBet && isSeriesPlayed(item)"
-            :color="item.myBet.bet_result === 'WIN' ? 'success' : item.myBet.bet_result === 'LOSS' ? 'error' : 'grey'"
-            size="small"
-          >
-            {{ item.myBet.bet_result || 'PENDING' }}
-          </v-chip>
-          <span v-else-if="!isSeriesPlayed(item)" class="text-grey">-</span>
-          <span v-else class="text-grey">No bet</span>
-        </template>
-
-        <template #item.actions="{ item }">
-          <v-btn
-            v-if="!isSeriesPlayed(item)"
-            color="purple"
-            variant="outlined"
-            size="small"
-            @click="placeBet(item)"
-            :disabled="isBetSaving"
-          >
-            {{ item.myBet ? 'Change Bet' : 'Place Bet' }}
-          </v-btn>
-          <v-chip v-else size="small" color="grey">Locked</v-chip>
-        </template>
-      </v-data-table>
-    </v-card>
-  </div>
-
-  <!-- Place Bet Dialog -->
-  <v-dialog v-model="betDialog" max-width="500px">
-    <v-card>
-      <v-card-title class="text-h5">Place Fantasy Bet</v-card-title>
-      <v-card-text>
-        <div class="mb-4">
-          <strong>{{ betSeries.player1?.name }}</strong> vs <strong>{{ betSeries.player2?.name }}</strong>
-        </div>
-        <v-radio-group v-model="selectedBetWinnerId">
-          <v-radio
-            :label="betSeries.player1?.name"
-            :value="betSeries.player1_id"
-            color="primary"
-          ></v-radio>
-          <v-radio
-            :label="betSeries.player2?.name"
-            :value="betSeries.player2_id"
-            color="primary"
-          ></v-radio>
-        </v-radio-group>
       </v-card-text>
-      <v-card-actions>
-        <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeBet" :disabled="isBetSaving">Cancel</v-btn>
-        <v-btn 
-          color="purple" 
-          :disabled="!selectedBetWinnerId || isBetSaving" 
-          :loading="isBetSaving" 
-          @click="saveBet"
-        >
-          Save Bet
-        </v-btn>
-      </v-card-actions>
     </v-card>
-  </v-dialog>
+  </v-container>
 
   <!-- Schedule Dialog -->
   <v-dialog v-model="scheduleDialog" max-width="500px">
     <v-card>
-      <v-card-title class="text-h5">Edit Schedule</v-card-title>
-      <v-card-text>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-calendar-edit</v-icon>
+        Edit Schedule
+      </v-card-title>
+      <v-card-text class="pt-4">
         <v-alert type="info" variant="tonal" density="compact" class="mb-4">
           Enter time in your local timezone ({{ userTimezone }}).
         </v-alert>
@@ -254,8 +154,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeSchedule" :disabled="scheduleSavingId === scheduleSeries.id">Cancel</v-btn>
-        <v-btn color="primary" :disabled="!isScheduleValid || scheduleSavingId === scheduleSeries.id" :loading="scheduleSavingId === scheduleSeries.id" @click="saveSchedule">Save</v-btn>
+        <v-btn variant="text" @click="closeSchedule" :disabled="scheduleSavingId === scheduleSeries.id">Cancel</v-btn>
+        <v-btn color="primary" variant="elevated" prepend-icon="mdi-content-save" :disabled="!isScheduleValid || scheduleSavingId === scheduleSeries.id" :loading="scheduleSavingId === scheduleSeries.id" @click="saveSchedule">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -263,31 +163,69 @@
   <!-- Report Result Dialog -->
   <v-dialog v-model="scoreDialog" max-width="600px">
     <v-card>
-      <v-card-title class="text-h5">Report Result</v-card-title>
-      <v-card-text>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-trophy</v-icon>
+        Report Result
+      </v-card-title>
+      <v-card-text class="pt-4">
         <v-form ref="scoreForm" v-model="scoreFormValid">
           <v-container>
             <v-row>
               <v-col cols="6">
-                <v-text-field v-model="scoreSeries.player1_score" label="Your Score" type="number" min="0" />
+                <v-text-field 
+                  v-model="scoreSeries.player1_score" 
+                  label="Your Score" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-numeric"
+                  type="number" 
+                  min="0" 
+                />
               </v-col>
               <v-col cols="6">
-                <v-text-field v-model="scoreSeries.player2_score" label="Opponent Score" type="number" min="0" />
+                <v-text-field 
+                  v-model="scoreSeries.player2_score" 
+                  label="Opponent Score" 
+                  variant="outlined"
+                  prepend-inner-icon="mdi-numeric"
+                  type="number" 
+                  min="0" 
+                />
               </v-col>
             </v-row>
             <v-row>
               <v-col cols="12">
-                <v-file-input v-model="scoreSeries.game1File" label="Game 1 Replay" accept=".w3g" prepend-icon="mdi-file-upload" />
+                <v-file-input 
+                  v-model="scoreSeries.game1File" 
+                  label="Game 1 Replay" 
+                  variant="outlined"
+                  accept=".w3g" 
+                  prepend-icon="mdi-file-upload" 
+                />
               </v-col>
             </v-row>
             <v-row>
               <v-col cols="12">
-                <v-file-input v-model="scoreSeries.game2File" label="Game 2 Replay" accept=".w3g" prepend-icon="mdi-file-upload" />
+                <v-file-input 
+                  v-model="scoreSeries.game2File" 
+                  label="Game 2 Replay" 
+                  variant="outlined"
+                  accept=".w3g" 
+                  prepend-icon="mdi-file-upload" 
+                />
               </v-col>
             </v-row>
             <v-row v-if="needsGame3">
               <v-col cols="12">
-                <v-file-input v-model="scoreSeries.game3File" label="Game 3 Replay" accept=".w3g" prepend-icon="mdi-file-upload" :rules="[rules.required]" required :hint="'Required for 2:1 or 1:2 results'" />
+                <v-file-input 
+                  v-model="scoreSeries.game3File" 
+                  label="Game 3 Replay" 
+                  variant="outlined"
+                  accept=".w3g" 
+                  prepend-icon="mdi-file-upload" 
+                  :rules="[rules.required]" 
+                  required 
+                  :hint="'Required for 2:1 or 1:2 results'" 
+                />
               </v-col>
             </v-row>
           </v-container>
@@ -295,8 +233,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn color="grey" variant="text" @click="closeScore" :disabled="scoreSavingId === scoreSeries.id">Cancel</v-btn>
-        <v-btn color="primary" :disabled="!isScoreValid || scoreSavingId === scoreSeries.id" :loading="scoreSavingId === scoreSeries.id" @click="saveResult">Save Result</v-btn>
+        <v-btn variant="text" @click="closeScore" :disabled="scoreSavingId === scoreSeries.id">Cancel</v-btn>
+        <v-btn color="primary" variant="elevated" prepend-icon="mdi-content-save" :disabled="!isScoreValid || scoreSavingId === scoreSeries.id" :loading="scoreSavingId === scoreSeries.id" @click="saveResult">Save Result</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -307,7 +245,6 @@ import '@/assets/base.css';
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { fetchWrapper } from '@/helpers';
-import { useFantasyStore } from '@/stores';
 import SimpleTimePicker from '@/components/SimpleTimePicker.vue';
 import SimpleDatePicker from '@/components/SimpleDatePicker.vue';
 import { DateTime } from 'luxon';
@@ -316,7 +253,6 @@ defineOptions({ name: 'PlayerDashboardView' })
 
 const route = useRoute();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-const fantasyStore = useFantasyStore();
 
 // State
 const isLoading = ref(true);
@@ -325,15 +261,6 @@ const successMessage = ref(null);
 const playerData = ref(null);
 const series = ref([]);
 const token = ref(null);
-
-// Fantasy betting state
-const fantasyTeam = ref(null);
-const fantasyBets = ref([]);
-const fantasySeries = ref([]);
-const betDialog = ref(false);
-const betSeries = ref({});
-const selectedBetWinnerId = ref(null);
-const isBetSaving = ref(false);
 
 // Schedule / Result dialog state
 const scheduleDialog = ref(false);
@@ -353,43 +280,6 @@ const userTimezone = computed(() => {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 });
 
-// Check if current player is a fantasy team captain
-const isFantasyCaptain = computed(() => {
-  return fantasyTeam.value && fantasyTeam.value.captain_id === playerData.value?.player?.id;
-});
-
-// Combine fantasy series with their bets
-const fantasySeriesWithBets = computed(() => {
-  return fantasySeries.value.map(s => {
-    const myBet = fantasyBets.value.find(b => b.series_id === s.id);
-    return { ...s, myBet };
-  });
-});
-
-// Check if a series has been played (has a score)
-const isSeriesPlayed = (series) => {
-  if (!series) return false;
-  const p1 = series.player1_score || 0;
-  const p2 = series.player2_score || 0;
-  return p1 > 0 || p2 > 0;
-};
-
-// Get player name for bet
-const getBetPlayerName = (series, bet) => {
-  if (!bet || !bet.winner_id) return '';
-  if (bet.winner_id === series.player1_id) return series.player1?.name || 'Player 1';
-  if (bet.winner_id === series.player2_id) return series.player2?.name || 'Player 2';
-  return '';
-};
-
-// Get color for bet result
-const getBetResultColor = (bet) => {
-  if (!bet) return 'grey';
-  if (bet.bet_result === 'WIN') return 'success';
-  if (bet.bet_result === 'LOSS') return 'error';
-  return 'purple';
-};
-
 // Validation rules
 const rules = {
   required: (value) => !!value || 'This field is required'
@@ -400,15 +290,6 @@ const headers = [
   { title: 'Date & Time', key: 'date_time', sortable: true },
   { title: 'Score', key: 'score', sortable: false },
   { title: 'Week', key: 'week', sortable: true },
-  { title: 'Actions', key: 'actions', sortable: false }
-];
-
-const fantasyHeaders = [
-  { title: 'Players', key: 'players', sortable: false },
-  { title: 'Date & Time', key: 'date_time', sortable: true },
-  { title: 'My Bet', key: 'my_bet', sortable: false },
-  { title: 'Score', key: 'score', sortable: false },
-  { title: 'Result', key: 'result', sortable: false },
   { title: 'Actions', key: 'actions', sortable: false }
 ];
 
@@ -436,9 +317,6 @@ const fetchPlayerData = async () => {
     const response = await fetchWrapper.get(`${backendUrl}/player-series?token=${token.value}`);
     playerData.value = response;
     series.value = response.series || [];
-
-    // Fetch fantasy team and bets if player is a captain
-    await fetchFantasyData();
 
   } catch (error) {
     console.error('Error fetching player data:', error);

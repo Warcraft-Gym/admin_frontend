@@ -1,5 +1,5 @@
 <template>
-  <v-overlay v-model="isLoading" persistent absolute>
+  <v-overlay v-model="isLoading" persistent class="loading-overlay">
     <v-progress-circular
           indeterminate
           size="64" 
@@ -7,326 +7,441 @@
           color="primary"
     ></v-progress-circular>
   </v-overlay>
+
+  <!-- Enhanced Hero Section -->
   <div id="seasonHeader">
-    <v-parallax class="banner-image" :src="bannerImg" height="300"></v-parallax>
-    <div class="banner-content h-100">
-      <v-container>
-        <v-row class="justify-center">
-          <v-col cols="auto text-center">
-            <h1>Season Details</h1>
-            <p>Name: {{ season.name }}</p>
-            <p>Number of Weeks: {{ season.number_weeks }}</p>
-            <p>Pick Ban Order: {{ season.pick_ban }}</p>
+    <v-parallax class="banner-image" :src="bannerImg" height="250">
+      <div class="banner-overlay"></div>
+      <v-container class="fill-height">
+        <v-row align="center" justify="center">
+          <v-col cols="12" md="8" class="text-center">
+            <h1 class="text-h2 font-weight-bold mb-4 season-title">{{ season.name }}</h1>
+            <v-row class="justify-center mt-6">
+              <v-col cols="auto">
+                <v-card class="stat-card" elevation="8">
+                  <v-card-text class="pa-4">
+                    <div class="text-h4 font-weight-bold primary--text">{{ season.number_weeks }}</div>
+                    <div class="text-subtitle-2 text-uppercase">Weeks</div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+              <v-col cols="auto">
+                <v-card class="stat-card" elevation="8">
+                  <v-card-text class="pa-4">
+                    <div class="text-h4 font-weight-bold primary--text">{{ teams.length }}</div>
+                    <div class="text-subtitle-2 text-uppercase">Teams</div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
       </v-container>
-    </div>
+    </v-parallax>
   </div>
-  <v-container>
-    <v-row>          
-      <v-col>
-        <!-- Buttons for Weeks -->
-        <div class="button-container">
-          <v-btn
-            v-for="week in season.number_weeks"
-            :key="week"
-            :color="selectedWeek === week ? 'primary' : 'default'"
-            @click="fetchMatches(week)"
-          >
-            Week {{ week }}
-          </v-btn>
-        </div>
-      </v-col>
-    </v-row>
-    <v-row>
-    <!-- Add Match Button -->
-      <v-col>
-        <v-btn
-          @click="openMatchCreationModal(plainTeams)"
-          class="toolbar-btn"
-          variant="tonal"
-          prepend-icon="mdi-plus">
-          Add Match for Week {{ selectedWeek }}
-        </v-btn>
-      </v-col>
 
-        <!-- Team Selection Modal -->
-        <v-dialog v-if="newMatch" v-model="isModalOpen" max-width="600px">
-          <v-card>
-                      <template v-slot:title>
-                        <span class="modal-title">
-                          <v-icon icon="mdi-account-edit"></v-icon>
-                          Create Match
-                        </span>
-                      </template>
-                      <template v-slot:text>
-                        <v-row>
-                          <v-col cols="6">
-                            <v-text-field
-                              v-model="newMatch.date_frame" 
-                              label="Date Frame">
-                            </v-text-field>
-                          </v-col>
-                          <v-col cols="6">
-                            <v-select
-                              :items="maps"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Fixed Map"
-                              v-model="newMatch.fixed_map_id"
-                            >
-                            </v-select>
-                          </v-col>
-                          <v-col cols="6">
-                            <v-select
-                              :items="teams"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Team 1"
-                              v-model="newMatch.team1_id"
-                            >
-                            </v-select>
-                          </v-col>
-                          <v-col  cols="6">
-                            <v-select
-                              :items="teams"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Team 2"
-                              v-model="newMatch.team2_id"
-                            >
-                          </v-select>
-                          </v-col>
-                        </v-row>      
-                      </template>   
-                      <v-card-actions>
-                        <v-btn color="primary" @click="confirmSelection">Confirm</v-btn>
-                        <v-btn color="secondary" @click="closeMatchCreationModal">Cancel</v-btn>
-                      </v-card-actions>        
-                    </v-card>
-        </v-dialog>
-    </v-row>
+  <v-container fluid class="pa-4">
+    <!-- Week Navigation Tabs -->
+    <v-card class="mb-4" elevation="2">
+      <v-tabs
+        v-model="selectedWeek"
+        bg-color="primary"
+        slider-color="white"
+        show-arrows
+        @update:modelValue="fetchMatches"
+      >
+        <v-tab
+          v-for="week in season.number_weeks"
+          :key="week"
+          :value="week"
+        >
+          <v-icon start>mdi-calendar-week</v-icon>
+          Week {{ week }}
+        </v-tab>
+      </v-tabs>
+    </v-card>
+
+    <!-- Action Bar -->
+    <v-card class="mb-4" elevation="1">
+      <v-card-text class="d-flex align-center justify-space-between pa-3">
+        <div class="text-h6">
+          <v-icon class="mr-2">mdi-trophy</v-icon>
+          Week {{ selectedWeek }} Matches
+        </div>
+        <v-btn
+          @click="openMatchCreationModal"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="elevated"
+        >
+          Add Match
+        </v-btn>
+      </v-card-text>
+    </v-card>
+
     <!-- Matches for Selected Week -->
     <v-row v-if="matches && matches.length > 0">
       <v-col
         v-for="(match, index) in matches"
         :key="index"
         cols="12"
-        md="6"
+        lg="6"
       >
-        <v-card @click="$router.push(`/match/${match.id}`)">
-          <v-card-title></v-card-title>
-          <v-card-text>
-            <v-row class="align-center justify-center">
-              <v-col 
-                cols="5" 
-                class="team-card" 
-                :style="{ backgroundImage: `url(${teamImages[match.team1.id] || bannerImg})` }"
-              >
-                <h3 class="team-name">{{ match.team1.name }}</h3>
-                <span class="score">{{ match.team1_score }}</span>
+        <v-card 
+          class="match-card-enhanced" 
+          elevation="2"
+          hover
+          @click="$router.push(`/match/${match.id}`)"
+        >
+          <v-card-text class="pa-4">
+            <v-row align="center" class="match-row">
+              <!-- Team 1 -->
+              <v-col cols="5" class="text-center">
+                <div class="team-section">
+                  <v-avatar size="80" class="mb-3 team-avatar">
+                    <v-img :src="teamImages[match.team1.id] || teamDefaultImg" cover></v-img>
+                  </v-avatar>
+                  <div class="team-name-enhanced">{{ match.team1.name }}</div>
+                  <v-chip 
+                    :color="getScoreColor(match.team1_score, match.team2_score)" 
+                    size="large" 
+                    class="mt-2 score-chip"
+                  >
+                    {{ match.team1_score }}
+                  </v-chip>
+                </div>
               </v-col>
 
-              <!-- VS Icon -->
-              <v-col cols="1" class="text-center">
-                <v-icon large color="primary">mdi-sword-cross</v-icon>
+              <!-- VS Divider -->
+              <v-col cols="2" class="text-center">
+                <div class="vs-section">
+                  <v-icon size="40" color="primary">mdi-sword-cross</v-icon>
+                  <div class="text-caption mt-2 text-grey">{{ match.date_frame || 'TBD' }}</div>
+                </div>
               </v-col>
 
               <!-- Team 2 -->
-              <v-col 
-                cols="5" 
-                class="team-card" 
-                :style="{ backgroundImage: `url(${teamImages[match.team2.id] || bannerImg})` }"
-              >
-                <h3 class="team-name">{{ match.team2.name }}</h3>
-                <span class="score">{{ match.team2_score }}</span>
+              <v-col cols="5" class="text-center">
+                <div class="team-section">
+                  <v-avatar size="80" class="mb-3 team-avatar">
+                    <v-img :src="teamImages[match.team2.id] || teamDefaultImg" cover></v-img>
+                  </v-avatar>
+                  <div class="team-name-enhanced">{{ match.team2.name }}</div>
+                  <v-chip 
+                    :color="getScoreColor(match.team2_score, match.team1_score)" 
+                    size="large" 
+                    class="mt-2 score-chip"
+                  >
+                    {{ match.team2_score }}
+                  </v-chip>
+                </div>
               </v-col>
-              <v-col cols="1">
-                <v-row>
-                  <v-btn class="table-action" icon density="compact" color="blue" @click.stop="editMatch(match)">
-                    <v-icon>mdi-account-edit</v-icon>
-                  </v-btn>
-                  <!-- Edit Map Modal -->
-                  <v-dialog
-                    id="editMatchModal"
-                    v-if="selectedMatch"
-                    v-model="editMatchDialogOpen"
-                    max-width="65vw">
-                    <v-card>
-                      <template v-slot:title>
-                        <span class="modal-title">
-                          <v-icon icon="mdi-account-edit"></v-icon>
-                          Edit Match
-                        </span>
-                      </template>
-                      <template v-slot:text>
-                        <v-row>
-                          <v-col cols="6">
-                            <v-text-field
-                              v-model="selectedMatch.date_frame" 
-                              label="Date Frame">
-                            </v-text-field>
-                          </v-col>
-                          <v-col cols="6">
-                            <v-select
-                              :items="maps"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Fixed Map"
-                              v-model="selectedMatch.fixed_map_id"
-                            >
-                            </v-select>
-                          </v-col>
-                          <v-col cols="6">
-                            <v-select
-                              :items="teams"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Team 1"
-                              v-model="selectedMatch.team1_id"
-                            >
-                            </v-select>
-                          </v-col>
-                          <v-col  cols="6">
-                            <v-select
-                              :items="teams"
-                              item-title="name"
-                              item-value="id"
-                              label="Select Team 2"
-                              v-model="selectedMatch.team2_id"
-                            >
-                          </v-select>
-                          </v-col>
-                        </v-row>      
-                      </template>       
-                          
-                      <v-card-actions>
-                        <v-btn 
-                          prepend-icon="mdi-pencil"
-                          @click="updateMatch"
-                          color="light-green"
-                          variant="tonal">
-                          Save
-                        </v-btn>
-                        <v-btn 
-                          prepend-icon="mdi-close" 
-                          @click="cancelEdit"
-                          color="orange"
-                          variant="tonal">
-                          Cancel
-                        </v-btn>
-                      </v-card-actions>        
-                    </v-card>
-                  </v-dialog>
-                </v-row>
-                <v-row>
-                  <v-btn class="table-action" icon density="compact" color="red" @click.stop="openDeleteDialog(match.id, removeMatch)">
-                    <v-icon>mdi-trash-can</v-icon>
-                  </v-btn>
-                </v-row>
+            </v-row>
+
+            <!-- Match Info Footer -->
+            <v-divider class="my-3"></v-divider>
+            <v-row align="center" dense>
+              <v-col>
+                <v-chip size="small" prepend-icon="mdi-map" variant="text" v-if="match.fixed_map">
+                  {{ getMapName(match.fixed_map_id) }}
+                </v-chip>
+              </v-col>
+              <v-col cols="auto">
+                <v-menu location="bottom end">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon="mdi-dots-vertical"
+                      variant="text"
+                      size="small"
+                      v-bind="props"
+                      @click.stop
+                    ></v-btn>
+                  </template>
+                  <v-list density="compact">
+                    <v-list-item @click.stop="editMatch(match)" prepend-icon="mdi-pencil">
+                      <v-list-item-title>Edit Match</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item @click.stop="openDeleteDialog(match.id, removeMatch)" prepend-icon="mdi-delete" class="text-error">
+                      <v-list-item-title>Delete Match</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
               </v-col>
             </v-row>
           </v-card-text>
-
-
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-else>
-      <v-col>No matches found for Week {{ selectedWeek }}.</v-col>
-    </v-row>
-  </v-container>
-  <v-container>
-    <!-- Teams Section -->
-    <div>
-    <v-row>
-      <v-col>
-      <h2>Teams</h2>
-    </v-col>
-    </v-row>
-    <v-row>
-    <!-- Add Match Button -->
-      <v-col>
-        <v-btn
-          @click="openTeamSelectionModal"
-          class="toolbar-btn"
-          variant="tonal"
-          prepend-icon="mdi-plus">
-          Add Teams
-        </v-btn>
-        <v-btn
-          @click="router.push(`/seasons/${season.id}/assign`)"
-          class="toolbar-btn"
-          variant="tonal"
-          prepend-icon="mdi-account-multiple-plus">
-          Assign Signups
-        </v-btn>
-      </v-col>
 
-        <!-- Team Selection Modal -->
-        <!-- Team Selection Dialog -->
-    <v-dialog v-model="isTeamDialogOpen" max-width="600px">
-      <v-card>
-        <v-card-title>Select a Team to Add</v-card-title>
-        <v-card-text>
-          <v-data-table v-if="availableTeams"
-              :headers="addTeamsTableHeader"
-              :items="availableTeams"
-              select-strategy="all"
-              density="compact"
+    <!-- Empty State -->
+    <v-card v-else elevation="0" class="text-center pa-8">
+      <v-icon size="64" color="grey-lighten-1">mdi-calendar-blank</v-icon>
+      <div class="text-h6 mt-4 text-grey">No matches scheduled for Week {{ selectedWeek }}</div>
+      <v-btn 
+        color="primary" 
+        variant="tonal" 
+        class="mt-4"
+        prepend-icon="mdi-plus"
+        @click="openMatchCreationModal"
+      >
+        Schedule First Match
+      </v-btn>
+    </v-card>
+
+    <!-- Teams Expansion Panel -->
+    <v-expansion-panels class="mt-6" v-model="teamsPanel">
+      <v-expansion-panel>
+        <v-expansion-panel-title class="text-h6">
+          <v-icon class="mr-2">mdi-shield-account</v-icon>
+          Season Teams ({{ teams.length }})
+          <template v-slot:actions="{ expanded }">
+            <v-icon :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></v-icon>
+          </template>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <!-- Team Management Actions -->
+          <v-card-actions class="pa-3">
+            <v-btn
+              @click="openTeamSelectionModal"
+              variant="tonal"
+              color="primary"
+              prepend-icon="mdi-plus">
+              Add Teams
+            </v-btn>
+            <v-btn
+              @click="router.push(`/seasons/${season.id}/assign`)"
+              variant="tonal"
+              color="secondary"
+              prepend-icon="mdi-account-multiple-plus">
+              Assign Signups
+            </v-btn>
+          </v-card-actions>
+
+          <!-- Teams Grid -->
+          <v-row v-if="teams && teams.length > 0" class="mt-2">
+            <v-col v-for="(team, index) in teams" :key="index" cols="12" sm="6" md="4" lg="3">
+              <v-card 
+                class="team-card-enhanced" 
+                elevation="2"
+                hover
+                @click="$router.push(`/team/${team.id}/season/${season.id}`)"
+              >
+                <v-card-text class="text-center pa-4">
+                  <v-avatar size="64" class="mb-3">
+                    <v-img :src="teamImages[team.id] || teamDefaultImg" cover></v-img>
+                  </v-avatar>
+                  <div class="text-h6 mb-2">{{ team.name }}</div>
+                  <v-divider class="my-2"></v-divider>
+                  <v-row dense class="text-caption">
+                    <v-col cols="12">
+                      <v-chip size="small" color="success" variant="flat" class="mb-1">
+                        <v-icon start size="small">mdi-trophy</v-icon>
+                        {{ team.seasons_info[0].final_score }} pts
+                      </v-chip>
+                    </v-col>
+                    <v-col cols="6" class="text-left">
+                      <div class="text-grey">Against:</div>
+                      <div class="font-weight-bold">{{ team.seasons_info[0].points_against }}</div>
+                    </v-col>
+                    <v-col cols="6" class="text-right">
+                      <div class="text-grey">Available:</div>
+                      <div class="font-weight-bold">{{ team.seasons_info[0].points_available }}</div>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+          <v-alert v-else type="info" variant="tonal" class="mt-2">
+            No teams have been added to this season yet.
+          </v-alert>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </v-container>
+
+  <!-- Team Selection Dialog -->
+  <v-dialog v-model="isTeamDialogOpen" max-width="700px">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-shield-plus</v-icon>
+        Add Teams to Season
+      </v-card-title>
+      <v-card-text class="pa-0">
+        <v-data-table v-if="availableTeams"
+            :headers="addTeamsTableHeader"
+            :items="availableTeams"
+            select-strategy="all"
+            density="compact"
+            item-value="id"
+            v-model="selectedTeams"
+            multi-sort
+            fixed-header
+            hover
+            show-select
+          ></v-data-table>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="closeTeamSelectionModal">Cancel</v-btn>
+        <v-btn color="primary" @click="addTeamsToSeason" :disabled="!selectedTeams || selectedTeams.length === 0">
+          Add {{ selectedTeams?.length || 0 }} Team(s)
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Create Match Dialog -->
+  <v-dialog v-if="newMatch" v-model="isModalOpen" max-width="600px">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-calendar-plus</v-icon>
+        Create Match - Week {{ selectedWeek }}
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <v-row>
+          <v-col cols="12">
+            <v-text-field
+              v-model="newMatch.date_frame" 
+              label="Date/Time Frame"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-calendar-clock"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              :items="maps"
+              item-title="name"
               item-value="id"
-              v-model="selectedTeams"
-              multi-sort
-              fixed-header
-              hover
-              show-select
-            ></v-data-table>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn color="primary" @click="addTeamsToSeason">Confirm</v-btn>
-          <v-btn color="secondary" @click="closeTeamSelectionModal">Cancel</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    </v-row>
-      <v-row v-if="teams && teams.length > 0">
-        <v-col v-for="(team, index) in teams" :key="index" cols="12" md="6">
-          <v-card @click="$router.push(`/team/${team.id}/season/${season.id}`)">
-            <v-card-title>
-                <!-- Icon can be replaced with icon stored in backend... -->
-                <v-img :src="teamImages[team.id]"
-                  class="team-image"
-                  width="40"
-                  height="40"
-                  contain
-                ></v-img>
-                {{ team.name }}
-            </v-card-title>
-            <v-card-text>
-              <p>Final Score: {{ team.seasons_info[0].final_score }}</p>
-              <p>Points against: {{ team.seasons_info[0].points_against }}</p>
-              <p>Points available: {{ team.seasons_info[0].points_available }}</p>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-      <p v-else>No teams found for this season.</p>
-    </div>
-  </v-container>
-  <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card>
-        <v-card-title>Confirm Deletion</v-card-title>
-        <v-card-text>
-          Are you sure you want to delete this item? This action cannot be undone.
-        </v-card-text>
-        <v-card-actions>
-          <v-btn @click="cancelDeleteDialog" color="grey">Cancel</v-btn>
-          <v-btn @click="confirmDelete" color="red">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+              label="Fixed Map (Optional)"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-map"
+              clearable
+              v-model="newMatch.fixed_map_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 1"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="newMatch.team1_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 2"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="newMatch.team2_id"
+            ></v-select>
+          </v-col>
+        </v-row>      
+      </v-card-text>   
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="closeMatchCreationModal">Cancel</v-btn>
+        <v-btn color="primary" @click="confirmSelection">Create Match</v-btn>
+      </v-card-actions>        
+    </v-card>
+  </v-dialog>
 
-  </template>
+  <!-- Edit Match Dialog -->
+  <v-dialog
+    v-if="selectedMatch"
+    v-model="editMatchDialogOpen"
+    max-width="600px">
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-pencil</v-icon>
+        Edit Match
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <v-row>
+          <v-col cols="12">
+            <v-text-field
+              v-model="selectedMatch.date_frame" 
+              label="Date/Time Frame"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-calendar-clock"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              :items="maps"
+              item-title="name"
+              item-value="id"
+              label="Fixed Map (Optional)"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-map"
+              clearable
+              v-model="selectedMatch.fixed_map_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 1"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="selectedMatch.team1_id"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-select
+              :items="teams"
+              item-title="name"
+              item-value="id"
+              label="Team 2"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-shield"
+              v-model="selectedMatch.team2_id"
+            ></v-select>
+          </v-col>
+        </v-row>      
+      </v-card-text>       
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="cancelEdit">Cancel</v-btn>
+        <v-btn color="primary" @click="updateMatch">Save Changes</v-btn>
+      </v-card-actions>        
+    </v-card>
+  </v-dialog>
+  <!-- Delete Confirmation Dialog -->
+  <v-dialog v-model="showDeleteDialog" max-width="400">
+    <v-card>
+      <v-card-title class="bg-error">
+        <v-icon class="mr-2">mdi-alert</v-icon>
+        Confirm Deletion
+      </v-card-title>
+      <v-card-text class="pt-4">
+        Are you sure you want to delete this item? This action cannot be undone.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="cancelDeleteDialog">Cancel</v-btn>
+        <v-btn color="error" @click="confirmDelete">Delete</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+</template>
   
   <script setup>
 import { useRouter, useRoute } from 'vue-router';
@@ -392,6 +507,10 @@ const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);
 const deleteAction = ref(null);
 
+// UI state
+const teamsPanel = ref(null);
+const weekMatchCounts = ref({});
+
 // Compute teams that are not part of the season
 const availableTeams = computed(() => {
   if (!allTeams.value || allTeams.value.length == 0) {
@@ -399,6 +518,24 @@ const availableTeams = computed(() => {
   }
   return allTeams.value.filter(team => !teamStore.teams.some(seasonTeam => seasonTeam.id === team.id));
 });
+
+// Helper to get match count per week (for badges)
+const getWeekMatchCount = (week) => {
+  return weekMatchCounts.value[week] || 0;
+};
+
+// Helper to get score color
+const getScoreColor = (score, opponentScore) => {
+  if (score > opponentScore) return 'success';
+  if (score < opponentScore) return 'error';
+  return 'grey';
+};
+
+// Helper to get map name
+const getMapName = (mapId) => {
+  const map = maps.value.find(m => m.id === mapId);
+  return map?.name || 'Random';
+};
 
 // Team selection methods
 const openTeamSelectionModal = async () => {
@@ -528,6 +665,20 @@ const closeTeamSelectionModal = () => {
   }
 };
 
+const fetchAllWeekMatchCounts = async () => {
+  // Fetch match counts for all weeks to show badges
+  if (!season.value?.number_weeks) return;
+  
+  for (let week = 1; week <= season.value.number_weeks; week++) {
+    try {
+      await matchStore.searchMatchesBySeasonAndPlayday(seasonId, week);
+      weekMatchCounts.value[week] = matches.value.length;
+    } catch (error) {
+      weekMatchCounts.value[week] = 0;
+    }
+  }
+};
+
     const fetchMaps = async () => {
       try {
         await mapStore.fetchMaps();
@@ -585,6 +736,7 @@ const closeTeamSelectionModal = () => {
             ? parseInt(route.hash.replace('#week-', ''), 10) 
             : 1;
           if(selectedWeek.value && weekFromHash!=selectedWeek.value){
+            selectedWeek.value = weekFromHash;
             fetchMatches(weekFromHash);
           }
       }
@@ -599,6 +751,9 @@ onMounted(async () => {
     const weekFromHash = route.hash && route.hash.includes('#week-') 
       ? parseInt(route.hash.replace('#week-', ''), 10) 
       : 1;
+
+    // Set the selected week before fetching
+    selectedWeek.value = weekFromHash;
 
     await Promise.all([
       fetchSeasonDetails(),
@@ -624,68 +779,137 @@ watch(() => route.hash, (newHash) => {
   }
 });
   </script>
-  <style>  
+
+  <style scoped>
+  /* Header Styles */
   #seasonHeader {
     position: relative;
-    color: white;  
-    padding: 25px 0px;
+    color: white;
   }
   
   .banner-image {
-    position: absolute;
-    top: 0;
-    height: 100%; 
-    width: 100%;
+    position: relative;
   }
   
   .banner-overlay {
-    z-index: 0;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: .75;
-    background-color: black;
-  }
-  
-  .banner-content {
-    position: relative;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
     z-index: 1;
   }
 
-  .match-card {
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
+  .season-title {
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    letter-spacing: 1px;
+  }
 
-.team-card {
-  height:200px;
-  padding: 20px;
-  border-radius: 8px;
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  color: white;
-  text-shadow: 1px 1px 5px rgba(0,0,0,0.7);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 150px; /* Adjust height based on design */
-}
+  /* Stat Cards */
+  .stat-card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
 
-.team-name {
-  font-size: 22px;
-  font-weight: bold; /* Add a slight background for text readability */
-  padding: 8px;
-  border-radius: 4px;
-}
-/* Small spacing for inline table action buttons */
-.table-action {
-  margin-right: 8px;
-  margin-bottom: 8px;
-}
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Match Cards */
+  .match-card-enhanced {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+
+  .match-card-enhanced:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  .match-row {
+    min-height: 200px;
+  }
+
+  .team-section {
+    transition: transform 0.2s;
+  }
+
+  .match-card-enhanced:hover .team-section {
+    transform: scale(1.05);
+  }
+
+  .team-avatar {
+    border: 3px solid rgba(var(--v-theme-primary), 0.2);
+    transition: border-color 0.2s;
+  }
+
+  .match-card-enhanced:hover .team-avatar {
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  .team-name-enhanced {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .score-chip {
+    font-size: 1.5rem !important;
+    font-weight: bold;
+    min-width: 60px;
+  }
+
+  .vs-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Team Cards in Expansion Panel */
+  .team-card-enhanced {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+
+  .team-card-enhanced:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  /* Loading Overlay */
+  .loading-overlay {
+    z-index: 9999;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 960px) {
+    .season-title {
+      font-size: 2rem !important;
+    }
+
+    .stat-card .text-h4 {
+      font-size: 1.5rem !important;
+    }
+
+    .match-row {
+      min-height: auto;
+    }
+
+    .team-avatar {
+      width: 60px !important;
+      height: 60px !important;
+    }
+
+    .score-chip {
+      font-size: 1.2rem !important;
+    }
+  }
   </style>
