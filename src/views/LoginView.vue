@@ -27,18 +27,16 @@ function onSubmit(values, { setErrors }) {
             
             <v-card-text class="pt-6">
                 <Form @submit="onSubmit" :validation-schema="schema" v-slot="{ errors, isSubmitting }">
-                    <v-text-field
-                        name="password"
-                        label="Password"
-                        type="password"
-                        variant="outlined"
-                        prepend-inner-icon="mdi-lock-outline"
-                        :error-messages="errors.password"
-                    >
-                        <template v-slot:default="{ field }">
-                            <Field v-bind="field" name="password" type="password" />
-                        </template>
-                    </v-text-field>
+                    <Field name="password" v-slot="{ field, errors: fieldErrors }">
+                        <v-text-field
+                            v-bind="field"
+                            label="Password"
+                            type="password"
+                            variant="outlined"
+                            prepend-inner-icon="mdi-lock-outline"
+                            :error-messages="fieldErrors"
+                        />
+                    </Field>
                     
                     <v-btn
                         type="submit"
