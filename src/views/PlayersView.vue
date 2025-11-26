@@ -616,7 +616,12 @@ const openDeleteDialog = (id, action) => {
   showDeleteDialog.value = true;
 };
 
-const openCreateNew = () => {
+const openCreateNew = async () => {
+  try {
+    if (seasonStore && seasonStore.fetchSeasons) await seasonStore.fetchSeasons();
+  } catch (err) {
+    console.error('Failed to fetch seasons before opening create player dialog:', err);
+  }
   newPlayer.value = {
     name: '',
     battleTag: '',
@@ -653,7 +658,12 @@ const getRowClass = () => ({
 });
 
 
-const editPlayer = (player) => {
+const editPlayer = async (player) => {
+  try {
+    if (seasonStore && seasonStore.fetchSeasons) await seasonStore.fetchSeasons();
+  } catch (err) {
+    console.error('Failed to fetch seasons before opening edit player dialog:', err);
+  }
   selectedPlayer.value = { ...player }; // Clone the user object to avoid modifying the original object directly
   updateError.value = '';
   // prepare signup seasons selection
