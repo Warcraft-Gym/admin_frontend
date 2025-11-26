@@ -27,70 +27,23 @@
         </v-btn>
       </v-card-title>
       <v-card-text class="pt-4">
-        <v-row>
-          <v-col cols="12" md="3">
-            <v-text-field 
-              v-model="searchName" 
-              label="Search Name" 
-              variant="outlined"
-              prepend-inner-icon="mdi-magnify"
-              density="comfortable"
-              clearable
-            ></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="searchRace"
-              :items="races"
-              item-title="name"
-              item-value="name"
-              clearable
-              label="Race"
-              variant="outlined"
-              prepend-inner-icon="mdi-sword"
-              density="comfortable"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2">MMR Range</div>
-            <v-range-slider
-              v-model="rangeValues"
-              :min="0"
-              :max="3000"
-              step="10"
-              hide-details
-              color="primary"
-            >
-              <template v-slot:prepend>
-                <v-text-field 
-                  v-model="rangeValues[0]" 
-                  density="compact" 
-                  single-line 
-                  type="number" 
-                  hide-spin-buttons 
-                  variant="outlined"
-                  style="width: 80px;"
-                ></v-text-field>
-              </template>
-              <template v-slot:append>
-                <v-text-field 
-                  v-model="rangeValues[1]" 
-                  density="compact" 
-                  single-line 
-                  type="number" 
-                  hide-spin-buttons 
-                  variant="outlined"
-                  style="width: 80px;"
-                ></v-text-field>
-              </template>
-            </v-range-slider>
-          </v-col>
-          <v-col cols="12" md="2" class="d-flex align-center">
-            <v-btn color="primary" variant="outlined" @click="clearFilters" block>Clear Filters</v-btn>
-          </v-col>
-        </v-row>
-
-            <v-data-table
+        <FilterPanel
+          v-model:searchName="searchName"
+          v-model:searchRace="searchRace"
+          v-model:rangeValues="rangeValues"
+          :seasons="null"
+          :showName="true"
+          :showRace="true"
+          :showSeason="false"
+          :showMMR="true"
+          :showReset="true"
+          @reset="onResetFilters"
+        >
+          <template #after>
+          </template>
+        </FilterPanel>
+      </v-card-text>
+      <v-data-table
               :headers="playerTableHeaders"
               :items="availablePlayers"
               return-object
@@ -142,7 +95,6 @@
                 <div>No available signed-up players for this season.</div>
               </template>
             </v-data-table>
-      </v-card-text>
       <v-card-actions class="px-4 pb-4">
         <v-btn
           color="primary"
@@ -241,13 +193,16 @@ import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import RaceIcon from '@/components/RaceIcon.vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
+import FilterPanel from '@/components/FilterPanel.vue';
 
 defineOptions({ name: 'SeasonTeamAssignView' });
 
 const router = useRouter();
+
 const seasonId = computed(() => {
   const params = router.currentRoute.value.params || {};
-  return params.season_id || params.id || router.currentRoute.value.query.season_id;
+  const id = params.season_id || params.id || router.currentRoute.value.query.season_id;
+  return id ? Number(id) : null;
 });
 
 const playerStore = usePlayerStore();
@@ -256,7 +211,7 @@ const seasonStore = useSeasonStore();
 
 const { players } = storeToRefs(playerStore);
 const { teams } = storeToRefs(teamStore);
-const { seasons } = storeToRefs(seasonStore);
+const { current_season } = storeToRefs(seasonStore);
 
 // Local state for signed up players
 const signedUpPlayersData = ref([]);
@@ -322,7 +277,7 @@ const fetchData = async () => {
     (seasonId.value && teamStore.fetchTeamsBySeason)
       ? teamStore.fetchTeamsBySeason(seasonId.value)
       : (teamStore.fetchTeams ? teamStore.fetchTeams() : Promise.resolve()),
-    seasonStore.fetchSeasons ? seasonStore.fetchSeasons() : Promise.resolve()
+    seasonStore.fetchSeason ? seasonStore.fetchSeason(seasonId.value) : Promise.resolve()
   ]);
   
   // Fetch signed up users separately
@@ -341,9 +296,7 @@ onMounted(() => {
 });
 
 const seasonName = computed(() => {
-  const sid = String(seasonId.value);
-  const season = (seasons.value || []).find(s => String(s.id) === sid);
-  return season ? season.name : '';
+  return current_season.name;
 });
 
 // players signed up for this season - from local data fetched separately
@@ -358,13 +311,20 @@ const filteredPlayers = computed(() => {
     list = list.filter(p => (p.name || '').toLowerCase().includes(q) || (p.battleTag || '').toLowerCase().includes(q));
   }
   if (searchRace.value) list = list.filter(p => p.race === searchRace.value);
+  
+  // filter by mmr range — only apply if user changed from defaults
+  const DEFAULT_MMR_MIN = 0;
+  const DEFAULT_MMR_MAX = 3000;
   if (Array.isArray(rangeValues.value) && rangeValues.value.length === 2) {
-    const min = Number(rangeValues.value[0] ?? 0);
-    const max = Number(rangeValues.value[1] ?? 3000);
-    list = list.filter(p => {
-      const mmr = Number(p.mmr ?? 0);
-      return mmr >= min && mmr <= max;
-    });
+    const mmrMin = Number(rangeValues.value[0]);
+    const mmrMax = Number(rangeValues.value[1]);
+    const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
+    if (rangeChanged) {
+      list = list.filter(p => {
+        const mmr = Number(p.mmr ?? 0);
+        return mmr >= mmrMin && mmr <= mmrMax;
+      });
+    }
   }
   return list;
 });
@@ -373,6 +333,12 @@ const clearFilters = () => {
   searchName.value = '';
   searchRace.value = null;
   rangeValues.value = [0, 3000];
+};
+
+const onResetFilters = async () => {
+  clearFilters();
+  // refresh available players after clearing filters
+  await fetchData();
 };
 
 // player details dialog state (open by clicking a player's name)
@@ -396,9 +362,12 @@ function getTeamPlayersForSeason(team) {
   if (!team || !team.player_by_season) return [];
   const v = team.player_by_season[sid] || team.player_by_season[Number(sid)];
   if (!v) return [];
-  if (Array.isArray(v)) return v;
-  if (typeof v === 'object') return Object.values(v);
-  return [];
+  let players = [];
+  if (Array.isArray(v)) players = v;
+  else if (typeof v === 'object') players = Object.values(v);
+  
+  // Sort by MMR descending
+  return players.sort((a, b) => (Number(b.mmr) || 0) - (Number(a.mmr) || 0));
 }
 
 // per-team loading state to avoid double-clicks

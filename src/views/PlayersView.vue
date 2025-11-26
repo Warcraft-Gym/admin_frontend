@@ -11,93 +11,24 @@
       </v-col>
     </v-row>
 
-    <!-- Filters -->
-    <v-expansion-panels class="mb-4">
-      <v-expansion-panel>
-        <v-expansion-panel-title class="bg-primary">
-          <v-icon class="mr-2">mdi-filter</v-icon>
-          <span>Filters</span>
-        </v-expansion-panel-title>
-        <v-expansion-panel-text class="pt-4">
-          <v-row>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="searchName"
-                label="Search Player Name"
-                variant="outlined"
-                prepend-inner-icon="mdi-magnify"
-                density="comfortable"
-                clearable
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="4">
-              <RaceSelect v-model="searchRace" />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-select
-                v-model="selectedSeasonFilter"
-                :items="seasons"
-                item-title="name"
-                item-value="id"
-                clearable
-                label="Filter by Season"
-                variant="outlined"
-                prepend-inner-icon="mdi-calendar"
-                density="comfortable"
-              ></v-select>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="12">
-              <div class="text-subtitle-1 font-weight-medium mb-2">
-                <v-icon class="mr-1" size="small">mdi-numeric</v-icon>
-                MMR Range
-              </div>
-              <v-range-slider
-                v-model="rangeValues"
-                :min="0"
-                :max="3000"
-                strict
-                step="10"
-                color="primary"
-                class="align-center"
-                hide-details
-              >
-                <template v-slot:prepend>
-                  <v-text-field
-                    v-model="rangeValues[0]"
-                    density="compact"
-                    disabled
-                    type="number"
-                    hide-details
-                    single-line
-                    variant="outlined"
-                    style="width: 80px"
-                  ></v-text-field>
-                </template>
-                <template v-slot:append>
-                  <v-text-field
-                    v-model="rangeValues[1]"
-                    density="compact"
-                    disabled
-                    type="number"
-                    hide-details
-                    single-line
-                    variant="outlined"
-                    style="width: 80px"
-                  ></v-text-field>
-                </template>
-              </v-range-slider>
-            </v-col>
-          </v-row>
-          <v-row v-if="searchEnabled" justify="center" class="mt-2">
-            <v-col cols="auto">
-              <v-btn @click="fetchPlayers" variant="elevated" prepend-icon="mdi-refresh" color="primary">Reset Filters</v-btn>
-            </v-col>
-          </v-row>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
+    <!-- Filters (extracted to reusable component) -->
+    <FilterPanel
+      v-model:searchName="searchName"
+      v-model:searchRace="searchRace"
+      v-model:selectedSeasonFilter="selectedSeasonFilter"
+      v-model:rangeValues="rangeValues"
+      :seasons="seasons"
+      :showName="true"
+      :showRace="true"
+      :showSeason="true"
+      :showMMR="true"
+      :showReset="true"
+      @reset="fetchPlayers"
+    >
+      <template #after>
+        <!-- Extension slot (if needed) -->
+      </template>
+    </FilterPanel>
     <!-- Main Card -->
     <v-card elevation="2">
       <v-card-title class="bg-primary d-flex align-center">
@@ -124,7 +55,11 @@
               <template v-slot:item="{ item }">
                 <tr class="text-no-wrap">
                   <td>{{ item.id }}</td>
-                  <td>{{ item.name }}</td>
+                  <td>
+                    <span @click.stop="openPlayerDetails(item)" class="player-name-link">
+                      <strong>{{ item.name }}</strong>
+                    </span>
+                  </td>
                   <td>{{ item.battleTag }}</td>
                   <td>
                     <div v-if="item.country">
@@ -163,6 +98,7 @@
                         <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props" size="small"></v-btn>
                       </template>
                       <v-list density="compact">
+                        <!-- details reachable by clicking the player name; keep menu focused on edit/sync/delete -->
                         <v-list-item @click="editPlayer(item)" prepend-icon="mdi-pencil">
                           <v-list-item-title>Edit</v-list-item-title>
                         </v-list-item>
@@ -466,12 +402,21 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    
+    <!-- Player Details Dialog -->
+    <PlayerDetailsDialog 
+      v-model="showPlayerDetails"
+      :player="playerDetails"
+      :seasonId="currentSeasonId"
+    />
   </v-container>
 </template>
 <script setup>
-import { usePlayerStore, useSeasonStore } from '@/stores';
+import { usePlayerStore, useSeasonStore, useConfigStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { onMounted, ref, computed } from 'vue';
+import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
+import FilterPanel from '@/components/FilterPanel.vue';
 
 defineOptions({
   name: 'PlayersView'
@@ -500,6 +445,7 @@ const newPlayer = ref({
 const selectedSignupSeasonIdsNew = ref([]);
 const playerStore = usePlayerStore();
 const seasonStore = useSeasonStore();
+const configStore = useConfigStore();
 const { players } = storeToRefs(playerStore);
 const { seasons } = storeToRefs(seasonStore);
 // filter for season in the grid
@@ -529,13 +475,19 @@ const filteredPlayers = computed(() => {
   }
 
   // filter by mmr range
+  // filter by mmr range — only apply if user changed from defaults
+  const DEFAULT_MMR_MIN = 0;
+  const DEFAULT_MMR_MAX = 3000;
   if (Array.isArray(rangeValues.value) && rangeValues.value.length === 2) {
-    const min = Number(rangeValues.value[0] ?? 0);
-    const max = Number(rangeValues.value[1] ?? 3000);
-    list = list.filter(p => {
-      const mmr = Number(p.mmr ?? 0);
-      return mmr >= min && mmr <= max;
-    });
+      const mmrMin = Number(rangeValues.value[0]);
+      const mmrMax = Number(rangeValues.value[1]);
+    const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
+    if (rangeChanged) {
+      list = list.filter(p => {
+        const mmr = Number(p.mmr ?? 0);
+        return mmr >= mmrMin && mmr <= mmrMax;
+      });
+    }
   }
 
   return list;
@@ -592,25 +544,71 @@ const fetchPlayers = async () => {
     }
   } catch (error) {
     errorMessage.value = 'Failed to load users. Please try again later.';
-  } finally {
+    } finally {
     isLoading.value = false;
 
     //reset placeholders
     searchEnabled.value = false;
     searchName.value = ''
     searchRace.value = ''
-    rangeValues.value[0] = '0'
-    rangeValues.value[1] = '3000'
+    // reset season filter as well
+    selectedSeasonFilter.value = null;
+    // keep numeric defaults
+    rangeValues.value = [0, 3000];
   }
 };
 
-onMounted( () => {
-  fetchPlayers();
-  seasonStore.fetchSeasons();
+onMounted( async () => {
+  await fetchPlayers();
+  // ensure seasons are loaded and resolve the current season id
+  await resolveCurrentSeasonId();
 });
+
+// Open player details dialog and ensure we have the player's data
+const openPlayerDetails = async (player) => {
+  // ensure currentSeasonId is resolved
+  if (!currentSeasonId.value) await resolveCurrentSeasonId();
+
+  // if player object doesn't include stats, we rely on the players list
+  playerDetails.value = player;
+  showPlayerDetails.value = true;
+};
 
 // per-player sync status map: { [playerId]: { state: 'loading'|'success'|'error', message?: string } }
 const perPlayerSyncStatus = ref({});
+
+// Player details dialog state
+const showPlayerDetails = ref(false);
+const playerDetails = ref(null);
+
+// current season id preference (resolved from settings or fallback)
+const currentSeasonId = ref(null);
+
+// Resolve and store the current season id (prefers config setting, falls back to latest season)
+async function resolveCurrentSeasonId() {
+  let resolvedSeasonId = null;
+  try {
+    const setting = await configStore.fetchSetting('current_gnl_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) resolvedSeasonId = num;
+    }
+  } catch (err) {
+    // ignore — we'll fallback to seasons list
+  }
+
+  if (!resolvedSeasonId) {
+    try {
+      await seasonStore.fetchSeasons();
+      const latest = (seasons.value || []).slice().sort((a,b) => b.id - a.id)[0];
+      if (latest) resolvedSeasonId = latest.id;
+    } catch (err) {
+      console.error('Failed to fetch seasons for fallback current season id:', err);
+    }
+  }
+
+  currentSeasonId.value = resolvedSeasonId;
+}
 
 const openDeleteDialog = (id, action) => {
   selectedDeleteItemId.value = id;
@@ -654,10 +652,6 @@ const getRowClass = () => ({
   class: 'player-row'
 });
 
-const searchPlayer = async () => {
-  // Apply client-side filters only. Backend is not queried here.
-  searchEnabled.value = true;
-};
 
 const editPlayer = (player) => {
   selectedPlayer.value = { ...player }; // Clone the user object to avoid modifying the original object directly
@@ -799,5 +793,15 @@ const cancelAddNewPlayer = () => {
 
 .player-row:hover {
   background-color: rgba(var(--v-theme-primary), 0.05) !important;
+}
+
+.player-name-link {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.player-name-link:hover {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
 }
 </style>

@@ -134,90 +134,18 @@
       </v-card-title>
 
       <v-card-text class="pt-4">
-        <!-- Filters -->
-        <v-expansion-panels class="mb-4">
-          <v-expansion-panel>
-            <v-expansion-panel-title class="bg-secondary">
-              <v-icon class="mr-2">mdi-filter</v-icon>
-              <span>Filters</span>
-            </v-expansion-panel-title>
-            <v-expansion-panel-text class="pt-4">
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="searchName"
-                    label="Search Player Name"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-magnify"
-                    density="comfortable"
-                    clearable
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-select
-                    v-model="searchRace"
-                    clearable
-                    label="Race"
-                    :items="races"
-                    item-title="name"
-                    item-value="name"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-sword"
-                    density="comfortable"
-                  ></v-select>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <div class="text-subtitle-1 font-weight-medium mb-2">
-                    <v-icon class="mr-1" size="small">mdi-numeric</v-icon>
-                    MMR Range
-                  </div>
-                  <v-range-slider
-                    v-model="rangeValues"
-                    :min="0"
-                    :max="3000"
-                    strict
-                    step="10"
-                    color="primary"
-                    class="align-center"
-                    hide-details
-                  >
-                    <template v-slot:prepend>
-                      <v-text-field
-                        v-model="rangeValues[0]"
-                        density="compact"
-                        disabled
-                        type="number"
-                        hide-details
-                        single-line
-                        variant="outlined"
-                        style="width: 80px"
-                      ></v-text-field>
-                    </template>
-                    <template v-slot:append>
-                      <v-text-field
-                        v-model="rangeValues[1]"
-                        density="compact"
-                        disabled
-                        type="number"
-                        hide-details
-                        single-line
-                        variant="outlined"
-                        style="width: 80px"
-                      ></v-text-field>
-                    </template>
-                  </v-range-slider>
-                </v-col>
-              </v-row>
-              <v-row v-if="searchEnabled" justify="center" class="mt-2">
-                <v-col cols="auto">
-                  <v-btn @click="fetchAllPlayers" variant="elevated" prepend-icon="mdi-refresh" color="primary">Reset Filters</v-btn>
-                </v-col>
-              </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+        <!-- Filters (reusable) -->
+        <FilterPanel
+          v-model:searchName="searchName"
+          v-model:searchRace="searchRace"
+          v-model:rangeValues="rangeValues"
+          :showName="true"
+          :showRace="true"
+          :showSeason="false"
+          :showMMR="true"
+          :showReset="true"
+          @reset="fetchAllPlayers"
+        />
         <v-data-table
           :headers="playerTableHeaders"
           :items="filteredAllPlayers"
@@ -262,6 +190,7 @@ import { storeToRefs } from 'pinia';
 import FlagIcon from '@/components/FlagIcon.vue';
 import RaceIcon from '@/components/RaceIcon.vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
+import FilterPanel from '@/components/FilterPanel.vue';
 
 defineOptions({ name: 'SeasonTeamDetailsView' });
 
@@ -272,7 +201,10 @@ const playerStore = usePlayerStore();
 
 // Route params
 const teamId = computed(() => router.currentRoute.value.params.id);
-const seasonId = computed(() => router.currentRoute.value.params.season_id);
+const seasonId = computed(() => {
+  const id = router.currentRoute.value.params.season_id;
+  return id ? Number(id) : null;
+});
 
 // Store refs
 const { team } = storeToRefs(teamStore);
@@ -456,13 +388,19 @@ const filteredAllPlayers = computed(() => {
     list = list.filter(p => p.race === searchRace.value);
   }
 
+  // filter by mmr range — only apply if user changed from defaults
+  const DEFAULT_MMR_MIN = 0;
+  const DEFAULT_MMR_MAX = 3000;
   if (Array.isArray(rangeValues.value) && rangeValues.value.length === 2) {
-    const min = Number(rangeValues.value[0] ?? 0);
-    const max = Number(rangeValues.value[1] ?? 3000);
-    list = list.filter(p => {
-      const mmr = Number(p.mmr ?? 0);
-      return mmr >= min && mmr <= max;
-    });
+    const mmrMin = Number(rangeValues.value[0]);
+    const mmrMax = Number(rangeValues.value[1]);
+    const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
+    if (rangeChanged) {
+      list = list.filter(p => {
+        const mmr = Number(p.mmr ?? 0);
+        return mmr >= mmrMin && mmr <= mmrMax;
+      });
+    }
   }
 
   return list;

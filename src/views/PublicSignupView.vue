@@ -17,6 +17,13 @@
           <v-alert type="error">Token is invalid: {{ tokenInvalidReason }}</v-alert>
         </div>
         <div v-else>
+          <v-alert type="info" variant="tonal" border="start" class="mb-4">
+            <div><strong>Name:</strong> The player name — choose freely (this is how players are shown in the UI).</div>
+            <div><strong>BattleTag:</strong> Your BattleNet / W3C ID in the format <code>Name#123456</code>. You can find it on your W3C profile — <a href="https://w3champions.com/" target="_blank" rel="noopener noreferrer">W3Champions</a>.</div>
+            <div><strong>Player Country:</strong> Country you live in — this helps with scheduling matches.</div>
+            <div><strong>Race:</strong> The race you plan to play in the league. It can be changed until the league starts; after the draft changes require agreement from your team captain.</div>
+            <div><strong>Signup Race MMR:</strong> Current MMR for the selected race on W3Champions.</div>
+          </v-alert>
           <v-form ref="formRef" @submit.prevent="onSubmit">
             <v-row :dense="true">
               <v-col cols="12" md="6">
@@ -25,6 +32,7 @@
                   v-model="discordId" 
                   label="Discord ID" 
                   variant="outlined"
+                  required
                   prepend-inner-icon="mdi-identifier"
                   readonly 
                 />
@@ -35,6 +43,7 @@
                   v-model="discordTag" 
                   label="Discord Tag" 
                   variant="outlined"
+                  required
                   prepend-inner-icon="mdi-discord"
                   readonly 
                 />
@@ -54,9 +63,10 @@
               <v-col cols="12" md="6">
                 <v-text-field 
                   v-model="battleTag" 
-                  label="Player BattleTag (#EAShibby12342)" 
+                  label="Player BattleTag (EAShibby#12342)" 
                   variant="outlined"
                   prepend-inner-icon="mdi-pound"
+                  :rules="battleTagRules"
                   required 
                 />
               </v-col>
@@ -64,10 +74,10 @@
 
             <v-row :dense="true">
               <v-col cols="12" md="6">
-                <CountrySelect v-model="country" />
+                <CountrySelect v-model="country" required />
               </v-col>
               <v-col cols="12" md="6">
-                <RaceSelect v-model="race" />
+                <RaceSelect v-model="race" required />
               </v-col>
             </v-row>
 
@@ -78,6 +88,7 @@
                   control-variant="hidden" 
                   label="Signup Race MMR" 
                   variant="outlined"
+                  required
                   prepend-inner-icon="mdi-chart-line"
                   :hideInput="false" 
                   :inset="false" 
@@ -92,7 +103,7 @@
                   variant="elevated"
                   prepend-icon="mdi-check"
                   type="submit" 
-                  :disabled="submitting || success"
+                  :disabled="submitting || success || !isFormValid"
                 >
                   Complete signup
                 </v-btn>
@@ -109,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 // token validation/consumption is handled server-side via backend endpoints
 import { useSeasonStore, useConfigStore } from '@/stores';
@@ -136,6 +147,26 @@ const submitting = ref(false);
 const success = ref(false);
 const submitError = ref('');
 const seasonName = ref('');
+
+const isFormValid = computed(() => {
+  // require the token-populated discord fields and all user-provided fields
+  const discordOk = !!discordId.value && !!discordTag.value;
+  const nameOk = !!name.value && String(name.value).trim().length > 0;
+  const battleOk = !!battleTag.value && String(battleTag.value).trim().length > 0;
+  // enforce BattleTag format like Name#123456
+  const battleTagRegex = /^\S+#\d+$/;
+  const battleFormatOk = battleOk && battleTagRegex.test(String(battleTag.value));
+  const countryOk = !!country.value && String(country.value).trim().length > 0;
+  const raceOk = !!race.value && String(race.value).trim().length > 0;
+  const mmrOk = mmr.value !== null && mmr.value !== undefined && String(mmr.value).trim().length > 0;
+  return discordOk && nameOk && battleOk && countryOk && raceOk && mmrOk && battleFormatOk;
+});
+
+// Vuetify field rules for immediate UI feedback
+const battleTagRules = [
+  v => (!!v && String(v).trim().length > 0) || 'BattleTag is required',
+  v => (/^\S+#\d+$/.test(String(v || ''))) || 'BattleTag must be like Name#123456'
+];
 
 const seasonStore = useSeasonStore();
 const configStore = useConfigStore();
@@ -209,6 +240,12 @@ onMounted(async () => {
 
 async function onSubmit() {
   submitError.value = '';
+  // basic client-side validation
+  if (!isFormValid.value) {
+    submitError.value = 'Please fill all required fields before submitting.';
+    return;
+  }
+
   submitting.value = true;
   try {
     // Build payload and call the new public signup endpoint which creates the user
