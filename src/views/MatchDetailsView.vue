@@ -1188,7 +1188,12 @@ const editSeries = async (series) => {
         zone: "America/New_York"
       }
     );
-    selectedDate.value = initialDateTime.toJSDate(); // Date only
+    // Create date in local timezone but with ET date/time values (no conversion)
+    selectedDate.value = new Date(
+      initialDateTime.year,
+      initialDateTime.month - 1,
+      initialDateTime.day
+    );
     selectedTime.value = initialDateTime.toFormat("HH:mm"); // Time only
   }
 
@@ -1203,11 +1208,17 @@ const updateSeries = async () => {
   isLoading.value = true;
   updateSeriesError.value = '';
   try{
+    // Get date components from the local date picker (which shows ET values)
+    const year = selectedDate.value.getFullYear();
+    const month = selectedDate.value.getMonth() + 1; // getMonth() is 0-indexed
+    const day = selectedDate.value.getDate();
+    
     // Combine selected date and time directly in ET timezone
-    const etDate = DateTime.fromJSDate(selectedDate.value).setZone("America/New_York");
-    const combinedDateTime = DateTime.fromISO(`${etDate.toISODate()}T${selectedTime.value}`, {
-      zone: "America/New_York"
-    });
+    const combinedDateTime = DateTime.fromISO(
+      `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${selectedTime.value}`, 
+      { zone: "America/New_York" }
+    );
+    
     // Update series.date_time with the formatted ISO datetime in ET
     selectedSeries.value.date_time = combinedDateTime.toISO();
     await seriesStore.updateSeries(selectedSeries.value);
