@@ -63,7 +63,8 @@
         </v-chip>
       </v-card-title>
       
-      <v-card-text class="pa-0">
+      <!-- Desktop: Data Table -->
+      <v-card-text v-if="!isMobile" class="pa-0">
       <v-data-table
         :headers="headers"
         :items="series"
@@ -124,6 +125,79 @@
           </v-btn>
         </template>
       </v-data-table>
+      </v-card-text>
+
+      <!-- Mobile: Card Layout -->
+      <v-card-text v-if="isMobile" class="pa-4">
+        <v-card
+          v-for="item in series"
+          :key="item.id"
+          elevation="1"
+          class="mb-4"
+        >
+          <v-card-text>
+            <div class="d-flex justify-space-between align-center mb-3">
+              <div>
+                <div class="text-caption text-grey">Opponent</div>
+                <div class="text-h6">
+                  <span v-if="item.player1_id === playerData.player.id">
+                    {{ item.player2?.name || `Player ${item.player2_id}` }}
+                  </span>
+                  <span v-else>
+                    {{ item.player1?.name || `Player ${item.player1_id}` }}
+                  </span>
+                </div>
+              </div>
+              <v-chip
+                :color="getScoreColor(item)"
+                variant="outlined"
+              >
+                {{ item.player1_score || 0 }} - {{ item.player2_score || 0 }}
+              </v-chip>
+            </div>
+
+            <v-divider class="my-3"></v-divider>
+
+            <div class="mb-2">
+              <div class="text-caption text-grey">Date & Time</div>
+              <div>{{ formatDateTime(item.date_time) }}</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="text-caption text-grey">Week</div>
+              <div>{{ item.match?.playday || 'TBD' }}</div>
+            </div>
+
+            <div class="d-flex flex-column gap-2">
+              <v-btn
+                color="primary"
+                variant="elevated"
+                block
+                prepend-icon="mdi-calendar-edit"
+                @click="editSchedule(item)"
+                :loading="scheduleSavingId === item.id"
+                :disabled="scheduleSavingId === item.id || scoreSavingId === item.id"
+              >
+                Edit Schedule
+              </v-btn>
+              <v-btn
+                color="success"
+                variant="elevated"
+                block
+                prepend-icon="mdi-trophy"
+                @click="reportResult(item)"
+                :loading="scoreSavingId === item.id"
+                :disabled="scoreSavingId === item.id || scheduleSavingId === item.id"
+              >
+                Report Result
+              </v-btn>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-alert v-if="series.length === 0" type="info" variant="tonal">
+          No series scheduled yet.
+        </v-alert>
       </v-card-text>
     </v-card>
   </v-container>
@@ -248,11 +322,20 @@ import { fetchWrapper } from '@/helpers';
 import SimpleTimePicker from '@/components/SimpleTimePicker.vue';
 import SimpleDatePicker from '@/components/SimpleDatePicker.vue';
 import { DateTime } from 'luxon';
+import { useDisplay } from 'vuetify';
 
 defineOptions({ name: 'PlayerDashboardView' })
 
 const route = useRoute();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const { mobile, mdAndUp } = useDisplay();
+
+// Computed property for mobile detection
+const isMobile = computed(() => {
+  // Use Vuetify's display breakpoint, or fallback to window width
+  if (mobile !== undefined) return mobile.value;
+  return window.innerWidth < 960;
+});
 
 // State
 const isLoading = ref(true);
@@ -410,9 +493,9 @@ const saveBet = async () => {
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return 'Not set';
   try {
-    // Backend stores datetime in ET as naive datetime (e.g., "2025-01-15 18:00:00")
-    // Parse it as ET and display in user's local timezone
-    const dt = DateTime.fromISO(dateTimeStr, { zone: 'America/New_York' });
+    // Backend stores datetime in UTC as naive datetime (e.g., "2025-01-15 18:00:00")
+    // Parse it as UTC and display in user's local timezone
+    const dt = DateTime.fromISO(dateTimeStr + 'Z', { zone: 'UTC' });
     
     if (!dt.isValid) return dateTimeStr;
     
@@ -447,13 +530,13 @@ const editSchedule = (item) => {
   let time = '';
 
   if (item.date_time) {
-    // Backend stores datetime in ET as naive datetime (no timezone info)
-    // Parse as ET and convert to user's local timezone
-    const etDateTime = DateTime.fromISO(item.date_time, { zone: 'America/New_York' });
+    // Backend stores datetime in UTC as naive datetime (no timezone info)
+    // Parse as UTC and convert to user's local timezone
+    const utcDateTime = DateTime.fromISO(item.date_time + 'Z', { zone: 'UTC' });
     
-    if (etDateTime.isValid) {
+    if (utcDateTime.isValid) {
       // Convert to local timezone
-      const localDateTime = etDateTime.toLocal();
+      const localDateTime = utcDateTime.toLocal();
       
       // Format for pickers
       date = localDateTime.toFormat('MM/dd/yyyy');
@@ -478,7 +561,7 @@ const closeSchedule = () => {
 const saveSchedule = async () => {
   scheduleSavingId.value = scheduleSeries.value.id;
   try {
-    let etDateTime = null;
+    let utcDateTime = null;
     if (scheduleSeries.value.date && scheduleSeries.value.time) {
       let year, month, day, hour, minute;
       
@@ -508,17 +591,17 @@ const saveSchedule = async () => {
         // Create datetime in user's local timezone
         const localDateTime = DateTime.local(year, month, day, hour, minute);
         
-        // Convert to ET timezone
-        const etDateTimeObj = localDateTime.setZone('America/New_York');
+        // Convert to UTC
+        const utcDateTimeObj = localDateTime.toUTC();
         
-        // Format as required by backend: "YYYY-MM-DD HH:mm:ss"
-        etDateTime = etDateTimeObj.toFormat('yyyy-MM-dd HH:mm:ss');
+        // Format as required by backend: "YYYY-MM-DD HH:mm:ss" (without 'Z')
+        utcDateTime = utcDateTimeObj.toFormat('yyyy-MM-dd HH:mm:ss');
       }
     }
 
     const formData = new FormData();
     formData.append('token', token.value);
-    if (etDateTime) formData.append('date_time', etDateTime);
+    if (utcDateTime) formData.append('date_time', utcDateTime);
     formData.append('action', 'scheduled');
 
     const response = await fetch(`${backendUrl}/player-series/${scheduleSeries.value.id}`, {

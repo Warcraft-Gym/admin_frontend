@@ -1018,10 +1018,10 @@ const formateDate = ( dateToFormat ) => {
   if (!dateToFormat) {
     return dateToFormat;
   }
-  // Display ET time as stored in database (no conversion)
-  const formatedDate = DateTime.fromISO(dateToFormat, {
-    zone: "America/New_York"
-  }).toLocaleString(DateTime.DATETIME_MED);
+  // Backend stores UTC, convert to ET for display
+  const formatedDate = DateTime.fromISO(dateToFormat + 'Z', { zone: 'UTC' })
+    .setZone('America/New_York')
+    .toLocaleString(DateTime.DATETIME_MED);
   return formatedDate
 }
 
@@ -1182,12 +1182,10 @@ const editSeries = async (series) => {
   updateSeriesError.value = '';
   selectedSeries.value = copy_series;
   if (copy_series.date_time) {
-    // Keep in ET timezone (no conversion to local)
-    const initialDateTime = DateTime.fromISO(
-      copy_series.date_time,{
-        zone: "America/New_York"
-      }
-    );
+    // Backend stores UTC, convert to ET for display in date picker
+    const initialDateTime = DateTime.fromISO(copy_series.date_time + 'Z', { zone: 'UTC' })
+      .setZone('America/New_York');
+    
     // Create date in local timezone but with ET date/time values (no conversion)
     selectedDate.value = new Date(
       initialDateTime.year,
@@ -1213,14 +1211,15 @@ const updateSeries = async () => {
     const month = selectedDate.value.getMonth() + 1; // getMonth() is 0-indexed
     const day = selectedDate.value.getDate();
     
-    // Combine selected date and time directly in ET timezone
-    const combinedDateTime = DateTime.fromISO(
+    // Parse user input as ET timezone, then convert to UTC for backend
+    const etDateTime = DateTime.fromISO(
       `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${selectedTime.value}`, 
       { zone: "America/New_York" }
     );
     
-    // Update series.date_time with the formatted ISO datetime in ET
-    selectedSeries.value.date_time = combinedDateTime.toISO();
+    // Convert to UTC and format as ISO string without 'Z' (backend expects this format)
+    const utcDateTime = etDateTime.toUTC();
+    selectedSeries.value.date_time = utcDateTime.toFormat("yyyy-MM-dd'T'HH:mm:ss");
     await seriesStore.updateSeries(selectedSeries.value);
     await fetchMatchSeries(); // Refresh match details after creation
     cancelEditSeries();
