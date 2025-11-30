@@ -273,7 +273,8 @@
                   label="Game 1 Replay" 
                   variant="outlined"
                   accept=".w3g" 
-                  prepend-icon="mdi-file-upload" 
+                  prepend-icon="mdi-file-upload"
+                  :rules="[rules.w3gFile]"
                 />
               </v-col>
             </v-row>
@@ -284,7 +285,8 @@
                   label="Game 2 Replay" 
                   variant="outlined"
                   accept=".w3g" 
-                  prepend-icon="mdi-file-upload" 
+                  prepend-icon="mdi-file-upload"
+                  :rules="[rules.w3gFile]"
                 />
               </v-col>
             </v-row>
@@ -296,7 +298,7 @@
                   variant="outlined"
                   accept=".w3g" 
                   prepend-icon="mdi-file-upload" 
-                  :rules="[rules.required]" 
+                  :rules="[rules.required, rules.w3gFile]" 
                   required 
                   :hint="'Required for 2:1 or 1:2 results'" 
                 />
@@ -365,7 +367,12 @@ const userTimezone = computed(() => {
 
 // Validation rules
 const rules = {
-  required: (value) => !!value || 'This field is required'
+  required: (value) => !!value || 'This field is required',
+  w3gFile: (value) => {
+    if (!value || !(value instanceof File)) return true;
+    const fileName = value.name.toLowerCase();
+    return fileName.endsWith('.w3g') || 'Only .w3g replay files are allowed';
+  }
 };
 
 const headers = [
@@ -712,6 +719,10 @@ const isScheduleValid = computed(() => {
 // Validate score: allowed score combinations and required files present
 const isScoreValid = computed(() => {
   if (!scoreSeries.value) return false;
+  
+  // Check if form is valid (includes file validation rules)
+  if (!scoreFormValid.value) return false;
+  
   const p1 = parseInt(scoreSeries.value.player1_score);
   const p2 = parseInt(scoreSeries.value.player2_score);
   if (Number.isNaN(p1) || Number.isNaN(p2)) return false;
@@ -749,5 +760,16 @@ onMounted(() => {
 
 .text-primary {
   color: rgb(var(--v-theme-primary)) !important;
+}
+
+/* Truncate long filenames in file input */
+:deep(.v-file-input .v-field__input) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.v-file-input .v-field__input > input) {
+  text-overflow: ellipsis;
 }
 </style>
