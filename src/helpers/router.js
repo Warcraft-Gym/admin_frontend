@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
-import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView, FantasyLeaderboardView, FantasyBetsView, FantasyDashboardView, UserGuideView } from '@/views';
+import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView, FantasyLeaderboardView, FantasyBetsView, FantasyDashboardView, FantasyTiersView, UserGuideView } from '@/views';
 
 export const router = createRouter({
     history: createWebHashHistory(),
@@ -23,6 +23,7 @@ export const router = createRouter({
         { path: '/config', component: ConfigView},
         { path: '/fantasy', component: FantasyLeaderboardView},
         { path: '/fantasy/bets', component: FantasyBetsView},
+        { path: '/fantasy/tiers', component: FantasyTiersView},
         { path: '/user-guide', component: UserGuideView},
         
     ]

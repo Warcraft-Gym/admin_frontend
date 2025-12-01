@@ -53,6 +53,9 @@ const showNavLinks = () => {
                             <v-list-item>
                                 <RouterLink to="/fantasy/bets">Manage Bets</RouterLink>
                             </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/fantasy/tiers">Player Tiers</RouterLink>
+                            </v-list-item>
                         </v-list>
                     </v-menu>
                     <v-list-item>
