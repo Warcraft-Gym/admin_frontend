@@ -214,7 +214,7 @@
                   <v-text-field
                     v-model="settingsMap.signup_channel_id"
                     label="Signup Channel ID"
-                    hint="Discord channel for player signups"
+                    hint="Discord channel for player signup button"
                     variant="outlined"
                     prepend-inner-icon="mdi-account-plus"
                   ></v-text-field>
@@ -222,21 +222,11 @@
 
                 <v-col cols="12" md="4">
                   <v-text-field
-                    v-model="settingsMap.scheduling_channel_id"
-                    label="Scheduling Channel ID"
-                    hint="Discord channel for match scheduling"
+                    v-model="settingsMap.dashboard_channel_id"
+                    label="Player Dashboard Channel ID"
+                    hint="Discord channel for player dashboard button"
                     variant="outlined"
-                    prepend-inner-icon="mdi-calendar-clock"
-                  ></v-text-field>
-                </v-col>
-
-                <v-col cols="12" md="4">
-                  <v-text-field
-                    v-model="settingsMap.results_channel_id"
-                    label="Results Channel ID"
-                    hint="Discord channel for match results"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-trophy-outline"
+                    prepend-inner-icon="mdi-view-dashboard"
                   ></v-text-field>
                 </v-col>
 
@@ -244,9 +234,29 @@
                   <v-text-field
                     v-model="settingsMap.fantasy_dashboard_channel_id"
                     label="Fantasy Dashboard Channel ID"
-                    hint="Discord channel for fantasy league dashboard"
+                    hint="Discord channel for fantasy league dashboard button"
                     variant="outlined"
-                    prepend-inner-icon="mdi-view-dashboard"
+                    prepend-inner-icon="mdi-dice-multiple"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="settingsMap.scheduling_channel_id"
+                    label="Scheduling Channel ID"
+                    hint="Where match scheduling notifications are posted"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-calendar-clock"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="settingsMap.results_channel_id"
+                    label="Results Channel ID"
+                    hint="Where match results and replays are posted"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-trophy-outline"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -293,6 +303,10 @@
               <li><strong>Discord IDs:</strong> Role and channel IDs can be found by enabling Developer Mode in Discord and right-clicking on roles/channels.</li>
               <li><strong>Current GNL Season:</strong> The current season is used for public player signups, fantasy team registration, and all league operations.</li>
               <li><strong>W3Champions:</strong> The W3C season and URL are used for fetching player statistics and MMR data.</li>
+              <li><strong>Player Dashboard Channel:</strong> The channel where the player dashboard button is posted for users to access their dashboard.</li>
+              <li><strong>Scheduling Channel:</strong> Where scheduling notifications are posted when players schedule their matches via the dashboard.</li>
+              <li><strong>Results Channel:</strong> Where score update notifications and replay files are posted when players submit results via the dashboard.</li>
+              <li><strong>Fantasy Dashboard Channel:</strong> The channel where the fantasy league dashboard button is posted.</li>
             </ul>
           </v-card-text>
         </v-card>
@@ -334,6 +348,7 @@ const settingsMap = ref({
   captain_coach_role: '',
   admin_role: '',
   signup_channel_id: '',
+  player_dashboard_channel_id: '',
   scheduling_channel_id: '',
   results_channel_id: '',
   fantasy_dashboard_channel_id: ''
