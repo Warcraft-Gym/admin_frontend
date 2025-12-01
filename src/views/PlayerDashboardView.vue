@@ -248,21 +248,25 @@
               <v-col cols="6">
                 <v-text-field 
                   v-model="scoreSeries.player1_score" 
-                  label="Your Score" 
+                  :label="scoreSeries.player1_name || ''" 
                   variant="outlined"
                   prepend-inner-icon="mdi-numeric"
                   type="number" 
                   min="0" 
+                  :hint="scoreSeries.isPlayer1Current ? '(You)' : ''" 
+                  persistent-hint
                 />
               </v-col>
               <v-col cols="6">
                 <v-text-field 
                   v-model="scoreSeries.player2_score" 
-                  label="Opponent Score" 
+                  :label="scoreSeries.player2_name || ''" 
                   variant="outlined"
                   prepend-inner-icon="mdi-numeric"
                   type="number" 
                   min="0" 
+                  :hint="scoreSeries.isPlayer2Current ? '(You)' : ''" 
+                  persistent-hint
                 />
               </v-col>
             </v-row>
@@ -634,10 +638,16 @@ const saveSchedule = async () => {
 
 // Report result handlers
 const reportResult = (item) => {
+  const isPlayer1 = item.player1_id === playerData.value?.player?.id;
+  
   scoreSeries.value = {
     id: item.id,
     player1_score: item.player1_score || 0,
     player2_score: item.player2_score || 0,
+    player1_name: item.player1?.name || `Player ${item.player1_id}`,
+    player2_name: item.player2?.name || `Player ${item.player2_id}`,
+    isPlayer1Current: isPlayer1,
+    isPlayer2Current: !isPlayer1,
     game1File: null,
     game2File: null,
     game3File: null
