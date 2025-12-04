@@ -534,7 +534,7 @@
         <v-btn color="grey" variant="text" @click="closeBet" :disabled="isBetSaving">Cancel</v-btn>
         <v-btn 
           color="purple" 
-          :disabled="!selectedBetWinnerId || isBetSaving || (!useFixedBetPoints && (betPointsError || !betPoints))" 
+          :disabled="!selectedBetWinnerId || isBetSaving || (!useFixedBetPoints && (!!betPointsError || !betPoints))" 
           :loading="isBetSaving" 
           @click="saveBet"
         >
@@ -996,21 +996,20 @@ const saveBet = async () => {
   isBetSaving.value = true;
   try {
     const betData = {
+      token: playerToken.value,
       series_id: betSeries.value.id,
       season_id: teamForm.value.season_id,
-      user_id: playerData.value.user.id,
       winner_id: selectedBetWinnerId.value,
-      bet_points: betPoints.value, // Send as-is, backend will apply fixed points if configured
-      bet_result: null // Will be determined when series is complete
+      bet_points: betPoints.value // Send as-is, backend will apply fixed points if configured
     };
 
     if (betSeries.value.myBet) {
-      // Update existing bet
-      await fantasyStore.updateBet(betSeries.value.myBet.id, betData);
+      // Update existing bet using public endpoint
+      await fantasyStore.public_updateBet(betSeries.value.myBet.id, betData);
       successMessage.value = 'Bet updated successfully!';
     } else {
-      // Create new bet
-      await fantasyStore.createBet(betData);
+      // Create new bet using public endpoint
+      await fantasyStore.public_createBet(betData);
       successMessage.value = 'Bet placed successfully!';
     }
 
@@ -1029,7 +1028,7 @@ const deleteBet = async () => {
   
   isBetSaving.value = true;
   try {
-    await fantasyStore.deleteBet(betSeries.value.myBet.id);
+    await fantasyStore.public_deleteBet(betSeries.value.myBet.id, playerToken.value);
     successMessage.value = 'Bet deleted successfully!';
     closeBet();
     await fetchFantasyData(); // Refresh fantasy data

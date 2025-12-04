@@ -1206,20 +1206,27 @@ const updateSeries = async () => {
   isLoading.value = true;
   updateSeriesError.value = '';
   try{
-    // Get date components from the local date picker (which shows ET values)
-    const year = selectedDate.value.getFullYear();
-    const month = selectedDate.value.getMonth() + 1; // getMonth() is 0-indexed
-    const day = selectedDate.value.getDate();
+    // Only process date/time if both are provided
+    if (selectedDate.value && selectedTime.value) {
+      // Get date components from the local date picker (which shows ET values)
+      const year = selectedDate.value.getFullYear();
+      const month = selectedDate.value.getMonth() + 1; // getMonth() is 0-indexed
+      const day = selectedDate.value.getDate();
+      
+      // Parse user input as ET timezone, then convert to UTC for backend
+      const etDateTime = DateTime.fromISO(
+        `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${selectedTime.value}`, 
+        { zone: "America/New_York" }
+      );
+      
+      // Convert to UTC and format as ISO string without 'Z' (backend expects this format)
+      const utcDateTime = etDateTime.toUTC();
+      selectedSeries.value.date_time = utcDateTime.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+    } else {
+      // If date/time not set, ensure it's null
+      selectedSeries.value.date_time = null;
+    }
     
-    // Parse user input as ET timezone, then convert to UTC for backend
-    const etDateTime = DateTime.fromISO(
-      `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${selectedTime.value}`, 
-      { zone: "America/New_York" }
-    );
-    
-    // Convert to UTC and format as ISO string without 'Z' (backend expects this format)
-    const utcDateTime = etDateTime.toUTC();
-    selectedSeries.value.date_time = utcDateTime.toFormat("yyyy-MM-dd'T'HH:mm:ss");
     await seriesStore.updateSeries(selectedSeries.value);
     await fetchMatchSeries(); // Refresh match details after creation
     cancelEditSeries();

@@ -132,6 +132,53 @@ export const useFantasyStore = defineStore({
             }
             
             return await response.json();
+        },
+
+        async public_createBet(payload) {
+            const response = await fetch(`${backendUrl}/fantasy-bet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw errorData;
+            }
+            
+            return await response.json();
+        },
+
+        async public_updateBet(betId, payload) {
+            const response = await fetch(`${backendUrl}/fantasy-bet/${betId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw errorData;
+            }
+            
+            return await response.json();
+        },
+
+        async public_deleteBet(betId, token) {
+            const response = await fetch(`${backendUrl}/fantasy-bet/${betId}?token=${token}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw errorData;
+            }
+            
+            return;
         }
     }
 });
