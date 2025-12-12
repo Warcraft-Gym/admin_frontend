@@ -14,24 +14,9 @@
       <div class="banner-overlay"></div>
       <v-container class="fill-height banner-content">
         <v-row align="center" class="fill-height">
-          <!-- Back Button Column -->
-          <v-col cols="12" md="3" class="d-flex align-start">
-            <v-btn
-              variant="elevated"
-              color="white"
-              prepend-icon="mdi-arrow-left"
-              @click="$router.push(`/seasons/${match.season_id}#week-${match.playday}`)"
-            >
-              Back to Season
-            </v-btn>
-          </v-col>
-
-          <!-- Spacer -->
-          <v-col cols="0" md="1" class="d-none d-md-block"></v-col>
-
           <!-- Match Info Column -->
-          <v-col cols="12" md="6">
-            <div class="text-center mb-2">
+          <v-col cols="12" class="text-center">
+            <div class="mb-2">
               <v-chip color="primary" size="large" class="mb-2">
                 <v-icon start>mdi-calendar-week</v-icon>
                 Week {{ match.playday }}
@@ -67,15 +52,98 @@
               </v-col>
             </v-row>
           </v-col>
-
-          <!-- Right Spacer -->
-          <v-col cols="0" md="2" class="d-none d-md-block"></v-col>
         </v-row>
       </v-container>
     </v-parallax>
   </div>
 
   <v-container fluid class="pa-4">
+    <!-- Week Navigation Panel -->
+    <v-card class="mb-4" elevation="2">
+      <v-card-text class="pa-3">
+        <v-row align="center">
+          <v-col cols="12" md="2">
+            <v-btn
+              variant="elevated"
+              color="primary"
+              prepend-icon="mdi-calendar-multiple"
+              @click="$router.push(`/seasons/${match.season_id}`)"
+              block
+            >
+              Back to Season
+            </v-btn>
+          </v-col>
+          <v-col cols="12" md="8" class="pa-0">
+            <v-tabs
+              :model-value="match.playday"
+              bg-color="primary"
+              slider-color="white"
+              show-arrows
+              density="compact"
+            >
+              <v-tab
+                v-for="week in weeklyMatches"
+                :key="week.weekNumber"
+                :value="week.weekNumber"
+              >
+                <v-menu location="bottom" :close-on-content-click="true" scroll-strategy="close" activator="parent">
+                  <v-list density="compact" max-width="400">
+                    <v-list-subheader>Week {{ week.weekNumber }} Matches</v-list-subheader>
+                    <v-list-item
+                      v-for="matchItem in week.matches"
+                      :key="matchItem.id"
+                      :active="matchItem.id === match.id"
+                      @click.stop="navigateToMatch(matchItem.id)"
+                      :class="{ 'bg-primary-lighten-4': matchItem.id === match.id }"
+                    >
+                      <div class="d-flex align-center justify-space-between w-100">
+                        <!-- Team 1 -->
+                        <div class="d-flex flex-column align-center" style="width: 45%;">
+                          <v-avatar size="32" class="mb-1">
+                            <v-img :src="teamImages[matchItem.team1_id] || teamDefaultImg" cover></v-img>
+                          </v-avatar>
+                          <div class="text-caption text-center">{{ matchItem.team1_name }}</div>
+                        </div>
+                        
+                        <!-- VS -->
+                        <div class="text-caption text-grey">vs</div>
+                        
+                        <!-- Team 2 -->
+                        <div class="d-flex flex-column align-center" style="width: 45%;">
+                          <v-avatar size="32" class="mb-1">
+                            <v-img :src="teamImages[matchItem.team2_id] || teamDefaultImg" cover></v-img>
+                          </v-avatar>
+                          <div class="text-caption text-center">{{ matchItem.team2_name }}</div>
+                        </div>
+                      </div>
+                    </v-list-item>
+                    <v-divider v-if="week.matches.length === 0"></v-divider>
+                    <v-list-item v-if="week.matches.length === 0">
+                      <v-list-item-title class="text-grey text-center">No matches scheduled</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+                <v-icon start size="small">mdi-calendar-week</v-icon>
+                Week {{ week.weekNumber }}
+              </v-tab>
+            </v-tabs>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-btn
+              variant="elevated"
+              color="success"
+              prepend-icon="mdi-sync"
+              @click="syncW3CTeams"
+              :loading="isLoading"
+              block
+            >
+              Sync W3C
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
     <!-- Series Management Card -->
     <v-card class="mb-4" elevation="2">
       <v-card-title class="d-flex align-center justify-space-between bg-primary">
@@ -83,91 +151,15 @@
           <v-icon class="mr-2">mdi-trophy-variant</v-icon>
           Series Management
         </div>
-        <div>
-          <v-btn
-            color="white"
-            variant="elevated"
-            prepend-icon="mdi-plus"
-            @click="openCreateNewSeries"
-            class="mr-2"
-          >
-            Add Series
-          </v-btn>
-          <v-btn
-            color="success"
-            variant="elevated"
-            prepend-icon="mdi-sync"
-            @click="syncW3CTeams"
-            :loading="isLoading"
-          >
-            Sync W3C Info
-          </v-btn>
-        </div>
+        <v-btn
+          color="white"
+          variant="elevated"
+          prepend-icon="mdi-plus"
+          @click="openCreateNewSeries"
+        >
+          Add Series
+        </v-btn>
       </v-card-title>
-  <!-- Create Series Dialog -->
-  <v-dialog v-if="newMatch" v-model="isModalOpen" max-width="600px">
-    <v-card>
-      <v-card-title class="bg-primary">
-        <v-icon class="mr-2">mdi-calendar-plus</v-icon>
-        Create Match - Week {{ selectedWeek }}
-      </v-card-title>
-      <v-card-text class="pt-4">
-        <v-row>
-          <v-col cols="12">
-            <v-text-field
-              v-model="newMatch.date_frame" 
-              label="Date/Time Frame"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-calendar-clock"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="12">
-            <v-select
-              :items="maps"
-              item-title="name"
-              item-value="id"
-              label="Fixed Map (Optional)"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-map"
-              clearable
-              v-model="newMatch.fixed_map_id"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-select
-              :items="teams"
-              item-title="name"
-              item-value="id"
-              label="Team 1"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-shield"
-              v-model="newMatch.team1_id"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-select
-              :items="teams"
-              item-title="name"
-              item-value="id"
-              label="Team 2"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-shield"
-              v-model="newMatch.team2_id"
-            ></v-select>
-          </v-col>
-        </v-row>      
-      </v-card-text>   
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="closeMatchCreationModal">Cancel</v-btn>
-        <v-btn color="primary" @click="confirmSelection">Create Match</v-btn>
-      </v-card-actions>        
-    </v-card>
-  </v-dialog>
 
   <!-- Create New Series Dialog -->
   <v-dialog v-model="createNewSeriesDialogOpen" max-width="95vw" max-height="95vh" persistent>
@@ -235,6 +227,11 @@
                     <strong>{{ item.name }}</strong> ({{ item.discordTag }})
                   </span>
                 </template>
+                <template v-slot:[`item.w3c_mmr`]="{ item }">
+                  <v-chip size="small" color="info">
+                    {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                  </v-chip>
+                </template>
               </v-data-table>
             </v-card>                    
           </v-col>
@@ -295,6 +292,11 @@
                   <span @click.stop="showStats(item)" class="player-name-link">
                     <strong>{{ item.name }}</strong> ({{ item.discordTag }})
                   </span>
+                </template>
+                <template v-slot:[`item.w3c_mmr`]="{ item }">
+                  <v-chip size="small" color="info">
+                    {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                  </v-chip>
                 </template>
               </v-data-table>
             </v-card> 
@@ -860,10 +862,11 @@
 
 <script setup>
 import bannerImg from '@/assets/media/match-banner.jpg'
+import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
 import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import { DateTime } from "luxon";
-import { useMatchStore, useSeriesStore, useTeamStore } from '@/stores';
+import { useMatchStore, useSeriesStore, useTeamStore, useSeasonStore } from '@/stores';
 import { useDate } from 'vuetify';
 import { storeToRefs } from 'pinia';
 import FlagIcon from '../components/FlagIcon.vue';
@@ -880,8 +883,12 @@ const router = useRouter();
 const matchStore = useMatchStore();
 const seriesStore = useSeriesStore();
 const teamStore = useTeamStore();
-const { match } = storeToRefs(matchStore);
+const seasonStore = useSeasonStore();
+const { match, matches } = storeToRefs(matchStore);
 const { series } = storeToRefs(seriesStore);
+
+// Week navigation state
+const weeklyMatches = ref([]);
 
 const seriesTableHeader = [
   
@@ -950,8 +957,8 @@ const tablePlayerHeader = [
 }, 
 ];
 
-// Route params
-const matchId = router.currentRoute.value.params.id;
+// Route params - use computed to get the current route param
+const matchId = computed(() => router.currentRoute.value.params.id);
 
 // Component state
 const isLoading = ref(false);
@@ -961,6 +968,7 @@ const date = useDate();
 // Team state
 const team1 = ref({});
 const team2 = ref({});
+const teamImages = ref({});
 
 // Series state
 const showNewSeriesModal = ref(false);
@@ -1103,14 +1111,91 @@ const cancelCreateSeries = () => {
   createNewSeriesDialogOpen.value = false;
 };
 
+const navigateToMatch = async (newMatchId) => {
+  if (newMatchId === match.value.id) return; // Already on this match
+  
+  // Navigate to the new match
+  await router.push(`/match/${newMatchId}`);
+  
+  // Reload the page data with the new match ID
+  isLoading.value = true;
+  try {
+    await matchStore.fetchMatchDetails(newMatchId);
+    if (matchStore.match.team1_id && matchStore.match.team2_id) {
+      await fetchTeamDetails();
+    }
+    await seriesStore.getSeriesByMatchId(newMatchId);
+  } catch (error) {
+    console.error('Failed to fetch match details:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchTeamImage = async (teamId) => {
+  if (teamImages.value[teamId]) return; // Already loaded
+  
+  try {
+    const imgResponse = await teamStore.getTeamImage(teamId);
+    if (!imgResponse.ok) throw new Error("Image not found");
+    const imgBlob = await imgResponse.blob();
+    teamImages.value[teamId] = URL.createObjectURL(imgBlob);
+  } catch (error) {
+    teamImages.value[teamId] = teamDefaultImg;
+  }
+};
+
+const fetchSeasonMatches = async () => {
+  if (!match.value?.season_id) return;
+  
+  try {
+    // Fetch season details to get number of weeks
+    const seasonData = await seasonStore.fetchSeason(match.value.season_id);
+    const numberOfWeeks = seasonStore.current_season.number_weeks;
+    
+    // Fetch matches for all weeks
+    const allMatchesPromises = [];
+    for (let week = 1; week <= numberOfWeeks; week++) {
+      allMatchesPromises.push(
+        matchStore.searchMatchesBySeasonAndPlayday(match.value.season_id, week)
+          .then(() => ({ week, matches: [...matches.value] }))
+      );
+    }
+    
+    const weeklyData = await Promise.all(allMatchesPromises);
+    
+    // Organize matches by week
+    weeklyMatches.value = weeklyData.map(data => ({
+      weekNumber: data.week,
+      matches: data.matches
+    })).sort((a, b) => a.weekNumber - b.weekNumber);
+    
+    // Fetch team images for all matches
+    const teamIds = new Set();
+    weeklyMatches.value.forEach(week => {
+      week.matches.forEach(match => {
+        if (match.team1_id) teamIds.add(match.team1_id);
+        if (match.team2_id) teamIds.add(match.team2_id);
+      });
+    });
+    
+    // Load all team images in parallel
+    await Promise.all([...teamIds].map(teamId => fetchTeamImage(teamId)));
+    
+  } catch (error) {
+    console.error('Failed to fetch season matches:', error);
+  }
+};
+
 const fetchMatchDetails = async () => {
   isLoading.value = true;
   try {
-    await matchStore.fetchMatchDetails(matchId);
+    await matchStore.fetchMatchDetails(matchId.value);
     if (matchStore.match.team1_id && matchStore.match.team2_id) {
       await fetchTeamDetails(); // Fetch team details only after match details are loaded
     }
     await fetchMatchSeries();
+    await fetchSeasonMatches(); // Fetch all matches for navigation
   } catch (error) {
     console.error('Failed to fetch match details:', error);
   } finally {
@@ -1169,7 +1254,7 @@ const showStats = async(player) => {
 const fetchMatchSeries = async () => {
   isLoading.value = true;
   try {
-    await seriesStore.getSeriesByMatchId(matchId);
+    await seriesStore.getSeriesByMatchId(matchId.value);
   } catch (error) {
     console.error('Failed to fetch match details:', error);
   } finally {
