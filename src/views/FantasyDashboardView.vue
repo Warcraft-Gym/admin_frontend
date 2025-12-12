@@ -564,7 +564,6 @@ const teamStore = useTeamStore();
 const playerStore = usePlayerStore();
 const configStore = useConfigStore();
 const seriesStore = useSeriesStore();
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const isLoading = ref(false);
 const isSaving = ref(false);
