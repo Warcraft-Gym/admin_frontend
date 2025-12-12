@@ -59,6 +59,10 @@
                 </v-chip>
               </template>
 
+              <template v-slot:[`item.name`]="{ item }">
+                {{ item.name || 'N/A' }}
+              </template>
+
               <template v-slot:[`item.captain`]="{ item }">
                 {{ item.captain?.name || 'N/A' }}
               </template>
@@ -104,6 +108,9 @@
                   <v-list density="compact">
                     <v-list-item prepend-icon="mdi-eye" @click="viewTeamDetails(item.id)">
                       <v-list-item-title>View Details</v-list-item-title>
+                    </v-list-item>
+                    <v-list-item prepend-icon="mdi-chart-box" @click="viewScoreBreakdown(item)">
+                      <v-list-item-title>Score Breakdown</v-list-item-title>
                     </v-list-item>
                     <v-list-item prepend-icon="mdi-pencil" @click="openEditDialog(item)">
                       <v-list-item-title>Edit</v-list-item-title>
@@ -355,6 +362,267 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Score Breakdown Dialog -->
+  <v-dialog v-model="breakdownDialog" max-width="1200px" scrollable>
+    <v-card>
+      <v-card-title class="bg-primary">
+        <v-icon class="mr-2">mdi-chart-box</v-icon>
+        Score Breakdown
+      </v-card-title>
+      <v-card-subtitle v-if="breakdownData" class="bg-primary pb-3 text-white">
+        {{ breakdownData.display_name }}
+      </v-card-subtitle>
+      
+      <v-overlay v-model="isLoadingBreakdown" contained persistent>
+        <v-progress-circular indeterminate size="64" width="8" color="primary"></v-progress-circular>
+      </v-overlay>
+
+      <v-card-text v-if="breakdownData && !isLoadingBreakdown" class="pa-4">
+        <!-- Score Summary Cards -->
+        <v-row class="mb-4">
+          <v-col cols="12" sm="6" md="2">
+            <v-card color="blue-lighten-4" elevation="2">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold">{{ breakdownData.totals.player_points }}</div>
+                <div class="text-caption">Player Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-card color="amber-lighten-4" elevation="2">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold">{{ breakdownData.totals.bench_points }}</div>
+                <div class="text-caption">Bench Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-card color="green-lighten-4" elevation="2">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold">{{ breakdownData.totals.team_points }}</div>
+                <div class="text-caption">Team Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-card color="purple-lighten-4" elevation="2">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold">{{ breakdownData.totals.race_points }}</div>
+                <div class="text-caption">Race Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-card :color="breakdownData.totals.bet_points >= 0 ? 'teal-lighten-4' : 'red-lighten-4'" elevation="2">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold">{{ breakdownData.totals.bet_points }}</div>
+                <div class="text-caption">Bet Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-card color="primary" elevation="4">
+              <v-card-text class="text-center">
+                <div class="text-h4 font-weight-bold text-white">{{ breakdownData.totals.total_points }}</div>
+                <div class="text-caption text-white">Total Points</div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Expansion Panels for Details -->
+        <v-expansion-panels multiple>
+          <!-- Player Points Breakdown -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <v-icon class="mr-2" color="blue">mdi-account-multiple</v-icon>
+              <strong>Player Points Details</strong>
+              <v-spacer></v-spacer>
+              <v-chip color="blue" size="small">{{ breakdownData.totals.player_points }} pts</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-card v-for="player in breakdownData.player_breakdown" :key="player.player_id" class="mb-3" elevation="1">
+                <v-card-title class="bg-blue-lighten-5 py-2">
+                  {{ player.player_name }} - Total: {{ player.total }} points
+                </v-card-title>
+                <v-card-text>
+                  <v-row>
+                    <v-col v-for="week in player.weeks" :key="week.week" cols="12" md="6" lg="4">
+                      <v-card variant="outlined" class="mb-2">
+                        <v-card-subtitle class="font-weight-bold">Week {{ week.week }}</v-card-subtitle>
+                        <v-card-text>
+                          <div v-if="week.series.length > 0">
+                            <div v-for="(series, idx) in week.series" :key="idx" class="mb-1">
+                              <v-chip size="small" color="success" class="mr-1">+{{ series.points }}</v-chip>
+                              vs {{ series.opponent }} ({{ series.score }})
+                            </div>
+                            <v-divider class="my-1"></v-divider>
+                            <strong>Week Total: {{ week.points }} pts</strong>
+                          </div>
+                          <div v-else-if="week.bench_points > 0" class="text-amber">
+                            <v-icon size="small">mdi-seat</v-icon> Benched: +{{ week.bench_points }} pts
+                          </div>
+                          <div v-else class="text-grey">No games</div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Bench Points Breakdown -->
+          <v-expansion-panel v-if="breakdownData.bench_breakdown.length > 0">
+            <v-expansion-panel-title>
+              <v-icon class="mr-2" color="amber">mdi-seat</v-icon>
+              <strong>Bench Points Details</strong>
+              <v-spacer></v-spacer>
+              <v-chip color="amber" size="small">{{ breakdownData.totals.bench_points }} pts</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-list>
+                <v-list-item v-for="(bench, idx) in breakdownData.bench_breakdown" :key="idx">
+                  <v-list-item-title>
+                    <v-chip size="small" color="amber" class="mr-2">+{{ bench.points }}</v-chip>
+                    {{ bench.player_name }} - Week {{ bench.week }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>{{ bench.reason }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Team Points Breakdown -->
+          <v-expansion-panel v-if="breakdownData.team_breakdown.team_name">
+            <v-expansion-panel-title>
+              <v-icon class="mr-2" color="green">mdi-shield-account</v-icon>
+              <strong>Team Points Details</strong>
+              <v-spacer></v-spacer>
+              <v-chip color="green" size="small">{{ breakdownData.totals.team_points }} pts</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-list>
+                <v-list-item>
+                  <v-list-item-title class="font-weight-bold">{{ breakdownData.team_breakdown.team_name }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title>Final Score: {{ breakdownData.team_breakdown.final_score }}</v-list-item-title>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-subtitle>Points Against: {{ breakdownData.team_breakdown.points_against }}</v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-subtitle>Points Available: {{ breakdownData.team_breakdown.points_available }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Race Points Breakdown -->
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <v-icon class="mr-2" color="purple">mdi-trophy-variant</v-icon>
+              <strong>Race Points Details</strong>
+              <v-spacer></v-spacer>
+              <v-chip color="purple" size="small">{{ breakdownData.totals.race_points }} pts</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-list>
+                <v-list-item>
+                  <v-list-item-title class="font-weight-bold">
+                    <RaceIcon :raceIdentifier="breakdownData.race_breakdown.race" />
+                    {{ breakdownData.race_breakdown.race }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    Season Stats: {{ breakdownData.race_breakdown.season_stats.wins }}W - {{ breakdownData.race_breakdown.season_stats.losses }}L
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+              <v-divider class="my-2"></v-divider>
+              <div class="text-subtitle-2 mb-2">Weekly Performance:</div>
+              <v-table density="compact">
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Ratio</th>
+                    <th>Rank</th>
+                    <th>Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="week in breakdownData.race_breakdown.weekly_breakdown" :key="week.week">
+                    <td>{{ week.week }}</td>
+                    <td>{{ week.wins }}</td>
+                    <td>{{ week.losses }}</td>
+                    <td>{{ week.ratio.toFixed(2) }}</td>
+                    <td>
+                      <v-chip v-if="week.rank" :color="week.rank === 1 ? 'success' : week.rank === 2 ? 'info' : 'warning'" size="x-small">
+                        #{{ week.rank }}
+                      </v-chip>
+                      <span v-else class="text-grey">-</span>
+                    </td>
+                    <td>
+                      <v-chip v-if="week.points_awarded > 0" color="purple" size="small">+{{ week.points_awarded }}</v-chip>
+                      <span v-else class="text-grey">0</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </v-table>
+              <v-divider class="my-2"></v-divider>
+              <div class="text-subtitle-2 mb-2">All Race Rankings:</div>
+              <v-chip-group column>
+                <v-chip v-for="(points, race) in breakdownData.race_breakdown.all_race_points" :key="race" 
+                  :color="race === breakdownData.race_breakdown.race ? 'purple' : 'grey'"
+                  size="small">
+                  <RaceIcon :raceIdentifier="race" class="mr-1" />
+                  {{ race }}: {{ points }} pts
+                </v-chip>
+              </v-chip-group>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <!-- Bet Points Breakdown -->
+          <v-expansion-panel v-if="breakdownData.bet_breakdown.length > 0">
+            <v-expansion-panel-title>
+              <v-icon class="mr-2" :color="breakdownData.totals.bet_points >= 0 ? 'teal' : 'red'">mdi-casino</v-icon>
+              <strong>Bet Points Details</strong>
+              <v-spacer></v-spacer>
+              <v-chip :color="breakdownData.totals.bet_points >= 0 ? 'teal' : 'red'" size="small">{{ breakdownData.totals.bet_points }} pts</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <v-list>
+                <v-list-item v-for="(bet, idx) in breakdownData.bet_breakdown" :key="idx">
+                  <template v-slot:prepend>
+                    <v-icon :color="bet.won ? 'success' : 'error'">
+                      {{ bet.won ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                    </v-icon>
+                  </template>
+                  <v-list-item-title>
+                    Week {{ bet.week }}: {{ bet.series }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>
+                    Bet on: {{ bet.bet_on }} | Winner: {{ bet.actual_winner }} | 
+                    <span :class="bet.won ? 'text-success' : 'text-error'">
+                      {{ bet.result > 0 ? '+' : '' }}{{ bet.result }} pts
+                    </span>
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="closeBreakdownDialog">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -389,6 +657,9 @@ const editDialog = ref(false);
 const deleteDialog = ref(false);
 const teamToDelete = ref(null);
 const isEditing = ref(false);
+const breakdownDialog = ref(false);
+const breakdownData = ref(null);
+const isLoadingBreakdown = ref(false);
 const players = ref([]);
 const gnlTeams = ref([]);
 const races = ref([
@@ -428,6 +699,7 @@ const selectedTierPlayers = ref({
 
 const headers = [
   { title: 'Rank', value: 'rank', sortable: false, width: '80px' },
+  { title: 'Fantasy Team', value: 'name', sortable: false },
   { title: 'Captain', value: 'captain', sortable: false },
   { title: 'Team', value: 'drafted_team', sortable: false },
   { title: 'Race', value: 'drafted_race', sortable: false, align: 'center' },
@@ -756,6 +1028,36 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false;
   }
+};
+
+const viewScoreBreakdown = async (team) => {
+  if (!selectedSeasonId.value) {
+    errorMessage.value = 'Please select a season first';
+    return;
+  }
+
+  breakdownDialog.value = true;
+  isLoadingBreakdown.value = true;
+  errorMessage.value = null;
+  
+  try {
+    const data = await fantasyStore.getTeamScoreBreakdown(team.id, selectedSeasonId.value);
+    breakdownData.value = {
+      ...data,
+      display_name: `${data.team_name} (${team.captain?.name || team.captain})`
+    };
+  } catch (error) {
+    console.error('Failed to fetch score breakdown:', error);
+    errorMessage.value = `Failed to fetch score breakdown: ${error.message || 'Unknown error'}`;
+    closeBreakdownDialog();
+  } finally {
+    isLoadingBreakdown.value = false;
+  }
+};
+
+const closeBreakdownDialog = () => {
+  breakdownDialog.value = false;
+  breakdownData.value = null;
 };
 
 onMounted(() => {

@@ -103,6 +103,17 @@
                   ></v-select>
                 </v-col>
 
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="settingsMap.score_system"
+                    :items="scoreSystemOptions"
+                    label="Score System"
+                    hint="Scoring method for series: Standard (2:0 = 3pts, 2:1 = 2pts) or Helpstone (2:0 = 4pts, 2:1 = 3pts)"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-trophy-variant"
+                  ></v-select>
+                </v-col>
+
                 <!-- Public Access Settings -->
                 <v-col cols="12" class="mt-4">
                   <h3 class="text-h6 mb-2">Public Access Settings</h3>
@@ -334,11 +345,18 @@ const isSaving = ref(false);
 const errorMessage = ref(null);
 const successMessage = ref(null);
 
+// Score system options
+const scoreSystemOptions = [
+  { title: 'Standard (3 points max)', value: 'standard' },
+  { title: 'Helpstone (4 points max)', value: 'helpstone' }
+];
+
 // Map of setting keys to values
 const settingsMap = ref({
   current_wc3_season: '',
   w3c_url: '',
   current_gnl_season: '',
+  score_system: 'standard',
   signups_enabled: 'false',
   fantasy_team_creation_enabled: 'false',
   fantasy_fixed_bet_points: 'false',

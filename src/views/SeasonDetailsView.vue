@@ -8,6 +8,60 @@
     ></v-progress-circular>
   </v-overlay>
 
+  <!-- Recalculation Overlay -->
+  <v-overlay v-model="showRecalcOverlay" persistent class="loading-overlay">
+    <v-card class="pa-6" min-width="400" max-width="500">
+      <v-card-title class="d-flex justify-space-between align-center pa-0 mb-4">
+        <div>
+          <v-icon class="mr-2" color="secondary">mdi-calculator</v-icon>
+          Recalculating Season
+        </div>
+        <v-btn
+          icon="mdi-minus"
+          variant="text"
+          size="small"
+          @click="minimizeRecalcOverlay"
+          title="Minimize (continues in background)"
+        ></v-btn>
+      </v-card-title>
+      
+      <v-card-text class="pa-0">
+        <!-- Progress Circle -->
+        <div class="text-center mb-4">
+          <v-progress-circular
+            :model-value="calcProgress.progress"
+            :size="120"
+            :width="12"
+            color="secondary"
+          >
+            <span class="text-h5 font-weight-bold">{{ calcProgress.progress }}%</span>
+          </v-progress-circular>
+        </div>
+
+        <!-- Progress Details -->
+        <div class="text-center mb-3">
+          <div class="text-h6 mb-1">{{ calcProgress.message }}</div>
+          <div class="text-caption text-grey" v-if="calcProgress.total > 0">
+            Match {{ calcProgress.current }} of {{ calcProgress.total }}
+          </div>
+        </div>
+
+        <!-- Linear Progress Bar -->
+        <v-progress-linear
+          :model-value="calcProgress.progress"
+          color="secondary"
+          height="8"
+          rounded
+          class="mb-3"
+        ></v-progress-linear>
+
+        <v-alert type="info" variant="tonal" density="compact">
+          You can minimize this dialog and continue working. Progress will continue in the background.
+        </v-alert>
+      </v-card-text>
+    </v-card>
+  </v-overlay>
+
   <!-- Enhanced Hero Section -->
   <div id="seasonHeader">
     <v-parallax class="banner-image" :src="bannerImg" height="250">
@@ -68,14 +122,32 @@
           <v-icon class="mr-2">mdi-trophy</v-icon>
           Week {{ selectedWeek }} Matches
         </div>
-        <v-btn
-          @click="openMatchCreationModal"
-          color="primary"
-          prepend-icon="mdi-plus"
-          variant="elevated"
-        >
-          Add Match
-        </v-btn>
+        <div class="d-flex gap-2">
+          <v-btn
+            @click="recalculateSeasonScores"
+            color="secondary"
+            variant="elevated"
+          >
+            <v-progress-circular
+              v-if="isRecalculating"
+              :model-value="calcProgress.progress"
+              :size="20"
+              :width="3"
+              color="white"
+              class="mr-2"
+            ></v-progress-circular>
+            <v-icon v-else class="mr-2">mdi-calculator</v-icon>
+            {{ isRecalculating ? `Recalculating... ${calcProgress.progress}%` : 'Recalculate Season' }}
+          </v-btn>
+          <v-btn
+            @click="openMatchCreationModal"
+            color="primary"
+            prepend-icon="mdi-plus"
+            variant="elevated"
+          >
+            Add Match
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -440,12 +512,53 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+  <!-- Recalculation Confirmation Dialog -->
+  <v-dialog v-model="showRecalcDialog" max-width="500px" persistent>
+    <v-card>
+      <v-card-title class="bg-secondary">
+        <v-icon class="mr-2">mdi-calculator</v-icon>
+        Recalculate Season Scores
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <v-alert type="warning" variant="tonal" class="mb-4">
+          <strong>This process may take several minutes.</strong>
+        </v-alert>
+        <p>
+          This will recalculate all series scores, match scores, and team standings for the entire season.
+          The page will be locked during this process.
+        </p>
+        <p class="mt-2">
+          Are you sure you want to continue?
+        </p>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="showRecalcDialog = false">Cancel</v-btn>
+        <v-btn color="secondary" @click="confirmRecalculation">Recalculate</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
+  <!-- Success/Error Snackbar -->
+  <v-snackbar
+    v-model="showFeedback"
+    :color="feedbackType"
+    :timeout="5000"
+    location="top"
+  >
+    <div class="d-flex align-center">
+      <v-icon class="mr-2">{{ feedbackType === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+      {{ feedbackMessage }}
+    </div>
+    <template v-slot:actions>
+      <v-btn variant="text" @click="showFeedback = false">Close</v-btn>
+    </template>
+  </v-snackbar>
 </template>
   
   <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSeasonStore, useMatchStore, useTeamStore, useMapStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import bannerImg from '@/assets/media/GNL_Banner.png';
@@ -481,6 +594,7 @@ const addTeamsTableHeader = [
     // Component state
 const isLoading = ref(true);
 const isInitLoading = ref(false);
+const isRecalculating = ref(false);
 
 // Week selection state
 const selectedWeek = ref(null);
@@ -506,6 +620,21 @@ const selectedTeam2 = ref(null);
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);
 const deleteAction = ref(null);
+
+// Recalculation dialog state
+const showRecalcDialog = ref(false);
+const showRecalcOverlay = ref(false);
+const showFeedback = ref(false);
+const feedbackMessage = ref('');
+const feedbackType = ref('success'); // 'success' or 'error'
+const calcProgress = ref({
+  status: 'idle',
+  progress: 0,
+  total: 0,
+  current: 0,
+  message: 'Initializing...'
+});
+let progressInterval = null;
 
 // UI state
 const teamsPanel = ref(null);
@@ -605,6 +734,121 @@ const closeTeamSelectionModal = () => {
         await fetchMatches(selectedWeek.value); // Refresh the list after deletion
       } catch (error) {
         console.error('Error deleting match:', error);
+      }
+    };
+
+    const recalculateSeasonScores = () => {
+      // If calculation is already running, just reopen the overlay
+      if (isRecalculating.value) {
+        showRecalcOverlay.value = true;
+        return;
+      }
+      // Show confirmation dialog
+      showRecalcDialog.value = true;
+    };
+
+    const minimizeRecalcOverlay = () => {
+      showRecalcOverlay.value = false;
+    };
+
+    const pollCalculationProgress = async () => {
+      try {
+        const progress = await seasonStore.getCalculationProgress(seasonId);
+        calcProgress.value = progress;
+
+        if (progress.status === 'completed') {
+          // Calculation finished successfully
+          clearInterval(progressInterval);
+          progressInterval = null;
+          isRecalculating.value = false;
+          showRecalcOverlay.value = false;
+          
+          // Refresh data
+          await fetchMatches(selectedWeek.value);
+          await fetchTeams();
+          
+          // Show success feedback
+          feedbackType.value = 'success';
+          feedbackMessage.value = 'Season scores recalculated successfully!';
+          showFeedback.value = true;
+        } else if (progress.status === 'error') {
+          // Calculation failed
+          clearInterval(progressInterval);
+          progressInterval = null;
+          isRecalculating.value = false;
+          showRecalcOverlay.value = false;
+          
+          // Show error feedback
+          feedbackType.value = 'error';
+          feedbackMessage.value = progress.message || 'Failed to recalculate season scores.';
+          showFeedback.value = true;
+        }
+      } catch (error) {
+        console.error('Error polling progress:', error);
+      }
+    };
+
+    const confirmRecalculation = async () => {
+      showRecalcDialog.value = false;
+      isRecalculating.value = true;
+      showRecalcOverlay.value = true;
+      
+      // Reset progress
+      calcProgress.value = {
+        status: 'running',
+        progress: 0,
+        total: 0,
+        current: 0,
+        message: 'Starting calculation...'
+      };
+      
+      // Start polling for progress immediately
+      progressInterval = setInterval(pollCalculationProgress, 5000);
+      
+      try {
+        // Start the calculation (this will be a long-running request)
+        await seasonStore.recalculateSeasonScores(seasonId);
+        
+        // Once complete, stop polling and refresh
+        clearInterval(progressInterval);
+        progressInterval = null;
+        isRecalculating.value = false;
+        showRecalcOverlay.value = false;
+        
+        // Refresh data
+        await fetchMatches(selectedWeek.value);
+        await fetchTeams();
+        
+        // Show success feedback
+        feedbackType.value = 'success';
+        feedbackMessage.value = 'Season scores recalculated successfully!';
+        showFeedback.value = true;
+      } catch (error) {
+        console.error('Error starting recalculation:', error);
+        
+        // Stop polling
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+        
+        isRecalculating.value = false;
+        showRecalcOverlay.value = false;
+        
+        // Check if it's already running
+        if (error.response?.status === 409) {
+          feedbackType.value = 'warning';
+          feedbackMessage.value = 'Calculation is already in progress for this season.';
+          
+          // Start polling to track existing calculation
+          isRecalculating.value = true;
+          showRecalcOverlay.value = true;
+          progressInterval = setInterval(pollCalculationProgress, 5000);
+        } else {
+          feedbackType.value = 'error';
+          feedbackMessage.value = 'Failed to recalculate season scores.';
+        }
+        showFeedback.value = true;
       }
     };
 
@@ -761,9 +1005,26 @@ onMounted(async () => {
       fetchMatches(weekFromHash),
       fetchMaps()
     ]);
+    
+    // Check if there's an ongoing calculation when component mounts
+    const progress = await seasonStore.getCalculationProgress(seasonId);
+    if (progress.status === 'running') {
+      isRecalculating.value = true;
+      showRecalcOverlay.value = true;
+      calcProgress.value = progress;
+      progressInterval = setInterval(pollCalculationProgress, 5000);
+    }
   } finally {
     isLoading.value = false;
     isInitLoading.value = false;
+  }
+});
+
+onUnmounted(() => {
+  // Clean up polling interval when component is destroyed
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
   }
 });
 

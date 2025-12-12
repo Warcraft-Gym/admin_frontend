@@ -179,6 +179,10 @@ export const useFantasyStore = defineStore({
             }
             
             return;
+        },
+
+        async getTeamScoreBreakdown(teamId, seasonId) {
+            return await fetchWrapper.get(`${backendUrl}/fantasy/teams/${teamId}/season/${seasonId}/breakdown`);
         }
     }
 });

@@ -67,6 +67,14 @@ export const useSeasonStore = defineStore({
             formData.append("file", file);
             await fetchWrapper.fileUpload(url, formData)
             return true;
+        },
+        async recalculateSeasonScores(season_id) {
+            const result = await fetchWrapper.post(`${backendUrl}/season/${season_id}/calculate/`);
+            return result;
+        },
+        async getCalculationProgress(season_id) {
+            const progress = await fetchWrapper.get(`${backendUrl}/season/${season_id}/calculate/status`);
+            return progress;
         }
     }
 });
