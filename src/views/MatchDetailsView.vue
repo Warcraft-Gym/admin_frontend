@@ -146,19 +146,9 @@
 
     <!-- Series Management Card -->
     <v-card class="mb-4" elevation="2">
-      <v-card-title class="d-flex align-center justify-space-between bg-primary">
-        <div>
-          <v-icon class="mr-2">mdi-trophy-variant</v-icon>
-          Series Management
-        </div>
-        <v-btn
-          color="white"
-          variant="elevated"
-          prepend-icon="mdi-plus"
-          @click="openCreateNewSeries"
-        >
-          Add Series
-        </v-btn>
+      <v-card-title class="d-flex align-center bg-primary">
+        <v-icon class="mr-2">mdi-trophy-variant</v-icon>
+        Series Management
       </v-card-title>
 
   <!-- Create New Series Dialog -->
@@ -335,6 +325,20 @@
           <template v-slot:loading>
             <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
           </template>
+
+          <template #top>
+            <v-toolbar flat height="auto">
+              <v-row align="center" class="flex-wrap ma-0 pa-2">
+                <v-spacer />
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateNewSeries" block>
+                    Add Series
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-toolbar>
+          </template>
+
           <template v-slot:item="{ item }">
             <tr class="series-row">
               <td>{{ item.id }}</td>

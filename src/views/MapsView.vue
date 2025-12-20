@@ -19,10 +19,6 @@
       <v-card-title class="bg-primary d-flex align-center">
         <v-icon class="mr-2">mdi-map</v-icon>
         <span>Maps Overview</span>
-        <v-spacer />
-        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="showNewMapModal = true">
-          Add New Map
-        </v-btn>
       </v-card-title>
 
       <v-card-text v-if="!errorMessage" class="pa-0">
@@ -36,6 +32,19 @@
         >
           <template v-slot:loading>
             <v-skeleton-loader type="table-row@5"></v-skeleton-loader>
+          </template>
+
+          <template #top>
+            <v-toolbar flat height="auto">
+              <v-row align="center" class="flex-wrap ma-0 pa-2">
+                <v-spacer />
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="showNewMapModal = true" block>
+                    Add New Map
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-toolbar>
           </template>
 
           <template v-slot:[`item.actions`]="{ item }">

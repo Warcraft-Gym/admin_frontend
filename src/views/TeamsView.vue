@@ -39,16 +39,15 @@
           </template>
 
           <template #top>
-            <v-toolbar flat>
-              <v-spacer />
-              <v-btn
-                color="primary"
-                variant="elevated"
-                prepend-icon="mdi-plus"
-                @click="createTeam()"
-              >
-                Add New Team
-              </v-btn>
+            <v-toolbar flat height="auto">
+              <v-row align="center" class="flex-wrap ma-0 pa-2">
+                <v-spacer />
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="createTeam()" block>
+                    Add New Team
+                  </v-btn>
+                </v-col>
+              </v-row>
             </v-toolbar>
           </template>
 

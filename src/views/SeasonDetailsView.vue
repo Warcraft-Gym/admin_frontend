@@ -117,37 +117,46 @@
 
     <!-- Action Bar -->
     <v-card class="mb-4" elevation="1">
-      <v-card-text class="d-flex align-center justify-space-between pa-3">
-        <div class="text-h6">
-          <v-icon class="mr-2">mdi-trophy</v-icon>
-          Week {{ selectedWeek }} Matches
-        </div>
-        <div class="d-flex gap-2">
-          <v-btn
-            @click="recalculateSeasonScores"
-            color="secondary"
-            variant="elevated"
-          >
-            <v-progress-circular
-              v-if="isRecalculating"
-              :model-value="calcProgress.progress"
-              :size="20"
-              :width="3"
-              color="white"
-              class="mr-2"
-            ></v-progress-circular>
-            <v-icon v-else class="mr-2">mdi-calculator</v-icon>
-            {{ isRecalculating ? `Recalculating... ${calcProgress.progress}%` : 'Recalculate Season' }}
-          </v-btn>
-          <v-btn
-            @click="openMatchCreationModal"
-            color="primary"
-            prepend-icon="mdi-plus"
-            variant="elevated"
-          >
-            Add Match
-          </v-btn>
-        </div>
+      <v-card-title class="bg-primary d-flex align-center">
+        <v-icon class="mr-2">mdi-trophy</v-icon>
+        Week {{ selectedWeek }} Matches
+      </v-card-title>
+      <v-card-text class="pa-0">
+        <v-toolbar flat height="auto">
+          <v-row align="center" class="flex-wrap ma-0 pa-2">
+            <v-spacer />
+            <v-col cols="12" sm="auto">
+              <v-btn
+                @click="recalculateSeasonScores"
+                color="secondary"
+                variant="elevated"
+                block
+              >
+                <v-progress-circular
+                  v-if="isRecalculating"
+                  :model-value="calcProgress.progress"
+                  :size="20"
+                  :width="3"
+                  color="white"
+                  class="mr-2"
+                ></v-progress-circular>
+                <v-icon v-else class="mr-2">mdi-calculator</v-icon>
+                {{ isRecalculating ? `Recalculating... ${calcProgress.progress}%` : 'Recalculate Season' }}
+              </v-btn>
+            </v-col>
+            <v-col cols="12" sm="auto">
+              <v-btn
+                @click="openMatchCreationModal"
+                color="primary"
+                prepend-icon="mdi-plus"
+                variant="elevated"
+                block
+              >
+                Add Match
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-toolbar>
       </v-card-text>
     </v-card>
 

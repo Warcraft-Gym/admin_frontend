@@ -13,39 +13,49 @@
     <v-alert v-if="errorMessage" type="error" variant="tonal" border="start" border-color="red" class="mb-4" closable>
       {{ errorMessage }}
     </v-alert>
+
     <v-row>
       <v-col cols="12">
         <v-card elevation="2">
-          <v-card-title class="bg-primary d-flex justify-space-between align-center">
-            <div class="d-flex align-center">
-              <v-icon class="mr-2">mdi-chart-bar</v-icon>
-              <span>Season Leaderboard</span>
-            </div>
-            <div class="d-flex gap-2 align-center">
-              <v-select
-                v-model="selectedSeasonId"
-                :items="seasons"
-                item-title="name"
-                item-value="id"
-                label="Season"
-                variant="outlined"
-                density="compact"
-                hide-details
-                style="min-width: 200px; margin-right: 16px;"
-                @update:modelValue="onSeasonChange"
-              ></v-select>
-              <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateDialog">
-                Create Team
-              </v-btn>
-              <v-btn variant="elevated" color="secondary" prepend-icon="mdi-casino" @click="router.push('/fantasy/bets')">
-                Manage Bets
-              </v-btn>
-              <v-btn variant="elevated" color="primary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId">
-                Calculate Scores
-              </v-btn>
-            </div>
+          <v-card-title class="bg-primary d-flex align-center">
+            <v-icon class="mr-2">mdi-chart-bar</v-icon>
+            <span>Season Leaderboard</span>
           </v-card-title>
           <v-card-text class="pa-0">
+            <v-toolbar flat height="auto">
+              <v-row align="center" class="flex-wrap ma-0 pa-2">
+                <v-col cols="12" sm="auto">
+                  <v-select
+                    v-model="selectedSeasonId"
+                    :items="seasons"
+                    item-title="name"
+                    item-value="id"
+                    label="Season"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    style="min-width: 200px;"
+                    @update:modelValue="onSeasonChange"
+                  ></v-select>
+                </v-col>
+                <v-spacer />
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateDialog" block>
+                    Create Team
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="secondary" prepend-icon="mdi-casino" @click="router.push('/fantasy/bets')" block>
+                    Manage Bets
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId" block>
+                    Calculate Scores
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-toolbar>
             <v-data-table
               :headers="headers"
               :items="sortedTeams"

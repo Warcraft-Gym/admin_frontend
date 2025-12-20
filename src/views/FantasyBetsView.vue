@@ -22,25 +22,38 @@
       <v-card-title class="bg-primary d-flex align-center">
         <v-icon class="mr-2">mdi-casino</v-icon>
         <span>Bets Management</span>
-        <v-spacer />
-        <v-select
-          v-model="selectedSeasonId"
-          :items="seasons"
-          item-title="name"
-          item-value="id"
-          label="Season"
-          variant="outlined"
-          density="compact"
-          style="min-width: 200px; margin-right: 16px;"
-          @update:modelValue="onSeasonChange"
-        ></v-select>
-        <v-btn variant="elevated" color="primary" prepend-icon="mdi-refresh" @click="fetchData" :loading="isLoading" class="mr-2">
-          Refresh
-        </v-btn>
-        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="openAddBetDialog">
-          Add Bet
-        </v-btn>
       </v-card-title>
+      <v-card-text class="pa-0">
+        <v-toolbar flat height="auto">
+          <v-row align="center" class="flex-wrap ma-0 pa-2">
+            <v-col cols="12" sm="auto">
+              <v-select
+                v-model="selectedSeasonId"
+                :items="seasons"
+                item-title="name"
+                item-value="id"
+                label="Season"
+                variant="outlined"
+                density="compact"
+                hide-details
+                style="min-width: 200px;"
+                @update:modelValue="onSeasonChange"
+              ></v-select>
+            </v-col>
+            <v-spacer />
+            <v-col cols="12" sm="auto">
+              <v-btn variant="elevated" color="primary" prepend-icon="mdi-refresh" @click="fetchData" :loading="isLoading" block>
+                Refresh
+              </v-btn>
+            </v-col>
+            <v-col cols="12" sm="auto">
+              <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openAddBetDialog" block>
+                Add Bet
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-toolbar>
+      </v-card-text>
           <v-card-text>
             <v-alert v-if="enrichedBets.length === 0 && !isLoading" type="info" variant="tonal" class="mb-4">
               No fantasy bets found. Bets will appear here once team captains place them.

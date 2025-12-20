@@ -19,10 +19,6 @@
       <v-card-title class="bg-primary d-flex align-center">
         <v-icon class="mr-2">mdi-shield-account</v-icon>
         <span>{{ team.name }}</span>
-        <v-spacer />
-        <v-btn variant="elevated" color="primary" @click="syncW3CTeam" :loading="isLoading" :disabled="isLoading" prepend-icon="mdi-sync">
-          Sync W3C Info
-        </v-btn>
       </v-card-title>
       <v-card-text v-if="team.seasons_info">
         <p><strong>Final Score:</strong> {{ team.seasons_info[0].final_score }}</p>
@@ -37,11 +33,19 @@
       <v-card-title class="bg-secondary d-flex align-center">
         <v-icon class="mr-2">mdi-shield-star</v-icon>
         <span>Team Coaches</span>
-        <v-spacer />
-        <v-btn variant="elevated" prepend-icon="mdi-content-save" @click="saveCoaches" :loading="isSavingCoaches" :disabled="isSavingCoaches">
-          Save Coaches
-        </v-btn>
       </v-card-title>
+      <v-card-text class="pa-0">
+        <v-toolbar flat height="auto">
+          <v-row align="center" class="flex-wrap ma-0 pa-2">
+            <v-spacer />
+            <v-col cols="12" sm="auto">
+              <v-btn variant="elevated" color="success" prepend-icon="mdi-content-save" @click="saveCoaches" :loading="isSavingCoaches" :disabled="isSavingCoaches" block>
+                Save Coaches
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-toolbar>
+      </v-card-text>
       <v-card-text>
         <p class="text-subtitle-2 mb-3">Assign coaches for this season (Coach 1 is the main coach):</p>
         
@@ -111,10 +115,6 @@
       <v-card-title class="bg-primary d-flex align-center">
         <v-icon class="mr-2">mdi-account-multiple</v-icon>
         <span>Team Players</span>
-        <v-spacer />
-        <v-btn variant="elevated" prepend-icon="mdi-plus" @click="showNewPlayerModal = true">
-          Add Player
-        </v-btn>
       </v-card-title>
 
       <v-card-text v-if="!errorMessage" class="pa-0">
@@ -129,6 +129,25 @@
           <template v-slot:loading>
             <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
           </template>
+
+          <template #top>
+            <v-toolbar flat height="auto">
+              <v-row align="center" class="flex-wrap ma-0 pa-2">
+                <v-spacer />
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="primary" @click="syncW3CTeam" :loading="isLoading" :disabled="isLoading" prepend-icon="mdi-sync" block>
+                    Sync W3C Info
+                  </v-btn>
+                </v-col>
+                <v-col cols="12" sm="auto">
+                  <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="showNewPlayerModal = true" block>
+                    Add Player
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-toolbar>
+          </template>
+
             <template v-slot:item="{ item }">
               <tr class="text-no-wrap">
                 <td>{{ item.id }}</td>

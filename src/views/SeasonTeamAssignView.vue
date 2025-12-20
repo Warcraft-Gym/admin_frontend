@@ -15,17 +15,19 @@
       <v-card-title class="bg-primary d-flex align-center">
         <v-icon class="mr-2">mdi-account-multiple</v-icon>
         <span>{{ seasonName }}</span>
-        <v-spacer />
-        <v-btn
-          variant="elevated"
-          color="primary"
-          @click="syncAllDraftPlayers"
-          :loading="syncAllLoading"
-          prepend-icon="mdi-sync"
-        >
-          Sync W3C Info
-        </v-btn>
       </v-card-title>
+      <v-card-text class="pa-0">
+        <v-toolbar flat height="auto">
+          <v-row align="center" class="flex-wrap ma-0 pa-2">
+            <v-spacer />
+            <v-col cols="12" sm="auto">
+              <v-btn variant="elevated" color="primary" @click="syncAllDraftPlayers" :loading="syncAllLoading" prepend-icon="mdi-sync" block>
+                Sync W3C Info
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-toolbar>
+      </v-card-text>
       <v-card-text class="pt-4">
         <FilterPanel
           v-model:searchName="searchName"
