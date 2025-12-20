@@ -32,6 +32,80 @@
       </v-card-text>
     </v-card>
 
+    <!-- Coach Selection Card -->
+    <v-card elevation="2" class="mb-4">
+      <v-card-title class="bg-secondary d-flex align-center">
+        <v-icon class="mr-2">mdi-shield-star</v-icon>
+        <span>Team Coaches</span>
+        <v-spacer />
+        <v-btn variant="elevated" prepend-icon="mdi-content-save" @click="saveCoaches" :loading="isSavingCoaches" :disabled="isSavingCoaches">
+          Save Coaches
+        </v-btn>
+      </v-card-title>
+      <v-card-text>
+        <p class="text-subtitle-2 mb-3">Assign coaches for this season (Coach 1 is the main coach):</p>
+        
+        <v-row>
+          <v-col cols="12" md="4">
+            <v-autocomplete
+              v-model="coach1"
+              :items="allAvailableUsers"
+              item-title="name"
+              item-value="id"
+              label="Coach 1 (Main Coach)"
+              placeholder="Start typing to search..."
+              clearable
+              auto-select-first
+              hint="Primary team coach"
+              persistent-hint
+            >
+              <template v-slot:prepend-inner>
+                <v-icon color="primary">mdi-shield-star</v-icon>
+              </template>
+            </v-autocomplete>
+          </v-col>
+          
+          <v-col cols="12" md="4">
+            <v-autocomplete
+              v-model="coach2"
+              :items="allAvailableUsers"
+              item-title="name"
+              item-value="id"
+              label="Coach 2 (Optional)"
+              placeholder="Start typing to search..."
+              clearable
+              auto-select-first
+              hint="Assistant coach"
+              persistent-hint
+            >
+              <template v-slot:prepend-inner>
+                <v-icon>mdi-shield-star-outline</v-icon>
+              </template>
+            </v-autocomplete>
+          </v-col>
+          
+          <v-col cols="12" md="4">
+            <v-autocomplete
+              v-model="coach3"
+              :items="allAvailableUsers"
+              item-title="name"
+              item-value="id"
+              label="Coach 3 (Optional)"
+              placeholder="Start typing to search..."
+              clearable
+              auto-select-first
+              hint="Assistant coach"
+              persistent-hint
+            >
+              <template v-slot:prepend-inner>
+                <v-icon>mdi-shield-star-outline</v-icon>
+              </template>
+            </v-autocomplete>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
     <!-- Players -->
     <v-card elevation="2">
       <v-card-title class="bg-primary d-flex align-center">
@@ -217,6 +291,13 @@ const players = ref([]);
 const showNewPlayerModal = ref(false);
 const selectedPlayers = ref([]);
 
+// Coach management state
+const coach1 = ref(null);
+const coach2 = ref(null);
+const coach3 = ref(null);
+const isSavingCoaches = ref(false);
+const allAvailableUsers = ref([]);
+
 // Player details state
 const showPlayerDetails = ref(false);
 const playerDetails = ref(null);
@@ -281,12 +362,41 @@ const fetchTeam = async () => {
     if (!team.value) {
       errorMessage.value = 'No team information found.';
     }
-    players.value = team.value.player_by_season[seasonId.value];
+    players.value = team.value.player_by_season[seasonId.value] || [];
+    
+    // Load ALL users for coach selection (coaches can be anyone, not just season players)
+    // Fetch all players first to populate allPlayers (for player modal)
+    await playerStore.fetchPlayers();
+    // For coaches, use ALL users directly from store (not filtered by season)
+    allAvailableUsers.value = playerStore.players || [];
+    
+    // Initialize coach selections based on current coaches (order is preserved)
+    const currentCoaches = team.value.coaches_by_season?.[seasonId.value] || [];
+    coach1.value = currentCoaches[0]?.id || null;
+    coach2.value = currentCoaches[1]?.id || null;
+    coach3.value = currentCoaches[2]?.id || null;
   } catch (error) {
     console.error(error);
     errorMessage.value = 'Failed to load team. Please try again later.';
   } finally {
     isLoading.value = false;
+  }
+};
+
+const saveCoaches = async () => {
+  // Build coach array in order, filtering out null values
+  const coachIds = [coach1.value, coach2.value, coach3.value].filter(id => id !== null);
+  
+  isSavingCoaches.value = true;
+  try {
+    await teamStore.setCoaches(teamId.value, seasonId.value, coachIds);
+    // Refresh team data to show updated coach status
+    await fetchTeam();
+  } catch (error) {
+    console.error('Failed to save coaches:', error);
+    errorMessage.value = 'Failed to save coaches. Please try again.';
+  } finally {
+    isSavingCoaches.value = false;
   }
 };
 
