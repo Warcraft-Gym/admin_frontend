@@ -40,17 +40,12 @@
                 </v-col>
                 <v-spacer />
                 <v-col cols="12" sm="auto">
-                  <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateDialog" block>
+                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="openCreateDialog" block>
                     Create Team
                   </v-btn>
                 </v-col>
                 <v-col cols="12" sm="auto">
-                  <v-btn variant="elevated" color="secondary" prepend-icon="mdi-casino" @click="router.push('/fantasy/bets')" block>
-                    Manage Bets
-                  </v-btn>
-                </v-col>
-                <v-col cols="12" sm="auto">
-                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId" block>
+                  <v-btn variant="elevated" color="secondary" prepend-icon="mdi-calculator" @click="calculateScores" :loading="isCalculating" :disabled="!selectedSeasonId" block>
                     Calculate Scores
                   </v-btn>
                 </v-col>

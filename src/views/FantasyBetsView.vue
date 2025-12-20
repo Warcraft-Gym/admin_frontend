@@ -42,12 +42,7 @@
             </v-col>
             <v-spacer />
             <v-col cols="12" sm="auto">
-              <v-btn variant="elevated" color="primary" prepend-icon="mdi-refresh" @click="fetchData" :loading="isLoading" block>
-                Refresh
-              </v-btn>
-            </v-col>
-            <v-col cols="12" sm="auto">
-              <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openAddBetDialog" block>
+              <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="openAddBetDialog" block>
                 Add Bet
               </v-btn>
             </v-col>

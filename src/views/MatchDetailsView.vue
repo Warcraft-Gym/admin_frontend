@@ -331,7 +331,7 @@
               <v-row align="center" class="flex-wrap ma-0 pa-2">
                 <v-spacer />
                 <v-col cols="12" sm="auto">
-                  <v-btn variant="elevated" color="success" prepend-icon="mdi-plus" @click="openCreateNewSeries" block>
+                  <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="openCreateNewSeries" block>
                     Add Series
                   </v-btn>
                 </v-col>
