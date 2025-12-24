@@ -60,6 +60,12 @@
               <v-btn v-if="selectedEvent && !selectedEvent.is_active" variant="outlined" color="success" prepend-icon="mdi-check" @click="activateEvent">
                 Activate
               </v-btn>
+              <v-btn v-if="selectedEvent && selectedEvent.is_active" variant="outlined" color="warning" prepend-icon="mdi-pause" @click="deactivateEvent">
+                Deactivate
+              </v-btn>
+              <v-btn v-if="selectedEvent" variant="outlined" color="error" prepend-icon="mdi-delete" @click="confirmDeleteEvent">
+                Delete
+              </v-btn>
             </v-col>
           </v-row>
 
@@ -630,6 +636,44 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Delete Event Confirmation Dialog -->
+    <v-dialog v-model="showDeleteDialog" max-width="500px" persistent>
+      <v-card>
+        <v-card-title class="bg-error text-white">
+          <v-icon class="mr-2" color="white">mdi-alert</v-icon>
+          Confirm Delete Event
+        </v-card-title>
+        
+        <v-card-text class="pt-4">
+          <p class="text-h6 mb-2">Are you sure you want to delete this event?</p>
+          <p class="text-body-2 text-grey">
+            This will permanently delete:
+          </p>
+          <ul class="text-body-2 text-grey mt-2">
+            <li>Event: <strong>{{ selectedEvent?.name }}</strong></li>
+            <li>All signups ({{ activeSignups.length }})</li>
+            <li>All matches ({{ matches.length }})</li>
+            <li>All bracket king records</li>
+          </ul>
+          <v-alert type="warning" variant="tonal" class="mt-4">
+            <strong>This action cannot be undone!</strong>
+          </v-alert>
+        </v-card-text>
+        
+        <v-card-actions class="px-4 py-3">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
+          <v-btn 
+            color="error" 
+            prepend-icon="mdi-delete" 
+            @click="deleteEvent"
+          >
+            Delete Event
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -688,6 +732,9 @@ const signupForm = ref({
   twitch_username: '',
 });
 const signupError = ref(null);
+
+// Delete confirmation dialog
+const showDeleteDialog = ref(false);
 
 const signupHeaders = [
   { title: 'Status', key: 'is_king', sortable: false },
@@ -830,6 +877,11 @@ async function saveEvent() {
     }
     closeEventDialog();
     await loadEvents();
+    
+    // Auto-load the newly created/updated event data
+    if (selectedEventId.value) {
+      await loadEventData();
+    }
   } catch (error) {
     errorMessage.value = `Failed to save event: ${error.message}`;
   }
@@ -841,6 +893,39 @@ async function activateEvent() {
     await loadEvents();
   } catch (error) {
     errorMessage.value = `Failed to activate event: ${error.message}`;
+  }
+}
+
+async function deactivateEvent() {
+  try {
+    // Preserve all event data, only change is_active
+    const eventData = {
+      name: selectedEvent.value.name,
+      description: selectedEvent.value.description,
+      event_date: selectedEvent.value.event_date,
+      bracket_1_threshold: selectedEvent.value.bracket_1_threshold,
+      bracket_2_threshold: selectedEvent.value.bracket_2_threshold,
+      is_active: false
+    };
+    await kothStore.updateEvent(selectedEventId.value, eventData);
+    await loadEvents();
+  } catch (error) {
+    errorMessage.value = `Failed to deactivate event: ${error.message}`;
+  }
+}
+
+function confirmDeleteEvent() {
+  showDeleteDialog.value = true;
+}
+
+async function deleteEvent() {
+  try {
+    await kothStore.deleteEvent(selectedEventId.value);
+    selectedEventId.value = null;
+    showDeleteDialog.value = false;
+    await loadEvents();
+  } catch (error) {
+    errorMessage.value = `Failed to delete event: ${error.message}`;
   }
 }
 

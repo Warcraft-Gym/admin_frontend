@@ -1,34 +1,30 @@
 <template>
-  <v-container fluid class="pa-6 koth-dashboard">
-    <v-overlay v-model="isLoading" persistent class="loading-overlay">
-      <v-progress-circular indeterminate size="64" width="8" color="primary" />
-    </v-overlay>
+  <div class="koth-dashboard-wrapper">
+    <v-container fluid class="pa-6 koth-dashboard">
+      <v-overlay v-model="isLoading" persistent class="loading-overlay">
+        <v-progress-circular indeterminate size="64" width="8" color="primary" />
+      </v-overlay>
 
-    <!-- Event Header -->
-    <div v-if="event" class="text-center mb-8">
-      <h1 class="text-h2 font-weight-bold text-white mb-2">
-        <v-icon size="48" color="warning" class="mr-3">mdi-crown</v-icon>
-        {{ event.name }}
-      </h1>
-      <p v-if="event.description" class="text-h6 text-grey-lighten-1">{{ event.description }}</p>
-    </div>
+      <!-- Event Header -->
+      <div v-if="event" class="text-center mb-8">
+        <h1 class="text-h2 font-weight-bold mb-2">
+          <v-icon size="48" color="warning" class="mr-3">mdi-crown</v-icon>
+          {{ event.name }}
+        </h1>
+        <p v-if="event.description" class="text-h6 text-grey-darken-1">{{ event.description }}</p>
+      </div>
 
     <!-- Brackets Grid -->
     <v-row v-if="event" class="mb-8">
       <v-col v-for="bracket in [1, 2, 3]" :key="bracket" cols="12" md="4">
         <v-card elevation="8" class="bracket-card" :class="`bracket-${bracket}`">
-          <v-card-title class="bracket-header text-center py-4">
-            <div class="text-h4 font-weight-bold">Bracket {{ bracket }}</div>
-            <div class="text-subtitle-1 mt-1">{{ getBracketThresholdText(bracket) }}</div>
+          <v-card-title class="bracket-header text-center py-3">
+            <div class="text-h6 font-weight-bold">{{ getBracketThresholdText(bracket) }}</div>
           </v-card-title>
           
-          <v-card-text class="pa-4">
+          <v-card-text class="pa-3">
             <!-- Kings Section -->
-            <div v-if="kings[bracket] && kings[bracket].length > 0" class="kings-section mb-4">
-              <div class="section-title mb-3">
-                <v-icon color="warning" size="small" class="mr-2">mdi-crown</v-icon>
-                <span class="text-h6">{{ kings[bracket].length > 1 ? 'Kings' : 'King' }}</span>
-              </div>
+            <div v-if="kings[bracket] && kings[bracket].length > 0" class="mb-3">
               <v-card 
                 v-for="king in kings[bracket]" 
                 :key="king.id" 
@@ -44,19 +40,15 @@
                 </div>
               </v-card>
             </div>
-            <div v-else class="text-center py-4 text-grey">
-              <v-icon size="48" color="grey-lighten-1">mdi-crown-outline</v-icon>
-              <div class="mt-2">No King Yet</div>
+            <div v-else class="text-center py-3 text-grey">
+              <v-icon size="40" color="grey-lighten-1">mdi-crown-outline</v-icon>
+              <div class="mt-1 text-caption">No King Yet</div>
             </div>
 
-            <v-divider class="my-4"></v-divider>
+            <v-divider class="my-3"></v-divider>
 
             <!-- Signed Up Players -->
             <div class="players-section">
-              <div class="section-title mb-3">
-                <v-icon size="small" class="mr-2">mdi-account-multiple</v-icon>
-                <span class="text-subtitle-1 font-weight-bold">Signed Up Players ({{ getActivePlayers(bracket).length }})</span>
-              </div>
               <div v-if="getActivePlayers(bracket).length > 0" class="players-list">
                 <div 
                   v-for="player in getActivePlayers(bracket)" 
@@ -69,7 +61,7 @@
                   </div>
                 </div>
               </div>
-              <div v-else class="text-center py-3 text-grey-lighten-1">
+              <div v-else class="text-center py-2 text-grey-lighten-1 text-caption">
                 No players signed up
               </div>
             </div>
@@ -80,13 +72,13 @@
 
     <!-- Active Matches -->
     <div v-if="activeMatches.length > 0" class="matches-section">
-      <h2 class="text-h4 font-weight-bold text-white text-center mb-4">
+      <h2 class="text-h4 font-weight-bold text-center mb-4">
         <v-icon size="28" class="mr-2">mdi-sword-cross</v-icon>
         Upcoming Matches
       </h2>
       
       <v-row dense>
-        <v-col v-for="match in activeMatches" :key="match.id" cols="12" md="6">
+        <v-col v-for="match in activeMatches" :key="match.id" cols="12" sm="6" md="4" lg="2">
           <v-card elevation="4" class="match-card-compact">
             <v-card-text class="pa-3">
               <div class="d-flex align-center justify-space-between mb-2">
@@ -110,10 +102,11 @@
       </v-row>
     </div>
     <div v-else-if="!isLoading" class="text-center py-8">
-      <v-icon size="80" color="grey-lighten-1">mdi-checkbox-blank-circle-outline</v-icon>
-      <div class="text-h5 mt-4 text-grey-lighten-1">No Active Matches</div>
+      <v-icon size="80" color="grey-darken-1">mdi-checkbox-blank-circle-outline</v-icon>
+      <div class="text-h5 mt-4 text-grey-darken-1">No Active Matches</div>
     </div>
-  </v-container>
+    </v-container>
+  </div>
 </template>
 
 <script setup>
@@ -130,7 +123,10 @@ const event = ref(null);
 let refreshInterval = null;
 
 const activeMatches = computed(() => {
-  return matches.value.filter(m => !m.winner_team_number);
+  return matches.value
+    .filter(m => !m.winner_team_number)
+    .sort((a, b) => a.id - b.id)  // Sort by creation order (ID ascending)
+    .slice(0, 6);  // Limit to 6 matches
 });
 
 onMounted(async () => {
@@ -196,8 +192,12 @@ function getActivePlayers(bracket) {
 </script>
 
 <style scoped>
+.koth-dashboard-wrapper {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
 .koth-dashboard {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   min-height: 100vh;
 }
 
