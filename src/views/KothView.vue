@@ -615,6 +615,9 @@
                 persistent-hint
               />
             </v-col>
+            <v-col cols="12">
+              <RaceSelect v-model="signupForm.race" />
+            </v-col>
           </v-row>
           
           <v-alert v-if="signupError" type="error" variant="tonal" class="mt-4" closable @click:close="signupError = null">
@@ -682,6 +685,7 @@ import '@/assets/base.css';
 import { ref, computed, onMounted } from 'vue';
 import { useKothStore } from '@/stores';
 import { storeToRefs } from 'pinia';
+import RaceSelect from '@/components/RaceSelect.vue';
 
 defineOptions({ name: 'KothView' });
 
@@ -730,6 +734,7 @@ const showAddSignupDialog = ref(false);
 const signupForm = ref({
   battle_tag: '',
   twitch_username: '',
+  race: null,
 });
 const signupError = ref(null);
 
@@ -1122,6 +1127,7 @@ function openAddSignupDialog() {
   signupForm.value = {
     battle_tag: '',
     twitch_username: '',
+    race: null,
   };
   signupError.value = null;
   showAddSignupDialog.value = true;
@@ -1132,6 +1138,7 @@ function closeAddSignupDialog() {
   signupForm.value = {
     battle_tag: '',
     twitch_username: '',
+    race: null,
   };
   signupError.value = null;
 }
@@ -1144,10 +1151,21 @@ async function saveSignup() {
   
   try {
     signupError.value = null;
+    
+    // Map race ID to backend format
+    const raceMap = {
+      'HU': 'human',
+      'OC': 'orc',
+      'UD': 'undead',
+      'NE': 'nightelf',
+      'RANDOM': 'random'
+    };
+    
     await kothStore.createSignup({
       event_id: selectedEventId.value,
       battle_tag: signupForm.value.battle_tag,
       twitch_username: signupForm.value.twitch_username || null,
+      race: signupForm.value.race ? raceMap[signupForm.value.race] : null,
     });
     closeAddSignupDialog();
     await loadEventData();

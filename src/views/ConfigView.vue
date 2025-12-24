@@ -439,7 +439,7 @@ const settingsMap = ref({
   captain_coach_role: '',
   admin_role: '',
   signup_channel_id: '',
-  player_dashboard_channel_id: '',
+  dashboard_channel_id: '',
   scheduling_channel_id: '',
   results_channel_id: '',
   fantasy_dashboard_channel_id: ''

@@ -31,13 +31,18 @@
                 variant="outlined" 
                 class="king-card mb-2 pa-3"
               >
-                <div class="d-flex align-center justify-space-between">
-                  <div>
+                <v-row align="center" no-gutters>
+                  <v-col cols="auto" class="mr-3">
+                    <RaceIcon :raceIdentifier="king.race" :size="24" />
+                  </v-col>
+                  <v-col>
                     <div class="text-h6 font-weight-bold">{{ king.twitch_username || king.battle_tag }}</div>
                     <div class="text-subtitle-2 text-grey">{{ king.race }} · {{ king.mmr }} MMR</div>
-                  </div>
-                  <v-icon color="warning" size="40">mdi-crown</v-icon>
-                </div>
+                  </v-col>
+                  <v-col cols="auto">
+                    <v-icon color="warning" size="40">mdi-crown</v-icon>
+                  </v-col>
+                </v-row>
               </v-card>
             </div>
             <div v-else class="text-center py-3 text-grey">
@@ -55,10 +60,17 @@
                   :key="player.id"
                   class="player-item mb-1 pa-2"
                 >
-                  <div class="d-flex align-center justify-space-between">
-                    <span class="text-body-2">{{ player.twitch_username || player.battle_tag }}</span>
-                    <span class="text-caption text-grey">{{ player.mmr }} MMR</span>
-                  </div>
+                  <v-row align="center" no-gutters>
+                    <v-col cols="auto" class="mr-2">
+                      <RaceIcon :raceIdentifier="player.race" :size="20" />
+                    </v-col>
+                    <v-col>
+                      <span class="text-body-2">{{ player.twitch_username || player.battle_tag }}</span>
+                    </v-col>
+                    <v-col cols="auto">
+                      <span class="text-caption text-grey">{{ player.mmr }} MMR</span>
+                    </v-col>
+                  </v-row>
                 </div>
               </div>
               <div v-else class="text-center py-2 text-grey-lighten-1 text-caption">
@@ -113,6 +125,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useKothStore } from '@/stores';
 import { storeToRefs } from 'pinia';
+import RaceIcon from '@/components/RaceIcon.vue';
 
 defineOptions({ name: 'KothDashboard' });
 
