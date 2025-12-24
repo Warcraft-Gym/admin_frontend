@@ -66,7 +66,11 @@
           <v-divider v-if="selectedEvent" class="my-4"></v-divider>
 
           <v-row v-if="selectedEvent">
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
+              <div class="text-subtitle-2 text-grey">Event Date</div>
+              <div class="mt-2">{{ formatEventDate(selectedEvent.event_date) }}</div>
+            </v-col>
+            <v-col cols="12" md="3">
               <div class="text-subtitle-2 text-grey">Bracket Thresholds</div>
               <div class="mt-2">
                 <div><strong>Bracket 1:</strong> &lt; {{ selectedEvent.bracket_1_threshold }} MMR</div>
@@ -74,11 +78,11 @@
                 <div><strong>Bracket 3:</strong> ≥ {{ selectedEvent.bracket_2_threshold }} MMR</div>
               </div>
             </v-col>
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
               <div class="text-subtitle-2 text-grey">Signups</div>
               <div class="text-h4 mt-2">{{ activeSignups.length }}</div>
             </v-col>
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
               <div class="text-subtitle-2 text-grey">Matches</div>
               <div class="text-h4 mt-2">{{ matches.length }}</div>
             </v-col>
@@ -344,6 +348,18 @@
                 density="comfortable"
                 rows="3"
                 prepend-inner-icon="mdi-text"
+              />
+            </v-col>
+            <v-col cols="12">
+              <v-text-field
+                v-model="eventForm.event_date"
+                label="Event Date"
+                type="date"
+                variant="outlined"
+                density="comfortable"
+                prepend-inner-icon="mdi-calendar"
+                hint="Date of the event"
+                persistent-hint
               />
             </v-col>
             <v-col cols="12" md="6">
@@ -638,6 +654,7 @@ const editingEvent = ref(false);
 const eventForm = ref({
   name: '',
   description: '',
+  event_date: '',
   bracket_1_threshold: 1450,
   bracket_2_threshold: 1600,
 });
@@ -746,9 +763,13 @@ async function loadEventData() {
 
 function openCreateEventDialog() {
   editingEvent.value = false;
+  // Set default event_date to today in date format
+  const today = new Date().toISOString().slice(0, 10);
+  
   eventForm.value = {
     name: '',
     description: '',
+    event_date: today,
     bracket_1_threshold: 1450,
     bracket_2_threshold: 1600,
   };
@@ -759,9 +780,18 @@ function openEditEventDialog() {
   if (!selectedEvent.value) return;
   
   editingEvent.value = true;
+  // Extract date portion directly from the datetime string to avoid timezone issues
+  let eventDateLocal = '';
+  if (selectedEvent.value.event_date) {
+    // If it's a datetime string like "2025-12-25 00:00:00" or "2025-12-25T00:00:00", extract YYYY-MM-DD
+    eventDateLocal = selectedEvent.value.event_date.split('T')[0].split(' ')[0];
+  }
+  
   eventForm.value = {
     name: selectedEvent.value.name,
     description: selectedEvent.value.description,
+    event_date: eventDateLocal,
+    is_active: selectedEvent.value.is_active,
     bracket_1_threshold: selectedEvent.value.bracket_1_threshold,
     bracket_2_threshold: selectedEvent.value.bracket_2_threshold,
   };
@@ -773,6 +803,7 @@ function closeEventDialog() {
   eventForm.value = {
     name: '',
     description: '',
+    event_date: '',
     bracket_1_threshold: 1450,
     bracket_2_threshold: 1600,
   };
@@ -780,10 +811,21 @@ function closeEventDialog() {
 
 async function saveEvent() {
   try {
+    // Convert date to MySQL-compatible datetime format (YYYY-MM-DD HH:MM:SS)
+    const eventData = {
+      ...eventForm.value,
+      event_date: eventForm.value.event_date ? eventForm.value.event_date + ' 00:00:00' : null
+    };
+    
+    // For new events, set is_active to false by default
+    if (!editingEvent.value && eventData.is_active === undefined) {
+      eventData.is_active = false;
+    }
+    
     if (editingEvent.value) {
-      await kothStore.updateEvent(selectedEventId.value, eventForm.value);
+      await kothStore.updateEvent(selectedEventId.value, eventData);
     } else {
-      const newEvent = await kothStore.createEvent(eventForm.value);
+      const newEvent = await kothStore.createEvent(eventData);
       selectedEventId.value = newEvent.id;
     }
     closeEventDialog();
@@ -1042,6 +1084,17 @@ function getBracketThresholdText(bracket) {
 
 function getBracketSignups(bracket) {
   return kothStore.getSignupsByBracket(bracket);
+}
+
+function formatEventDate(dateString) {
+  if (!dateString) return 'Not set';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 </script>
 
