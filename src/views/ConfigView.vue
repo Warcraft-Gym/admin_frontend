@@ -270,6 +270,74 @@
                     prepend-inner-icon="mdi-trophy-outline"
                   ></v-text-field>
                 </v-col>
+
+                <!-- KOTH Integration Settings -->
+                <v-col cols="12" class="mt-4">
+                  <h3 class="text-h6 mb-2">KOTH Nightbot Integration</h3>
+                </v-col>
+
+                <v-col cols="12">
+                  <v-card variant="outlined" class="pa-4">
+                    <v-row>
+                      <v-col cols="12">
+                        <div class="d-flex align-center mb-2">
+                          <v-icon color="primary" class="mr-2">mdi-robot</v-icon>
+                          <span class="text-subtitle-1 font-weight-medium">Nightbot Signup Token</span>
+                        </div>
+                        <p class="text-body-2 text-medium-emphasis mb-4">
+                          This token authenticates Nightbot signup commands. Generate a new token if the current one is compromised.
+                        </p>
+                      </v-col>
+
+                      <v-col cols="12" md="8">
+                        <v-text-field
+                          v-model="kothNightbotToken"
+                          label="Current Token"
+                          variant="outlined"
+                          readonly
+                          prepend-inner-icon="mdi-key"
+                          :append-inner-icon="kothTokenVisible ? 'mdi-eye-off' : 'mdi-eye'"
+                          :type="kothTokenVisible ? 'text' : 'password'"
+                          @click:append-inner="kothTokenVisible = !kothTokenVisible"
+                          hint="Click the eye icon to show/hide the token"
+                          persistent-hint
+                        >
+                          <template v-slot:append>
+                            <v-btn
+                              icon="mdi-content-copy"
+                              variant="text"
+                              density="comfortable"
+                              @click="copyKothToken"
+                              :disabled="!kothNightbotToken"
+                            ></v-btn>
+                          </template>
+                        </v-text-field>
+                      </v-col>
+
+                      <v-col cols="12" md="4" class="d-flex align-center">
+                        <v-btn
+                          color="primary"
+                          variant="elevated"
+                          prepend-icon="mdi-refresh"
+                          @click="generateKothToken"
+                          :loading="isGeneratingKothToken"
+                          block
+                        >
+                          Generate New Token
+                        </v-btn>
+                      </v-col>
+
+                      <v-col cols="12" v-if="kothNightbotToken">
+                        <v-alert type="info" variant="tonal" density="compact">
+                          <div class="text-body-2">
+                            <strong>Nightbot Command Example:</strong><br>
+                            <code class="mt-1 d-inline-block">!addcom !kothsignup $(urlfetch $(eval const token='{{kothNightbotToken}}'; const twitch='$(user)'; const race='$(query)'; `https://backend.warcraft-gym.com/koth/signup?token=${token}&twitch=${twitch}&battletag=$(query)${race ? '&race='+race : ''}`; ))</code>
+                          </div>
+                        </v-alert>
+                      </v-col>
+                    </v-row>
+                  </v-card>
+                </v-col>
               </v-row>
             </v-form>
           </v-card-text>
@@ -344,6 +412,11 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const errorMessage = ref(null);
 const successMessage = ref(null);
+
+// KOTH Token management
+const kothNightbotToken = ref('');
+const kothTokenVisible = ref(false);
+const isGeneratingKothToken = ref(false);
 
 // Score system options
 const scoreSystemOptions = [
@@ -432,10 +505,53 @@ const resetSettings = async () => {
   errorMessage.value = null;
 };
 
+// Fetch KOTH Nightbot token
+const fetchKothToken = async () => {
+  try {
+    const response = await configStore.fetchKothNightbotToken();
+    kothNightbotToken.value = response.token || '';
+  } catch (error) {
+    console.error('Failed to fetch KOTH token:', error);
+    kothNightbotToken.value = '';
+  }
+};
+
+// Generate new KOTH token
+const generateKothToken = async () => {
+  if (!confirm('Are you sure you want to generate a new token? The old token will stop working immediately.')) {
+    return;
+  }
+
+  isGeneratingKothToken.value = true;
+  errorMessage.value = null;
+  successMessage.value = null;
+  try {
+    const response = await configStore.generateKothNightbotToken();
+    kothNightbotToken.value = response.token;
+    successMessage.value = 'New KOTH Nightbot token generated successfully!';
+    kothTokenVisible.value = true; // Show the new token
+  } catch (error) {
+    errorMessage.value = 'Failed to generate KOTH token: ' + error;
+  } finally {
+    isGeneratingKothToken.value = false;
+  }
+};
+
+// Copy KOTH token to clipboard
+const copyKothToken = async () => {
+  try {
+    await navigator.clipboard.writeText(kothNightbotToken.value);
+    successMessage.value = 'Token copied to clipboard!';
+  } catch (error) {
+    errorMessage.value = 'Failed to copy token to clipboard';
+  }
+};
+
 onMounted(async () => {
   await Promise.all([
     fetchSettings(),
-    seasonStore.fetchSeasons()
+    seasonStore.fetchSeasons(),
+    fetchKothToken()
   ]);
 });
 </script>

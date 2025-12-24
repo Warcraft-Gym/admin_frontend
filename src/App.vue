@@ -11,14 +11,14 @@ const route = useRoute();
 const showNavLinks = () => {
     if (!authStore.user) return false;
     // hide on explicit public-only routes
-    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration') return false;
+    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration' || route.path === '/koth/dashboard') return false;
     return true;
 }
 </script>
 
 <template>
     <v-app> 
-    <v-app-bar>
+    <v-app-bar v-if="route.path !== '/koth/dashboard'">
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list v-show="showNavLinks()" class="inline-nav" nav>
@@ -58,6 +58,9 @@ const showNavLinks = () => {
                             </v-list-item>
                         </v-list>
                     </v-menu>
+                    <v-list-item>
+                        <RouterLink to="/koth">KOTH</RouterLink>
+                    </v-list-item>
                     <v-list-item>
                         <RouterLink to="/config">Config</RouterLink>
                     </v-list-item>

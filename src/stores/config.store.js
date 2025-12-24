@@ -94,6 +94,34 @@ export const useConfigStore = defineStore({
             } finally {
                 this.isLoading = false;
             }
+        },
+
+        async fetchKothNightbotToken() {
+            this.isLoading = true;
+            this.error = null;
+            try {
+                const response = await fetchWrapper.getSecure(`${backendUrl}/config/koth/nightbot-token`);
+                return response;
+            } catch (error) {
+                this.error = error;
+                throw error;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async generateKothNightbotToken() {
+            this.isLoading = true;
+            this.error = null;
+            try {
+                const response = await fetchWrapper.post(`${backendUrl}/config/koth/nightbot-token`, {});
+                return response;
+            } catch (error) {
+                this.error = error;
+                throw error;
+            } finally {
+                this.isLoading = false;
+            }
         }
     }
 });

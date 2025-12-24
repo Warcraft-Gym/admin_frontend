@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores';
 
 export const fetchWrapper = {
     get: request('GET'),
+    getSecure: request('GET_SECURE'),  // Authenticated GET request
     post: request('POST'),
     put: request('PUT'),
     delete: request('DELETE'),
@@ -14,6 +15,7 @@ function request(method) {
         let requestMethod = method;
         let fileUpload = false;
         let receiveBinary = false;
+        let requireAuth = false;
 
         if (requestMethod === "FILE_UPLOAD") {
             requestMethod = "POST";
@@ -23,9 +25,13 @@ function request(method) {
             requestMethod = "GET";
             receiveBinary = true;
         }
+        if (requestMethod === "GET_SECURE") {
+            requestMethod = "GET";
+            requireAuth = true;  // Force authentication for this GET request
+        }
 
         // **Wait for headers to be resolved before passing them**
-        const headers = await authHeader(requestMethod, url);
+        const headers = await authHeader(requestMethod, url, requireAuth);
         const requestOptions = { method: requestMethod, headers };
 
         if (body) {
@@ -43,10 +49,10 @@ function request(method) {
     };
 }
 
-async function authHeader(method, url) {
+async function authHeader(method, url, requireAuth = false) {
     const authstore = useAuthStore();
     const user = authstore.user;
-    const isRestricted = ['POST', 'PUT', 'DELETE'].includes(method);
+    const isRestricted = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) || requireAuth;
     const isLoggedIn = !!user?.access_token;
     const isApiUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL);
     const isRefreshUrl = url.startsWith(import.meta.env.VITE_BACKEND_URL + "/refresh");
