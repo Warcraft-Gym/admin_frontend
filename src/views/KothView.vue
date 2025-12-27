@@ -18,6 +18,11 @@
       {{ errorMessage }}
     </v-alert>
 
+    <!-- Success Message -->
+    <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4" closable @click:close="successMessage = null">
+      {{ successMessage }}
+    </v-alert>
+
     <!-- Event Selection and Info -->
     <v-expansion-panels class="mb-4">
       <v-expansion-panel elevation="2">
@@ -50,7 +55,7 @@
                 </template>
               </v-select>
             </v-col>
-            <v-col cols="12" md="6" class="d-flex gap-2">
+            <v-col cols="12" md="6" class="d-flex gap-2 flex-wrap">
               <v-btn variant="elevated" color="primary" prepend-icon="mdi-plus" @click="openCreateEventDialog">
                 New Event
               </v-btn>
@@ -72,11 +77,11 @@
           <v-divider v-if="selectedEvent" class="my-4"></v-divider>
 
           <v-row v-if="selectedEvent">
-            <v-col cols="12" md="3">
+            <v-col cols="12" md="4">
               <div class="text-subtitle-2 text-grey">Event Date</div>
               <div class="mt-2">{{ formatEventDate(selectedEvent.event_date) }}</div>
             </v-col>
-            <v-col cols="12" md="3">
+            <v-col cols="12" md="4">
               <div class="text-subtitle-2 text-grey">Bracket Thresholds</div>
               <div class="mt-2">
                 <div><strong>Bracket 1:</strong> &lt; {{ selectedEvent.bracket_1_threshold }} MMR</div>
@@ -84,248 +89,112 @@
                 <div><strong>Bracket 3:</strong> ≥ {{ selectedEvent.bracket_2_threshold }} MMR</div>
               </div>
             </v-col>
-            <v-col cols="12" md="3">
-              <div class="text-subtitle-2 text-grey">Signups</div>
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 text-grey">Total Signups</div>
               <div class="text-h4 mt-2">{{ activeSignups.length }}</div>
-            </v-col>
-            <v-col cols="12" md="3">
-              <div class="text-subtitle-2 text-grey">Matches</div>
-              <div class="text-h4 mt-2">{{ matches.length }}</div>
             </v-col>
           </v-row>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
 
+    <!-- Add Signup Button -->
+    <div v-if="selectedEvent" class="text-center mb-6">
+      <v-btn
+        color="primary"
+        size="large"
+        class="signup-btn"
+        elevation="4"
+        @click="openAddSignupDialog"
+      >
+        <v-icon start>mdi-account-plus</v-icon>
+        Add Player Signup
+      </v-btn>
+    </div>
+
+    <!-- Brackets View -->
     <template v-if="selectedEvent">
-      <!-- Tabs for different views -->
-      <v-tabs v-model="activeTab" class="mb-4">
-        <v-tab value="signups">
-          <v-icon class="mr-2">mdi-account-multiple</v-icon>
-          Signups
-        </v-tab>
-        <v-tab value="matches">
-          <v-icon class="mr-2">mdi-sword-cross</v-icon>
-          Matches
-        </v-tab>
-        <v-tab value="brackets">
-          <v-icon class="mr-2">mdi-trophy-variant</v-icon>
-          Bracket Overview
-        </v-tab>
-      </v-tabs>
-
-      <v-window v-model="activeTab">
-        <!-- Signups Tab -->
-        <v-window-item value="signups">
-          <v-card elevation="2">
-            <v-card-title class="bg-primary d-flex align-center justify-space-between">
-              <div>
-                <v-icon class="mr-2">mdi-account-multiple</v-icon>
-                Player Signups
-              </div>
-              <v-btn variant="elevated" color="white" size="small" prepend-icon="mdi-plus" @click="openAddSignupDialog">
-                Add Signup
-              </v-btn>
+      <v-row>
+        <v-col v-for="bracket in [1, 2, 3]" :key="bracket" cols="12" md="4">
+          <v-card elevation="2" class="bracket-card">
+            <v-card-title :class="`bg-${getBracketColor(bracket)} text-white`">
+              <v-icon class="mr-2">mdi-trophy</v-icon>
+              Bracket {{ bracket }}
             </v-card-title>
             
-            <v-card-text class="pa-0">
-              <v-data-table
-                :headers="signupHeaders"
-                :items="activeSignups"
-                :loading="isLoading"
-                fixed-header
-                hover
-                density="comfortable"
-                :items-per-page="25"
-              >
-                <template #[`item.is_king`]="{ item }">
-                  <v-chip v-if="item.is_king" color="warning" size="small">
-                    <v-icon start>mdi-crown</v-icon>
-                    King
-                  </v-chip>
-                </template>
-
-                <template #[`item.bracket`]="{ item }">
-                  <v-chip :color="getBracketColor(item.bracket)" size="small">
-                    Bracket {{ item.bracket }}
-                  </v-chip>
-                </template>
-
-                <template #[`item.actions`]="{ item }">
-                  <v-menu location="bottom end">
-                    <template v-slot:activator="{ props }">
-                      <v-btn icon="mdi-dots-vertical" variant="text" size="small" v-bind="props"></v-btn>
-                    </template>
-                    <v-list density="compact">
-                      <v-list-item @click="openBracketChangeDialog(item)" prepend-icon="mdi-swap-horizontal">
-                        <v-list-item-title>Change Bracket</v-list-item-title>
-                      </v-list-item>
-                      <v-divider></v-divider>
-                      <v-list-item v-if="!item.is_king" @click="setAsKing(item.id)" prepend-icon="mdi-crown">
-                        <v-list-item-title>Set as King</v-list-item-title>
-                        <v-list-item-subtitle class="text-caption">Replaces existing king</v-list-item-subtitle>
-                      </v-list-item>
-                      <v-list-item v-if="!item.is_king" @click="addAsKing(item.id)" prepend-icon="mdi-crown-outline">
-                        <v-list-item-title>Add as King</v-list-item-title>
-                        <v-list-item-subtitle class="text-caption">Keeps existing kings</v-list-item-subtitle>
-                      </v-list-item>
-                      <v-list-item v-else @click="removeKing(item.id)" prepend-icon="mdi-crown-off">
-                        <v-list-item-title>Remove King</v-list-item-title>
-                      </v-list-item>
-                      <v-divider></v-divider>
-                      <v-list-item @click="deleteSignup(item.id)" prepend-icon="mdi-delete" class="text-error">
-                        <v-list-item-title>Delete</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </template>
-
-                <template #no-data>
-                  <div class="text-center pa-8">
-                    <v-icon size="64" color="grey-lighten-1">mdi-account-off</v-icon>
-                    <div class="text-h6 mt-4 text-grey">No signups yet</div>
-                  </div>
-                </template>
-              </v-data-table>
-            </v-card-text>
-          </v-card>
-        </v-window-item>
-
-        <!-- Matches Tab -->
-        <v-window-item value="matches">
-          <v-card elevation="2">
-            <v-card-title class="bg-primary d-flex align-center justify-space-between">
-              <div>
-                <v-icon class="mr-2">mdi-sword-cross</v-icon>
-                Matches
-              </div>
-              <v-btn variant="elevated" color="white" size="small" prepend-icon="mdi-plus" @click="openCreateMatchDialog">
-                Create Match
-              </v-btn>
-            </v-card-title>
+            <v-card-subtitle class="pa-3 text-subtitle-2">
+              {{ getBracketThresholdText(bracket) }}
+            </v-card-subtitle>
             
-            <v-card-text class="pa-0">
-              <v-data-table
-                :headers="matchHeaders"
-                :items="matches"
-                :loading="isLoading"
-                fixed-header
-                hover
-                density="comfortable"
-                :items-per-page="25"
-              >
-                <template #[`item.bracket`]="{ item }">
-                  <v-chip :color="getBracketColor(item.bracket)" size="small">
-                    Bracket {{ item.bracket }}
-                  </v-chip>
-                </template>
-
-                <template #[`item.game_mode`]="{ item }">
-                  <v-chip size="small" variant="outlined">
-                    {{ item.game_mode }}
-                  </v-chip>
-                </template>
-
-                <template #[`item.teams`]="{ item }">
-                  <div v-if="item.participants && item.participants.length > 0" class="py-2">
-                    <div v-for="teamNum in item.num_teams" :key="teamNum" class="mb-1">
-                      <strong>Team {{ teamNum }}:</strong>
-                      <span class="ml-2">
-                        {{ getTeamPlayers(item, teamNum).map(p => p.signup?.twitch_username || p.signup?.battle_tag || 'Unknown').join(', ') }}
-                      </span>
+            <v-divider></v-divider>
+            
+            <v-card-text class="pa-3">
+              <!-- Kings Section -->
+              <div v-if="kings[bracket] && kings[bracket].length > 0" class="mb-4 pa-3 king-section">
+                <div class="d-flex align-center mb-2">
+                  <v-icon color="warning" class="mr-2">mdi-crown</v-icon>
+                  <span class="text-subtitle-2 font-weight-bold">King{{ kings[bracket].length > 1 ? 's' : '' }}</span>
+                </div>
+                <div v-for="king in kings[bracket]" :key="king.id" class="king-item pa-2 mb-2">
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="flex-grow-1">
+                      <div class="font-weight-bold">{{ king.twitch_username || king.battle_tag }}</div>
+                      <div class="text-caption text-grey">{{ king.mmr }} MMR · {{ king.race }}</div>
                     </div>
-                  </div>
-                  <span v-else class="text-grey">No participants</span>
-                </template>
-
-                <template #[`item.winner`]="{ item }">
-                  <v-chip v-if="item.winner_team_number" color="success" size="small">
-                    Team {{ item.winner_team_number }}
-                  </v-chip>
-                  <span v-else class="text-grey">TBD</span>
-                </template>
-
-                <template #[`item.actions`]="{ item }">
-                  <v-menu location="bottom end">
-                    <template v-slot:activator="{ props }">
-                      <v-btn icon="mdi-dots-vertical" variant="text" size="small" v-bind="props"></v-btn>
-                    </template>
-                    <v-list density="compact">
-                      <v-list-item @click="openSetWinnerDialog(item)" prepend-icon="mdi-trophy">
-                        <v-list-item-title>Set Winner</v-list-item-title>
-                      </v-list-item>
-                      <v-list-item @click="deleteMatch(item.id)" prepend-icon="mdi-delete" class="text-error">
-                        <v-list-item-title>Delete</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </template>
-
-                <template #no-data>
-                  <div class="text-center pa-8">
-                    <v-icon size="64" color="grey-lighten-1">mdi-sword-cross</v-icon>
-                    <div class="text-h6 mt-4 text-grey">No matches yet</div>
-                    <v-btn color="primary" variant="tonal" class="mt-4" prepend-icon="mdi-plus" @click="openCreateMatchDialog">
-                      Create First Match
+                    <v-btn size="small" variant="tonal" color="error" @click="removeKing(king.id)" title="Remove King">
+                      <v-icon>mdi-close-circle</v-icon>
                     </v-btn>
                   </div>
-                </template>
-              </v-data-table>
+                </div>
+              </div>
+              <div v-else class="text-center pa-3 mb-4 no-king-section">
+                <v-icon size="32" color="grey-lighten-1">mdi-crown-outline</v-icon>
+                <div class="text-caption text-grey mt-1">No King Yet</div>
+              </div>
+              
+              <v-divider class="my-3"></v-divider>
+              
+              <!-- Players List -->
+              <div class="text-subtitle-2 mb-2 d-flex align-center justify-space-between">
+                <span>Players ({{ getBracketSignups(bracket).filter(s => !s.is_king).length }})</span>
+              </div>
+              
+              <div v-if="getBracketSignups(bracket).filter(s => !s.is_king).length > 0" class="players-list">
+                <div
+                  v-for="signup in getBracketSignups(bracket).filter(s => !s.is_king)"
+                  :key="signup.id"
+                  class="player-item pa-2 mb-1"
+                >
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="flex-grow-1">
+                      <div class="text-body-2 font-weight-medium">{{ signup.twitch_username || signup.battle_tag }}</div>
+                      <div class="text-caption text-grey">{{ signup.mmr }} MMR · {{ signup.race }}</div>
+                    </div>
+                    <div class="d-flex gap-1">
+                      <v-btn icon="mdi-crown" size="x-small" variant="tonal" color="warning" @click="setAsKing(signup.id)" title="Make King"></v-btn>
+                      <v-btn icon="mdi-delete" size="x-small" variant="tonal" color="error" @click="deleteSignup(signup.id)" title="Remove from bracket"></v-btn>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center pa-4 text-grey-lighten-1">
+                <v-icon size="40">mdi-account-off</v-icon>
+                <div class="text-caption mt-2">No players signed up</div>
+              </div>
             </v-card-text>
           </v-card>
-        </v-window-item>
-
-        <!-- Brackets Tab -->
-        <v-window-item value="brackets">
-          <v-row>
-            <v-col v-for="bracket in [1, 2, 3]" :key="bracket" cols="12" md="4">
-              <v-card elevation="2">
-                <v-card-title :class="`bg-${getBracketColor(bracket)}`">
-                  <v-icon class="mr-2">mdi-trophy</v-icon>
-                  Bracket {{ bracket }}
-                </v-card-title>
-                
-                <v-card-text>
-                  <div class="text-subtitle-2 text-grey mb-2">
-                    {{ getBracketThresholdText(bracket) }}
-                  </div>
-                  
-                  <v-divider class="my-3"></v-divider>
-                  
-                  <div v-if="kings[bracket] && kings[bracket].length > 0" class="mb-4 pa-3" style="background-color: rgba(255, 193, 7, 0.1); border-left: 4px solid #FFC107;">
-                    <div class="text-subtitle-2 mb-2">
-                      <v-icon color="warning" size="small" class="mr-1">mdi-crown</v-icon>
-                      King{{ kings[bracket].length > 1 ? 's' : '' }}
-                    </div>
-                    <div v-for="king in kings[bracket]" :key="king.id" class="d-flex align-center mb-2">
-                      <div class="ml-6">
-                        <div class="font-weight-bold">{{ king.twitch_username || king.battle_tag }}</div>
-                        <div class="text-caption text-grey">{{ king.mmr }} MMR</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="text-subtitle-2 mb-2">Players ({{ getBracketSignups(bracket).filter(s => !s.is_king).length }})</div>
-                  <v-list density="compact">
-                    <v-list-item
-                      v-for="signup in getBracketSignups(bracket).filter(s => !s.is_king)"
-                      :key="signup.id"
-                    >
-                      <v-list-item-title>
-                        {{ signup.twitch_username || signup.battle_tag }}
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ signup.mmr }} MMR · {{ signup.race }}
-                      </v-list-item-subtitle>
-                    </v-list-item>
-                  </v-list>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-window-item>
-      </v-window>
+        </v-col>
+      </v-row>
     </template>
+
+    <div v-else class="text-center pa-8">
+      <v-icon size="80" color="grey-lighten-1">mdi-trophy-outline</v-icon>
+      <div class="text-h5 mt-4 text-grey">No Event Selected</div>
+      <div class="text-body-2 text-grey mt-2">Create or select an event to manage brackets and players</div>
+      <v-btn color="primary" variant="elevated" class="mt-4" prepend-icon="mdi-plus" @click="openCreateEventDialog">
+        Create Event
+      </v-btn>
+    </div>
 
     <!-- Create/Edit Event Dialog -->
     <v-dialog v-model="showEventDialog" max-width="600px" persistent>
@@ -399,185 +268,6 @@
           <v-btn color="primary" prepend-icon="mdi-check" @click="saveEvent">
             {{ editingEvent ? 'Update' : 'Create' }}
           </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Change Bracket Dialog -->
-    <v-dialog v-model="showBracketDialog" max-width="400px">
-      <v-card>
-        <v-card-title class="bg-primary">
-          <v-icon class="mr-2">mdi-swap-horizontal</v-icon>
-          Change Player Bracket
-        </v-card-title>
-        
-        <v-card-text class="pt-4">
-          <div v-if="selectedSignup" class="mb-4">
-            <div class="text-subtitle-1 font-weight-bold">{{ selectedSignup.discord_tag }}</div>
-            <div class="text-caption text-grey">Current: Bracket {{ selectedSignup.bracket }}</div>
-          </div>
-          
-          <v-select
-            v-model="newBracket"
-            :items="[1, 2, 3]"
-            label="New Bracket"
-            variant="outlined"
-            density="comfortable"
-          >
-            <template #item="{ props, item }">
-              <v-list-item v-bind="props" :subtitle="getBracketThresholdText(item.value)"></v-list-item>
-            </template>
-          </v-select>
-        </v-card-text>
-        
-        <v-card-actions class="px-4 py-3">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="closeBracketDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="saveBracketChange">Update</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Create Match Dialog -->
-    <v-dialog v-model="showMatchDialog" max-width="800px" persistent scrollable>
-      <v-card>
-        <v-card-title class="bg-primary">
-          <v-icon class="mr-2">mdi-plus-circle</v-icon>
-          Create Match
-        </v-card-title>
-        
-        <v-card-text class="pt-4">
-          <v-row dense>
-            <v-col cols="12" md="4">
-              <v-select
-                v-model="matchForm.bracket"
-                :items="[1, 2, 3]"
-                label="Bracket"
-                variant="outlined"
-                density="comfortable"
-                @update:model-value="onBracketChange"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="matchForm.game_mode"
-                label="Game Mode"
-                variant="outlined"
-                density="comfortable"
-                hint="e.g., 1v1, 2v1, 2v2, 3v1, FFA"
-                persistent-hint
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model.number="matchForm.num_teams"
-                label="Number of Teams"
-                type="number"
-                variant="outlined"
-                density="comfortable"
-                min="2"
-                @update:model-value="onNumTeamsChange"
-              />
-            </v-col>
-          </v-row>
-
-          <v-divider class="my-4"></v-divider>
-
-          <!-- Team participant selection -->
-          <div v-for="teamNum in matchForm.num_teams" :key="teamNum" class="mb-4">
-            <v-card variant="outlined">
-              <v-card-title class="text-subtitle-1 py-2">
-                <v-icon class="mr-2" size="small">mdi-account-group</v-icon>
-                Team {{ teamNum }}
-              </v-card-title>
-              <v-card-text>
-                <v-select
-                  v-model="matchForm.teams[teamNum - 1]"
-                  :items="getAvailablePlayers(matchForm.bracket)"
-                  :item-title="getPlayerDisplayName"
-                  item-value="id"
-                  label="Select Players"
-                  variant="outlined"
-                  density="comfortable"
-                  multiple
-                  chips
-                  closable-chips
-                >
-                  <template #item="{ props, item }">
-                    <v-list-item v-bind="props">
-                      <template #subtitle>
-                        {{ item.raw.mmr }} MMR · {{ item.raw.race }}
-                      </template>
-                    </v-list-item>
-                  </template>
-                </v-select>
-              </v-card-text>
-            </v-card>
-          </div>
-
-          <v-alert v-if="matchFormError" type="error" variant="tonal" class="mt-4" closable @click:close="matchFormError = null">
-            {{ matchFormError }}
-          </v-alert>
-        </v-card-text>
-        
-        <v-card-actions class="px-4 py-3">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="closeMatchDialog">Cancel</v-btn>
-          <v-btn color="primary" prepend-icon="mdi-check" @click="createMatch" :disabled="!isMatchFormValid">Create</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Set Winner Dialog -->
-    <v-dialog v-model="showWinnerDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="bg-primary">
-          <v-icon class="mr-2">mdi-trophy</v-icon>
-          Set Match Winner
-        </v-card-title>
-        
-        <v-card-text class="pt-4">
-          <div v-if="selectedMatch">
-            <div class="mb-4">
-              <div class="text-subtitle-2 text-grey mb-2">Match Details</div>
-              <div><strong>Game Mode:</strong> {{ selectedMatch.game_mode }}</div>
-              <div><strong>Bracket:</strong> {{ selectedMatch.bracket }}</div>
-            </div>
-
-            <v-divider class="my-4"></v-divider>
-
-            <div class="mb-4">
-              <div class="text-subtitle-2 text-grey mb-2">Teams</div>
-              <div v-for="teamNum in selectedMatch.num_teams" :key="teamNum" class="mb-2">
-                <strong>Team {{ teamNum }}:</strong>
-                {{ getTeamPlayers(selectedMatch, teamNum).map(p => p.signup?.twitch_username || p.signup?.battle_tag || 'Unknown').join(', ') }}
-              </div>
-            </div>
-            
-            <v-select
-              v-model="winnerForm.winner_team_number"
-              :items="Array.from({ length: selectedMatch.num_teams }, (_, i) => i + 1)"
-              label="Select Winner"
-              variant="outlined"
-              density="comfortable"
-              hint="Select which team won the match"
-              persistent-hint
-            >
-              <template #item="{ props, item }">
-                <v-list-item v-bind="props">
-                  <template #subtitle>
-                    {{ getTeamPlayers(selectedMatch, item.value).map(p => p.signup?.twitch_username || p.signup?.battle_tag || 'Unknown').join(', ') }}
-                  </template>
-                </v-list-item>
-              </template>
-            </v-select>
-          </div>
-        </v-card-text>
-        
-        <v-card-actions class="px-4 py-3">
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="closeWinnerDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="setWinner" :disabled="!winnerForm.winner_team_number">Set Winner</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -656,8 +346,6 @@
           <ul class="text-body-2 text-grey mt-2">
             <li>Event: <strong>{{ selectedEvent?.name }}</strong></li>
             <li>All signups ({{ activeSignups.length }})</li>
-            <li>All matches ({{ matches.length }})</li>
-            <li>All bracket king records</li>
           </ul>
           <v-alert type="warning" variant="tonal" class="mt-4">
             <strong>This action cannot be undone!</strong>
@@ -690,11 +378,11 @@ import RaceSelect from '@/components/RaceSelect.vue';
 defineOptions({ name: 'KothView' });
 
 const kothStore = useKothStore();
-const { events, signups, matches, kings, isLoading } = storeToRefs(kothStore);
+const { events, signups, kings, isLoading } = storeToRefs(kothStore);
 
 const errorMessage = ref(null);
+const successMessage = ref(null);
 const selectedEventId = ref(null);
-const activeTab = ref('signups');
 
 // Event dialog
 const showEventDialog = ref(false);
@@ -705,28 +393,6 @@ const eventForm = ref({
   event_date: '',
   bracket_1_threshold: 1450,
   bracket_2_threshold: 1600,
-});
-
-// Bracket change dialog
-const showBracketDialog = ref(false);
-const selectedSignup = ref(null);
-const newBracket = ref(1);
-
-// Match dialog
-const showMatchDialog = ref(false);
-const matchForm = ref({
-  bracket: 1,
-  game_mode: '1v1',
-  num_teams: 2,
-  teams: [[], []], // Array of arrays, each containing signup IDs
-});
-const matchFormError = ref(null);
-
-// Winner dialog
-const showWinnerDialog = ref(false);
-const selectedMatch = ref(null);
-const winnerForm = ref({
-  winner_team_number: null,
 });
 
 // Add signup dialog
@@ -741,41 +407,12 @@ const signupError = ref(null);
 // Delete confirmation dialog
 const showDeleteDialog = ref(false);
 
-const signupHeaders = [
-  { title: 'Status', key: 'is_king', sortable: false },
-  { title: 'Twitch Username', key: 'twitch_username' },
-  { title: 'BattleTag', key: 'battle_tag' },
-  { title: 'MMR', key: 'mmr' },
-  { title: 'Race', key: 'race' },
-  { title: 'Bracket', key: 'bracket' },
-  { title: 'Actions', key: 'actions', sortable: false },
-];
-
-const matchHeaders = [
-  { title: 'Bracket', key: 'bracket' },
-  { title: 'Game Mode', key: 'game_mode' },
-  { title: 'Teams', key: 'teams', sortable: false },
-  { title: 'Winner', key: 'winner', sortable: false },
-  { title: 'Actions', key: 'actions', sortable: false },
-];
-
 const selectedEvent = computed(() => {
   return events.value.find(e => e.id === selectedEventId.value);
 });
 
 const activeSignups = computed(() => {
   return signups.value.filter(s => s.is_active === 1);
-});
-
-const isMatchFormValid = computed(() => {
-  if (!matchForm.value.game_mode || !matchForm.value.num_teams) return false;
-  // Check that each team has at least one player
-  for (let i = 0; i < matchForm.value.num_teams; i++) {
-    if (!matchForm.value.teams[i] || matchForm.value.teams[i].length === 0) {
-      return false;
-    }
-  }
-  return true;
 });
 
 onMounted(async () => {
@@ -805,7 +442,6 @@ async function loadEventData() {
     errorMessage.value = null;
     await Promise.all([
       kothStore.fetchSignups(selectedEventId.value),
-      kothStore.fetchMatches(selectedEventId.value),
       kothStore.fetchBracketKings(selectedEventId.value),
     ]);
   } catch (error) {
@@ -815,7 +451,6 @@ async function loadEventData() {
 
 function openCreateEventDialog() {
   editingEvent.value = false;
-  // Set default event_date to today in date format
   const today = new Date().toISOString().slice(0, 10);
   
   eventForm.value = {
@@ -832,10 +467,8 @@ function openEditEventDialog() {
   if (!selectedEvent.value) return;
   
   editingEvent.value = true;
-  // Extract date portion directly from the datetime string to avoid timezone issues
   let eventDateLocal = '';
   if (selectedEvent.value.event_date) {
-    // If it's a datetime string like "2025-12-25 00:00:00" or "2025-12-25T00:00:00", extract YYYY-MM-DD
     eventDateLocal = selectedEvent.value.event_date.split('T')[0].split(' ')[0];
   }
   
@@ -863,27 +496,26 @@ function closeEventDialog() {
 
 async function saveEvent() {
   try {
-    // Convert date to MySQL-compatible datetime format (YYYY-MM-DD HH:MM:SS)
     const eventData = {
       ...eventForm.value,
       event_date: eventForm.value.event_date ? eventForm.value.event_date + ' 00:00:00' : null
     };
     
-    // For new events, set is_active to false by default
     if (!editingEvent.value && eventData.is_active === undefined) {
       eventData.is_active = false;
     }
     
     if (editingEvent.value) {
       await kothStore.updateEvent(selectedEventId.value, eventData);
+      successMessage.value = 'Event updated successfully!';
     } else {
       const newEvent = await kothStore.createEvent(eventData);
       selectedEventId.value = newEvent.id;
+      successMessage.value = 'Event created successfully!';
     }
     closeEventDialog();
     await loadEvents();
     
-    // Auto-load the newly created/updated event data
     if (selectedEventId.value) {
       await loadEventData();
     }
@@ -895,6 +527,7 @@ async function saveEvent() {
 async function activateEvent() {
   try {
     await kothStore.activateEvent(selectedEventId.value);
+    successMessage.value = 'Event activated successfully!';
     await loadEvents();
   } catch (error) {
     errorMessage.value = `Failed to activate event: ${error.message}`;
@@ -903,7 +536,6 @@ async function activateEvent() {
 
 async function deactivateEvent() {
   try {
-    // Preserve all event data, only change is_active
     const eventData = {
       name: selectedEvent.value.name,
       description: selectedEvent.value.description,
@@ -913,6 +545,7 @@ async function deactivateEvent() {
       is_active: false
     };
     await kothStore.updateEvent(selectedEventId.value, eventData);
+    successMessage.value = 'Event deactivated successfully!';
     await loadEvents();
   } catch (error) {
     errorMessage.value = `Failed to deactivate event: ${error.message}`;
@@ -928,55 +561,45 @@ async function deleteEvent() {
     await kothStore.deleteEvent(selectedEventId.value);
     selectedEventId.value = null;
     showDeleteDialog.value = false;
+    successMessage.value = 'Event deleted successfully!';
     await loadEvents();
   } catch (error) {
     errorMessage.value = `Failed to delete event: ${error.message}`;
   }
 }
 
-function openBracketChangeDialog(signup) {
-  selectedSignup.value = signup;
-  newBracket.value = signup.bracket;
-  showBracketDialog.value = true;
-}
-
-function closeBracketDialog() {
-  showBracketDialog.value = false;
-  selectedSignup.value = null;
-  newBracket.value = 1;
-}
-
-async function saveBracketChange() {
-  try {
-    await kothStore.updateSignupBracket(selectedSignup.value.id, newBracket.value);
-    closeBracketDialog();
-    await loadEventData();
-  } catch (error) {
-    errorMessage.value = `Failed to change bracket: ${error.message}`;
-  }
-}
-
 async function setAsKing(signupId) {
   try {
+    // Find the signup to determine which bracket we're working with
+    const newKingSignup = signups.value.find(s => s.id === signupId);
+    if (!newKingSignup) return;
+    
+    const bracket = newKingSignup.bracket;
+    
+    // Find current king(s) in this bracket
+    const currentKings = signups.value.filter(s => s.bracket === bracket && s.is_king === 1);
+    
+    // Set the new king
     await kothStore.setKing(signupId);
+    
+    // Delete the previous king(s) from the bracket
+    for (const oldKing of currentKings) {
+      if (oldKing.id !== signupId) {
+        await kothStore.deleteSignup(oldKing.id);
+      }
+    }
+    
+    successMessage.value = 'Player set as King! Previous king removed from bracket.';
     await loadEventData();
   } catch (error) {
     errorMessage.value = `Failed to set king: ${error.message}`;
   }
 }
 
-async function addAsKing(signupId) {
-  try {
-    await kothStore.addKing(signupId);
-    await loadEventData();
-  } catch (error) {
-    errorMessage.value = `Failed to add king: ${error.message}`;
-  }
-}
-
 async function removeKing(signupId) {
   try {
     await kothStore.unsetKing(signupId);
+    successMessage.value = 'King status removed successfully!';
     await loadEventData();
   } catch (error) {
     errorMessage.value = `Failed to remove king: ${error.message}`;
@@ -984,137 +607,14 @@ async function removeKing(signupId) {
 }
 
 async function deleteSignup(signupId) {
-  if (!confirm('Are you sure you want to delete this signup?')) return;
+  if (!confirm('Are you sure you want to remove this player from the bracket?')) return;
   
   try {
     await kothStore.deleteSignup(signupId);
+    successMessage.value = 'Player removed from bracket successfully!';
     await loadEventData();
   } catch (error) {
     errorMessage.value = `Failed to delete signup: ${error.message}`;
-  }
-}
-
-function openCreateMatchDialog() {
-  matchForm.value = {
-    bracket: 1,
-    game_mode: '1v1',
-    num_teams: 2,
-    teams: [[], []],
-  };
-  matchFormError.value = null;
-  showMatchDialog.value = true;
-}
-
-function closeMatchDialog() {
-  showMatchDialog.value = false;
-  matchForm.value = {
-    bracket: 1,
-    game_mode: '1v1',
-    num_teams: 2,
-    teams: [[], []],
-  };
-  matchFormError.value = null;
-}
-
-function onBracketChange() {
-  // Clear all teams when bracket changes
-  matchForm.value.teams = Array.from({ length: matchForm.value.num_teams }, () => []);
-}
-
-function onNumTeamsChange() {
-  const numTeams = matchForm.value.num_teams || 2;
-  // Resize teams array
-  const currentTeams = matchForm.value.teams;
-  matchForm.value.teams = Array.from({ length: numTeams }, (_, i) => currentTeams[i] || []);
-}
-
-function getPlayerDisplayName(signup) {
-  return signup.twitch_username || signup.battle_tag;
-}
-
-function getAvailablePlayers(bracket) {
-  return signups.value.filter(s => s.bracket === bracket && s.is_active === 1);
-}
-
-async function createMatch() {
-  matchFormError.value = null;
-  
-  // Validate that all teams have at least one player
-  for (let i = 0; i < matchForm.value.num_teams; i++) {
-    if (!matchForm.value.teams[i] || matchForm.value.teams[i].length === 0) {
-      matchFormError.value = `Team ${i + 1} must have at least one player`;
-      return;
-    }
-  }
-  
-  try {
-    // Build participants array from teams
-    const participants = [];
-    matchForm.value.teams.forEach((team, index) => {
-      team.forEach(signupId => {
-        participants.push({
-          signup_id: signupId,
-          team_number: index + 1
-        });
-      });
-    });
-    
-    await kothStore.createMatch({
-      event_id: selectedEventId.value,
-      bracket: matchForm.value.bracket,
-      game_mode: matchForm.value.game_mode,
-      num_teams: matchForm.value.num_teams,
-      participants: participants,
-    });
-    closeMatchDialog();
-    await loadEventData();
-  } catch (error) {
-    matchFormError.value = error.message || 'Failed to create match';
-  }
-}
-
-async function deleteMatch(matchId) {
-  if (!confirm('Are you sure you want to delete this match?')) return;
-  
-  try {
-    await kothStore.deleteMatch(matchId);
-    await loadEventData();
-  } catch (error) {
-    errorMessage.value = `Failed to delete match: ${error.message}`;
-  }
-}
-
-function getTeamPlayers(match, teamNumber) {
-  if (!match.participants) return [];
-  return match.participants.filter(p => p.team_number === teamNumber);
-}
-
-function openSetWinnerDialog(match) {
-  selectedMatch.value = match;
-  winnerForm.value = {
-    winner_team_number: match.winner_team_number || null,
-  };
-  showWinnerDialog.value = true;
-}
-
-function closeWinnerDialog() {
-  showWinnerDialog.value = false;
-  selectedMatch.value = null;
-  winnerForm.value = {
-    winner_team_number: null,
-  };
-}
-
-async function setWinner() {
-  try {
-    await kothStore.updateMatchResult(
-      selectedMatch.value.id,
-      winnerForm.value.winner_team_number
-    );
-    closeWinnerDialog();
-    await loadEventData();
-  } catch (error) {
-    errorMessage.value = `Failed to set winner: ${error.message}`;
   }
 }
 
@@ -1152,7 +652,6 @@ async function saveSignup() {
   try {
     signupError.value = null;
     
-    // Map race ID to backend format
     const raceMap = {
       'HU': 'human',
       'OC': 'orc',
@@ -1168,6 +667,7 @@ async function saveSignup() {
       race: signupForm.value.race ? raceMap[signupForm.value.race] : null,
     });
     closeAddSignupDialog();
+    successMessage.value = 'Player signup added successfully!';
     await loadEventData();
   } catch (error) {
     signupError.value = error.message || 'Failed to add signup';
@@ -1204,5 +704,66 @@ function formatEventDate(dateString) {
 <style scoped>
 .loading-overlay {
   z-index: 999;
+}
+
+.bracket-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.king-section {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #FFC107;
+  border-radius: 4px;
+}
+
+.king-item {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.king-item:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.no-king-section {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+}
+
+.players-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.signup-btn {
+  font-size: 1.1rem !important;
+  padding: 28px 40px !important;
+  border-radius: 50px !important;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.signup-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
+
+.player-item {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.player-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
 }
 </style>

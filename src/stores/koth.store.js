@@ -100,6 +100,24 @@ export const useKothStore = defineStore({
             return newSignup;
         },
 
+        async createPublicSignup(signupData) {
+            // Public endpoint - uses GET with query parameters and KOTH_NIGHTBOT_TOKEN
+            const params = new URLSearchParams({
+                token: signupData.token,
+                battletag: signupData.battle_tag,
+            });
+            
+            if (signupData.twitch_username) {
+                params.append('twitch', signupData.twitch_username);
+            }
+            if (signupData.race) {
+                params.append('race', signupData.race);
+            }
+            
+            const response = await fetchWrapper.get(`${backendUrl}/koth/signup?${params.toString()}`);
+            return response;
+        },
+
         async deleteSignup(signupId) {
             await fetchWrapper.delete(`${backendUrl}/koth/signups/${signupId}`);
             this.signups = this.signups.filter(s => s.id !== signupId);
