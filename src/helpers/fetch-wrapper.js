@@ -4,6 +4,7 @@ export const fetchWrapper = {
     get: request('GET'),
     getSecure: request('GET_SECURE'),  // Authenticated GET request
     post: request('POST'),
+    postFile: request('FILE_UPLOAD'),
     put: request('PUT'),
     delete: request('DELETE'),
     fileUpload: request('FILE_UPLOAD'),

@@ -18,3 +18,4 @@ export { default as FantasyTiersView } from './FantasyTiersView.vue';
 export { default as UserGuideView } from './UserGuideView.vue';
 export { default as KothView } from './KothView.vue';
 export { default as KothDashboard } from './KothDashboard.vue';
+export { default as PlayerCareerStatsView } from './PlayerCareerStatsView.vue';

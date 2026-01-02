@@ -22,21 +22,36 @@ const showNavLinks = () => {
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list v-show="showNavLinks()" class="inline-nav" nav>
-                    <v-list-item>
-                        <RouterLink to="/">Home</RouterLink>
+                    <v-list-item class="nav-link-item">
+                        <RouterLink to="/" class="nav-link">Home</RouterLink>
                     </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/seasons">Seasons</RouterLink>
-                    </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/players">Players</RouterLink>
-                    </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/teams">Teams</RouterLink>
-                    </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/maps">Maps</RouterLink>
-                    </v-list-item>
+                    <v-menu offset-y>
+                        <template v-slot:activator="{ props }">
+                            <v-list-item v-bind="props" class="gnl-menu-activator">
+                                <a class="nav-link">
+                                    GNL
+                                    <v-icon size="small" class="ml-1">mdi-chevron-down</v-icon>
+                                </a>
+                            </v-list-item>
+                        </template>
+                        <v-list class="gnl-dropdown">
+                            <v-list-item>
+                                <RouterLink to="/seasons">Seasons</RouterLink>
+                            </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/players">Players</RouterLink>
+                            </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/teams">Teams</RouterLink>
+                            </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/maps">Maps</RouterLink>
+                            </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/player-stats">Player Stats</RouterLink>
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
                     <v-menu offset-y>
                         <template v-slot:activator="{ props }">
                             <v-list-item v-bind="props" class="fantasy-menu-activator">
@@ -58,14 +73,14 @@ const showNavLinks = () => {
                             </v-list-item>
                         </v-list>
                     </v-menu>
-                    <v-list-item>
-                        <RouterLink to="/koth">KOTH</RouterLink>
+                    <v-list-item class="nav-link-item">
+                        <RouterLink to="/koth" class="nav-link">KOTH</RouterLink>
                     </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/config">Config</RouterLink>
+                    <v-list-item class="nav-link-item">
+                        <RouterLink to="/config" class="nav-link">Config</RouterLink>
                     </v-list-item>
-                    <v-list-item>
-                        <RouterLink to="/user-guide">User Guide</RouterLink>
+                    <v-list-item class="nav-link-item">
+                        <RouterLink to="/user-guide" class="nav-link">User Guide</RouterLink>
                     </v-list-item>
                     <v-list-item>
                         <v-btn 
@@ -97,6 +112,48 @@ const showNavLinks = () => {
 
 .inline-nav .v-list-item {
     margin: 0 !important;
+}
+
+.nav-link-item {
+    cursor: pointer;
+}
+
+.nav-link-item .nav-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #1976d2;
+}
+
+.gnl-menu-activator {
+    cursor: pointer;
+}
+
+.gnl-menu-activator .nav-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #1976d2;
+}
+
+.gnl-dropdown {
+    min-width: 180px;
+}
+
+.gnl-dropdown .v-list-item {
+    padding: 0;
+}
+
+.gnl-dropdown a {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.gnl-dropdown a:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .fantasy-menu-activator {
