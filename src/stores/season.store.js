@@ -24,7 +24,8 @@ export const useSeasonStore = defineStore({
             const updatedSeason = await fetchWrapper.put(`${backendUrl}/seasons/${seasonId}`, season);
         },
         async createSeason(season) {
-            const updatedSeason = await fetchWrapper.post(`${backendUrl}/seasons`, season);
+            const createdSeason = await fetchWrapper.post(`${backendUrl}/seasons`, season);
+            return createdSeason;
         },
         async deleteSeason(season_id) {
             await fetchWrapper.delete(`${backendUrl}/seasons/${season_id}`);
@@ -41,6 +42,18 @@ export const useSeasonStore = defineStore({
         async removeMapsFromSeason(season_id, map_ids) {
             const updatedTeam = await fetchWrapper.post(`${backendUrl}/seasons/removeMaps/${season_id}`, {'map_ids': map_ids});
         },
+        async addUserSignup(season_id, user_ids) {
+            const updated = await fetchWrapper.post(`${backendUrl}/seasons/addUserSignup/${season_id}`, {'user_ids': user_ids});
+            return updated;
+        },
+        async removeUserSignup(season_id, user_ids) {
+            const updated = await fetchWrapper.post(`${backendUrl}/seasons/removeUserSignup/${season_id}`, {'user_ids': user_ids});
+            return updated;
+        },
+        async fetchSeasonSignups(season_id) {
+            const signups = await fetchWrapper.get(`${backendUrl}/seasons/${season_id}/signups`);
+            return signups;
+        },
         async uploadSeasonFile(season_id, season_name, file){
             let url = null
             if (season_id != null){
@@ -54,6 +67,14 @@ export const useSeasonStore = defineStore({
             formData.append("file", file);
             await fetchWrapper.fileUpload(url, formData)
             return true;
+        },
+        async recalculateSeasonScores(season_id) {
+            const result = await fetchWrapper.post(`${backendUrl}/season/${season_id}/calculate/`);
+            return result;
+        },
+        async getCalculationProgress(season_id) {
+            const progress = await fetchWrapper.get(`${backendUrl}/season/${season_id}/calculate/status`);
+            return progress;
         }
     }
 });

@@ -18,20 +18,52 @@ function onSubmit(values, { setErrors }) {
 </script>
 
 <template>
-    <div>
-        <Form @submit="onSubmit" :validation-schema="schema" v-slot="{ errors, isSubmitting }">             
-            <div class="form-group">
-                <label>Password</label>
-                <Field name="password" type="password" class="form-control" :class="{ 'is-invalid': errors.password }" />
-                <div class="invalid-feedback">{{errors.password}}</div>
-            </div>            
-            <div class="form-group">
-                <button class="btn btn-primary" :disabled="isSubmitting">
-                    <span v-show="isSubmitting" class="spinner-border spinner-border-sm mr-1"></span>
-                    Login
-                </button>
-            </div>
-            <div v-if="errors.apiError" class="alert alert-danger mt-3 mb-0">{{errors.apiError}}</div>
-        </Form>
-    </div>
+    <v-container fluid class="pa-4 d-flex align-center justify-center" style="min-height: 80vh;">
+        <v-card elevation="2" max-width="500" width="100%">
+            <v-card-title class="bg-primary">
+                <v-icon class="mr-2">mdi-lock</v-icon>
+                Admin Login
+            </v-card-title>
+            
+            <v-card-text class="pt-6">
+                <Form @submit="onSubmit" :validation-schema="schema" v-slot="{ errors, isSubmitting }">
+                    <Field name="password" v-slot="{ field, errors: fieldErrors }">
+                        <v-text-field
+                            v-bind="field"
+                            label="Password"
+                            type="password"
+                            variant="outlined"
+                            prepend-inner-icon="mdi-lock-outline"
+                            :error-messages="fieldErrors"
+                        />
+                    </Field>
+                    
+                    <v-btn
+                        type="submit"
+                        color="primary"
+                        variant="elevated"
+                        block
+                        size="large"
+                        prepend-icon="mdi-login"
+                        :loading="isSubmitting"
+                        :disabled="isSubmitting"
+                        class="mt-4"
+                    >
+                        Login
+                    </v-btn>
+                    
+                    <v-alert
+                        v-if="errors.apiError"
+                        type="error"
+                        variant="tonal"
+                        border="start"
+                        border-color="red"
+                        class="mt-4"
+                    >
+                        {{ errors.apiError }}
+                    </v-alert>
+                </Form>
+            </v-card-text>
+        </v-card>
+    </v-container>
 </template>

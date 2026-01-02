@@ -1,11 +1,10 @@
 <template>
     <v-autocomplete
         v-model="model"
-        label="Races"
+        label="Race"
         :menu-props="{ scrollStrategy: 'close'}"
         item-title="name"
         item-value="id"
-        :item-props="itemProps"
         :items="raceWrapper.races">
         <template v-slot:selection="{ item }">            
         <span>            
@@ -25,20 +24,8 @@
     </v-autocomplete>
 </template>
 
-<script>
-
-import { defineModel } from 'vue'
+<script setup>
 import { raceWrapper } from '@/helpers/races.js'
 
-export default {
-    setup(){
-        const model = defineModel();
-        
-        return {
-            model,
-            raceWrapper,
-        }
-    },
-}
-    
+const model = defineModel();
 </script>

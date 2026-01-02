@@ -5,3 +5,6 @@ export * from './match.store';
 export * from './team.store';
 export * from './series.store';
 export * from './map.store';
+export * from './config.store';
+export * from './fantasy.store';
+export * from './koth.store';

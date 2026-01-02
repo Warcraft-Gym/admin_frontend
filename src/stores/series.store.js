@@ -69,6 +69,24 @@ export const useSeriesStore = defineStore({
             } finally {
                 this.isLoading = false; // Set loading to false once complete
             }
+        },
+        async fetchSeriesBySeason(season_id) {
+            try {
+                this.isLoading = true;
+                this.series = await fetchWrapper.get(`${backendUrl}/series/season/${season_id}`);
+                return this.series;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async fetchSeries() {
+            try {
+                this.isLoading = true;
+                this.series = await fetchWrapper.get(`${backendUrl}/series`);
+                return this.series;
+            } finally {
+                this.isLoading = false;
+            }
         }
     }
 });

@@ -27,18 +27,8 @@
     </v-autocomplete>
 </template>
 
-<script>
-import { defineModel } from 'vue'
+<script setup>
 import countries from 'country-code-info/data/countries.json'
 
-export default {
-    setup(){
-        const model = defineModel()
-        return {
-            model,
-            countries,
-        }
-    },
-}
-
+const model = defineModel();
 </script>
