@@ -26,7 +26,21 @@
       @reset="fetchPlayers"
     >
       <template #after>
-        <!-- Extension slot (if needed) -->
+        <v-col cols="12" md="6">
+          <v-select
+            v-model="selectedW3CFilter"
+            :items="w3cFilterOptions"
+            label="W3C Stats Filter"
+            multiple
+            chips
+            clearable
+            variant="outlined"
+            density="comfortable"
+            prepend-inner-icon="mdi-filter"
+            hint="Filter players by W3Champions stats"
+            persistent-hint
+          ></v-select>
+        </v-col>
       </template>
     </FilterPanel>
     <!-- Main Card -->
@@ -65,9 +79,27 @@
                 <tr class="text-no-wrap">
                   <td>{{ item.id }}</td>
                   <td>
-                    <span @click.stop="openPlayerDetails(item)" class="player-name-link">
-                      <strong>{{ item.name }}</strong>
-                    </span>
+                    <div class="d-flex align-center" style="gap:8px;">
+                      <span @click.stop="openPlayerDetails(item)" class="player-name-link">
+                        <strong>{{ item.name }}</strong>
+                      </span>
+                      <template v-if="!hasW3CStats(item)">
+                        <v-tooltip>
+                          <template #activator="{ props }">
+                            <v-icon v-bind="props" small color="red">mdi-alert</v-icon>
+                          </template>
+                          <span>No W3C stats found for {{ item.race }}</span>
+                        </v-tooltip>
+                      </template>
+                      <template v-else-if="hasLowGames(item)">
+                        <v-tooltip>
+                          <template #activator="{ props }">
+                            <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
+                          </template>
+                          <span>Less than 20 games ({{ getW3CGamesCount(item) }} games) for {{ item.race }}</span>
+                        </v-tooltip>
+                      </template>
+                    </div>
                   </td>
                   <td>{{ item.battleTag }}</td>
                   <td>
@@ -499,6 +531,19 @@ const filteredPlayers = computed(() => {
     }
   }
 
+  // filter by W3C stats
+  if (selectedW3CFilter.value && selectedW3CFilter.value.length > 0) {
+    list = list.filter(p => {
+      const includeNoStats = selectedW3CFilter.value.includes('no_stats');
+      const includeLowGames = selectedW3CFilter.value.includes('low_games');
+      
+      if (includeNoStats && !hasW3CStats(p)) return true;
+      if (includeLowGames && hasLowGames(p)) return true;
+      
+      return false;
+    });
+  }
+
   return list;
 });
 // seasons for signup selection
@@ -513,6 +558,11 @@ const searchRace = ref(null);
 const searchName = ref(null);
 const searchEnabled = ref(false);
 const rangeValues = ref([0, 3000]);
+const selectedW3CFilter = ref([]);
+const w3cFilterOptions = [
+  { title: 'No W3C Stats', value: 'no_stats' },
+  { title: 'Less than 20 games', value: 'low_games' }
+];
 
 //table header
 /*
@@ -562,12 +612,33 @@ const fetchPlayers = async () => {
     searchRace.value = ''
     // reset season filter as well
     selectedSeasonFilter.value = null;
+    // reset W3C filter
+    selectedW3CFilter.value = [];
     // keep numeric defaults
     rangeValues.value = [0, 3000];
   }
 };
 
+// Refresh data without resetting filters (for sync operations)
+const refreshPlayers = async () => {
+  isLoading.value = true;
+  try {
+    await playerStore.fetchPlayers();
+  } catch (error) {
+    console.error('Failed to refresh players:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 onMounted( async () => {
+  // Ensure seasons are loaded first for the filter dropdown
+  try {
+    await seasonStore.fetchSeasons();
+  } catch (err) {
+    console.error('Failed to fetch seasons:', err);
+  }
+  
   await fetchPlayers();
   // ensure seasons are loaded and resolve the current season id
   await resolveCurrentSeasonId();
@@ -592,6 +663,30 @@ const playerDetails = ref(null);
 
 // current season id preference (resolved from settings or fallback)
 const currentSeasonId = ref(null);
+
+// W3C stats helper functions
+const getW3CStats = (player) => {
+  if (!player || !player.race || !player.w3c_stats) return null;
+  return player.w3c_stats.find(s => s.race === player.race);
+};
+
+const hasW3CStats = (player) => {
+  const stats = getW3CStats(player);
+  return stats != null; // checks for both null and undefined
+};
+
+const getW3CGamesCount = (player) => {
+  const stats = getW3CStats(player);
+  if (!stats) return 0;
+  const wins = Number(stats.wins || 0);
+  const losses = Number(stats.losses || 0);
+  return wins + losses;
+};
+
+const hasLowGames = (player) => {
+  const games = getW3CGamesCount(player);
+  return games > 0 && games < 20;
+};
 
 // Resolve and store the current season id (prefers config setting, falls back to latest season)
 async function resolveCurrentSeasonId() {
@@ -780,7 +875,7 @@ const syncW3CPlayer = async (playerId) => {
   try {
     await playerStore.syncW3CPlayer(playerId);
     perPlayerSyncStatus.value = { ...perPlayerSyncStatus.value, [playerId]: { state: 'success' } };
-    await fetchPlayers(); // refresh list to reflect updated stats
+    await refreshPlayers(); // refresh list without resetting filters
   } catch (error) {
     console.error('Error syncing player:', playerId, error);
     const message = error && (error.message || error.msg || error.error) ? (error.message || error.msg || error.error) : (typeof error === 'string' ? error : JSON.stringify(error));

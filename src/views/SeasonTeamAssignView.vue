@@ -66,6 +66,22 @@
               <template #item.name="{ item }">
                 <div class="d-flex align-center" style="gap:8px;">
                   <span style="cursor: pointer; color: var(--v-theme-primary);" @click="showStats(item)"><strong>{{ item.name }}</strong></span>
+                  <template v-if="!hasW3CStats(item)">
+                    <v-tooltip>
+                      <template #activator="{ props }">
+                        <v-icon v-bind="props" small color="red">mdi-alert</v-icon>
+                      </template>
+                      <span>No W3C stats found for {{ item.race }}</span>
+                    </v-tooltip>
+                  </template>
+                  <template v-else-if="hasLowGames(item)">
+                    <v-tooltip>
+                      <template #activator="{ props }">
+                        <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
+                      </template>
+                      <span>Less than 20 games ({{ getW3CGamesCount(item) }} games) for {{ item.race }}</span>
+                    </v-tooltip>
+                  </template>
                   <template v-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'">
                     <v-icon small class="text--secondary">mdi-sync</v-icon>
                   </template>
@@ -93,6 +109,16 @@
               <template #item.race="{ item }">
                 <RaceIcon :raceIdentifier="item.race" />
               </template>
+              <template #item.actions="{ item }">
+                <v-btn
+                  icon
+                  size="small"
+                  variant="text"
+                  @click="editPlayer(item)"
+                >
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+              </template>
               <template #no-data>
                 <div>No available signed-up players for this season.</div>
               </template>
@@ -110,6 +136,125 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- Edit Player Dialog -->
+    <v-dialog v-model="showEditPlayerModal" max-width="800">
+      <v-card v-if="selectedPlayer">
+        <v-card-title class="bg-primary">
+          <v-icon class="mr-2">mdi-pencil</v-icon>
+          Edit Player: {{ selectedPlayer.name }}
+        </v-card-title>
+
+        <v-alert
+          v-if="updateError"
+          type="error"
+          variant="tonal"
+          border="start"
+          border-color="red"
+          class="mx-4 my-2"
+          closable
+          @click:close="updateError = null"
+        >
+          {{ updateError }}
+        </v-alert>
+
+        <v-card-text class="pt-4">
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.name"
+                label="Player Name"
+                variant="outlined"
+                prepend-inner-icon="mdi-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.battleTag"
+                label="BattleTag"
+                variant="outlined"
+                prepend-inner-icon="mdi-shield-account"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <CountrySelect v-model="selectedPlayer.country" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.discordTag"
+                label="Discord Tag"
+                variant="outlined"
+                prepend-inner-icon="mdi-discord"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.discordId"
+                label="Discord ID"
+                hint="Numeric Discord user ID (required)"
+                variant="outlined"
+                prepend-inner-icon="mdi-identifier"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-number-input
+                v-model="selectedPlayer.mmr"
+                control-variant="hidden"
+                label="Player MMR"
+                :hideInput="false"
+                :inset="false"
+              ></v-number-input>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12" md="6">
+              <RaceSelect v-model="selectedPlayer.race" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="selectedPlayer.fantasy_tier"
+                label="Fantasy Tier"
+                variant="outlined"
+                prepend-inner-icon="mdi-trophy"
+                density="comfortable"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-select
+                v-model="selectedSignupSeasonIds"
+                :items="seasons"
+                item-title="name"
+                item-value="id"
+                multiple
+                chips
+                label="Signed-up Seasons"
+                variant="outlined"
+                prepend-inner-icon="mdi-calendar-check"
+                density="comfortable"
+              ></v-select>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="cancelEdit">Cancel</v-btn>
+          <v-btn @click="updatePlayer" color="primary" variant="elevated" prepend-icon="mdi-content-save">
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Player details dialog (open when clicking a player's name) -->
     <PlayerDetailsDialog
@@ -139,6 +284,22 @@
                       <div>
                         <div style="display:flex;align-items:center;gap:8px;">
                           <span style="cursor: pointer; color: var(--v-theme-primary);" @click="showStats(p)"><strong>{{ p.name }}</strong></span>
+                          <template v-if="!hasW3CStats(p)">
+                            <v-tooltip>
+                              <template #activator="{ props }">
+                                <v-icon v-bind="props" small color="red">mdi-alert</v-icon>
+                              </template>
+                              <span>No W3C stats found for {{ p.race }}</span>
+                            </v-tooltip>
+                          </template>
+                          <template v-else-if="hasLowGames(p)">
+                            <v-tooltip>
+                              <template #activator="{ props }">
+                                <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
+                              </template>
+                              <span>Less than 20 games ({{ getW3CGamesCount(p) }} games) for {{ p.race }}</span>
+                            </v-tooltip>
+                          </template>
                           <template v-if="perPlayerSyncStatus[p.id] && perPlayerSyncStatus[p.id].state === 'loading'">
                             <v-icon small class="text--secondary">mdi-sync</v-icon>
                           </template>
@@ -196,6 +357,8 @@ import { useRouter } from 'vue-router';
 import RaceIcon from '@/components/RaceIcon.vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import FilterPanel from '@/components/FilterPanel.vue';
+import CountrySelect from '@/components/CountrySelect.vue';
+import RaceSelect from '@/components/RaceSelect.vue';
 
 defineOptions({ name: 'SeasonTeamAssignView' });
 
@@ -234,12 +397,44 @@ const playerTeamSelection = ref({});
 // per-player sync status: { state: 'idle'|'loading'|'success'|'error', message?: string }
 const perPlayerSyncStatus = ref({});
 
+// Edit player state
+const showEditPlayerModal = ref(false);
+const selectedPlayer = ref(null);
+const updateError = ref(null);
+const selectedSignupSeasonIds = ref([]);
+let originalSignupSeasonIds = [];
+
+// W3C stats helper functions
+const getW3CStats = (player) => {
+  if (!player || !player.race || !player.w3c_stats) return null;
+  return player.w3c_stats.find(s => s.race === player.race);
+};
+
+const hasW3CStats = (player) => {
+  const stats = getW3CStats(player);
+  return stats != null; // checks for both null and undefined
+};
+
+const getW3CGamesCount = (player) => {
+  const stats = getW3CStats(player);
+  if (!stats) return 0;
+  const wins = Number(stats.wins || 0);
+  const losses = Number(stats.losses || 0);
+  return wins + losses;
+};
+
+const hasLowGames = (player) => {
+  const games = getW3CGamesCount(player);
+  return games > 0 && games < 20;
+};
+
 const playerTableHeaders = [
   { title: 'ID', value: 'id' },
   { title: 'Name', value: 'name' },
   { title: 'MMR', value: 'mmr' },
   { title: 'Race', value: 'race' },
   { title: 'Team', value: 'team', sortable: false },
+  { title: 'Actions', value: 'actions', sortable: false, align: 'end' },
 ];
 
 // compute assigned player ids across all teams for this season
@@ -454,6 +649,51 @@ const syncAllDraftPlayers = async () => {
   } finally {
     syncAllLoading.value = false;
   }
+};
+
+const editPlayer = async (player) => {
+  try {
+    if (seasonStore && seasonStore.fetchSeasons) await seasonStore.fetchSeasons();
+  } catch (err) {
+    console.error('Failed to fetch seasons before opening edit player dialog:', err);
+  }
+  selectedPlayer.value = { ...player };
+  updateError.value = '';
+  // prepare signup seasons selection
+  const signup = selectedPlayer.value.signup_seasons || [];
+  originalSignupSeasonIds = signup.map(s => s.id);
+  selectedSignupSeasonIds.value = [...originalSignupSeasonIds];
+  showEditPlayerModal.value = true;
+};
+
+const updatePlayer = async () => {
+  updateError.value = '';
+  try {
+    await playerStore.updatePlayer(selectedPlayer.value);
+    const playerId = selectedPlayer.value.id;
+    const newSignupIds = selectedSignupSeasonIds.value || [];
+    const toAdd = newSignupIds.filter(id => !originalSignupSeasonIds.includes(id));
+    const toRemove = originalSignupSeasonIds.filter(id => !newSignupIds.includes(id));
+
+    try {
+      await Promise.all(toAdd.map(sid => seasonStore.addUserSignup(sid, [playerId])));
+      await Promise.all(toRemove.map(sid => seasonStore.removeUserSignup(sid, [playerId])));
+    } catch (err) {
+      console.error('Failed to sync signup seasons:', err);
+    }
+
+    await fetchData();
+    cancelEdit();
+  } catch (error) {
+    console.error('Error updating user:', error);
+    updateError.value = 'Error updating user: ' + error;
+  }
+};
+
+const cancelEdit = () => {
+  showEditPlayerModal.value = false;
+  selectedPlayer.value = null;
+  updateError.value = null;
 };
 </script>
 
