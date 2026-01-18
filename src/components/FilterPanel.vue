@@ -6,8 +6,9 @@
         <span>Filters</span>
       </v-expansion-panel-title>
       <v-expansion-panel-text class="pt-4">
+        <!-- First Row: Name, Race, MMR -->
         <v-row>
-          <v-col v-if="showName" :cols="showName && showRace && showMMR && showSeason ? 3 : showName && showRace && showMMR ? 4 : showName && showRace && showSeason ? 4 : showName && showMMR && showSeason ? 4 : showRace && showMMR && showSeason ? 4 : 6">
+          <v-col v-if="showName" cols="12" md="4">
             <v-text-field
               v-model="localSearchName"
               label="Search Player Name"
@@ -18,11 +19,11 @@
             ></v-text-field>
           </v-col>
 
-          <v-col v-if="showRace" :cols="showName && showRace && showMMR && showSeason ? 2 : showName && showRace && showMMR ? 2 : showName && showRace && showSeason ? 2 : showRace && showMMR && showSeason ? 2 : 4">
+          <v-col v-if="showRace" cols="12" md="2">
             <RaceSelect v-model="localSearchRace" />
           </v-col>
 
-          <v-col v-if="showMMR" :cols="showName && showRace && showMMR && showSeason ? 4 : showName && showRace && showMMR ? 6 : showName && showMMR && showSeason ? 4 : showRace && showMMR && showSeason ? 6 : 6">
+          <v-col v-if="showMMR" cols="12" md="6">
             <div class="text-subtitle-1 font-weight-medium mb-2">
               <v-icon class="mr-1" size="small">mdi-numeric</v-icon>
               MMR Range
@@ -63,8 +64,11 @@
               </template>
             </v-range-slider>
           </v-col>
+        </v-row>
 
-          <v-col v-if="showSeason" :cols="showName && showRace && showMMR && showSeason ? 3 : showName && showRace && showSeason ? 4 : showName && showMMR && showSeason ? 4 : showRace && showMMR && showSeason ? 4 : 6">
+        <!-- Second Row: Season Filter and After Slot (W3C Stats) -->
+        <v-row v-if="showSeason || $slots.after">
+          <v-col v-if="showSeason" cols="12" md="6">
             <v-select
               v-model="localSelectedSeasonFilter"
               :items="seasons"
@@ -77,15 +81,16 @@
               density="comfortable"
             ></v-select>
           </v-col>
+
+          <slot name="after"></slot>
         </v-row>
 
+        <!-- Reset Button Row -->
         <v-row v-if="showReset" justify="center" class="mt-2">
           <v-col cols="auto">
             <v-btn @click="$emit('reset')" variant="elevated" prepend-icon="mdi-refresh" color="primary">Reset Filters</v-btn>
           </v-col>
         </v-row>
-
-        <slot name="after"></slot>
       </v-expansion-panel-text>
     </v-expansion-panel>
   </v-expansion-panels>

@@ -45,7 +45,7 @@
       </v-card-title>
       <v-card-text class="pt-4">
         <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-          Define MMR ranges for each tier. Players from the current season will be automatically grouped into these tiers.
+          Define MMR ranges for each tier. Players allocated to teams in the current season will be automatically grouped into these tiers.
         </v-alert>
         
         <v-row>
@@ -100,7 +100,7 @@
       <v-card-title class="bg-primary d-flex justify-space-between align-center">
         <div>
           <v-icon class="mr-2">mdi-account-group</v-icon>
-          Players by Tier (Current Season)
+          Players by Tier (On Teams)
         </div>
         <v-chip color="white" variant="outlined">
           {{ totalPlayers }} total players
@@ -137,7 +137,7 @@
                     <strong>{{ player.name }}</strong>
                   </v-list-item-title>
                   <v-list-item-subtitle>
-                    {{ player.battleTag }} • MMR: {{ player.mmr }}
+                    {{ player.battleTag }} • W3C MMR: {{ getW3CMMR(player) ?? 'N/A' }}
                   </v-list-item-subtitle>
                   <template #append>
                     <v-chip 
@@ -167,7 +167,7 @@
           <strong>Warning:</strong> Clicking "Apply Tier Allocation" will:
           <ul class="mt-2">
             <li>Clear all existing tier assignments for ALL players</li>
-            <li>Assign new tier values (1-6) to players shown above based on current season signup</li>
+            <li>Assign new tier values (1-6) to players allocated to teams in the current season</li>
             <li>This action cannot be undone</li>
           </ul>
         </v-alert>
@@ -191,7 +191,7 @@
 <script setup>
 import '@/assets/base.css';
 import { ref, onMounted, computed } from 'vue';
-import { usePlayerStore, useSeasonStore, useConfigStore } from '@/stores';
+import { usePlayerStore, useSeasonStore, useConfigStore, useTeamStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 
 defineOptions({ name: 'FantasyTiersView' })
@@ -199,7 +199,9 @@ defineOptions({ name: 'FantasyTiersView' })
 const playerStore = usePlayerStore();
 const seasonStore = useSeasonStore();
 const configStore = useConfigStore();
+const teamStore = useTeamStore();
 const { players } = storeToRefs(playerStore);
+const { teams } = storeToRefs(teamStore);
 
 const isLoading = ref(true);
 const isSaving = ref(false);
@@ -221,14 +223,34 @@ const totalPlayers = computed(() => {
   return tiers.value.reduce((sum, tier) => sum + tier.players.length, 0);
 });
 
-// Get current season players
+// Get W3C MMR for player's race
+const getW3CMMR = (player) => {
+  if (!player || !player.race || !player.w3c_stats) return null;
+  const w3cStat = player.w3c_stats.find(s => s.race === player.race);
+  return w3cStat?.mmr ?? null;
+};
+
+// Get current season players (only those allocated to teams)
 const currentSeasonPlayers = computed(() => {
-  if (!currentSeasonId.value || !players.value) return [];
+  if (!currentSeasonId.value || !players.value || !teams.value) return [];
   
-  return players.value.filter(player => {
-    if (!player.signup_seasons || !Array.isArray(player.signup_seasons)) return false;
-    return player.signup_seasons.some(season => season.id === currentSeasonId.value);
+  // Build a set of player IDs that are on teams for the current season
+  const playerIdsOnTeams = new Set();
+  const sid = String(currentSeasonId.value);
+  
+  teams.value.forEach(team => {
+    const teamPlayers = team.player_by_season?.[sid] || team.player_by_season?.[Number(sid)];
+    if (teamPlayers) {
+      if (Array.isArray(teamPlayers)) {
+        teamPlayers.forEach(p => p && p.id && playerIdsOnTeams.add(p.id));
+      } else if (typeof teamPlayers === 'object') {
+        Object.values(teamPlayers).forEach(p => p && p.id && playerIdsOnTeams.add(p.id));
+      }
+    }
   });
+  
+  // Filter players to only include those on teams
+  return players.value.filter(player => playerIdsOnTeams.has(player.id));
 });
 
 // Resolve current season ID
@@ -262,7 +284,7 @@ const resolveCurrentSeasonId = async () => {
 const updateTierRanges = () => {
   tiers.value.forEach(tier => {
     tier.players = currentSeasonPlayers.value.filter(player => {
-      const mmr = player.mmr || 0;
+      const mmr = getW3CMMR(player) || 0;
       return mmr >= tier.min && mmr <= tier.max;
     });
   });
@@ -276,6 +298,12 @@ const loadData = async () => {
   try {
     await resolveCurrentSeasonId();
     await playerStore.fetchPlayers();
+    
+    // Fetch teams for the current season
+    if (currentSeasonId.value) {
+      await teamStore.fetchTeamsBySeason(currentSeasonId.value);
+    }
+    
     updateTierRanges();
   } catch (error) {
     console.error('Error loading data:', error);
