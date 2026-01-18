@@ -663,9 +663,9 @@ const playersByTier = computed(() => {
   };
 
   availablePlayers.value.forEach(player => {
-    const tier = player.fantasy_tier || 6; // Default to tier 6 (Grass) if not set
-    if (tier >= 1 && tier <= 6) {
-      tiers[`tier${tier}`].push(player);
+    // Only include players that have an explicit fantasy_tier set
+    if (player.fantasy_tier >= 1 && player.fantasy_tier <= 6) {
+      tiers[`tier${player.fantasy_tier}`].push(player);
     }
   });
 
