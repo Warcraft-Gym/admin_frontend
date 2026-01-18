@@ -42,6 +42,15 @@
           @reset="onResetFilters"
         >
           <template #after>
+            <v-col cols="12" md="6">
+              <v-checkbox
+                v-model="hideNoW3CStats"
+                label="Hide players without W3C stats"
+                color="primary"
+                density="comfortable"
+                hide-details
+              ></v-checkbox>
+            </v-col>
           </template>
         </FilterPanel>
       </v-card-text>
@@ -98,7 +107,7 @@
                   </template>
                 </div>
               </template>
-              <template #item.mmr="{ item }">
+              <template #item.w3c_mmr="{ item }">
                 <div>
                   <div>{{ item.mmr }}</div>
                   <div class="text--secondary" style="font-size: 0.85em;">
@@ -390,6 +399,7 @@ const races = ref([
   { name: 'NE' }
 ]);
 const rangeValues = ref([0, 3000]);
+const hideNoW3CStats = ref(false);
 
 // Track team selection per player
 const playerTeamSelection = ref({});
@@ -431,7 +441,11 @@ const hasLowGames = (player) => {
 const playerTableHeaders = [
   { title: 'ID', value: 'id' },
   { title: 'Name', value: 'name' },
-  { title: 'MMR', value: 'mmr' },
+  { title: 'MMR', key: 'w3c_mmr', sortable: true, sortRaw: (a, b) => {
+    let aValue = a?.w3c_stats?.find(stat => stat.race === a?.race)?.mmr || 0;
+    let bValue = b?.w3c_stats?.find(stat => stat.race === b?.race)?.mmr || 0;
+    return aValue - bValue;
+  }},
   { title: 'Race', value: 'race' },
   { title: 'Team', value: 'team', sortable: false },
   { title: 'Actions', value: 'actions', sortable: false, align: 'end' },
@@ -518,11 +532,17 @@ const filteredPlayers = computed(() => {
     const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
     if (rangeChanged) {
       list = list.filter(p => {
-        const mmr = Number(p.mmr ?? 0);
+        const mmr = getW3CMMR(p) ?? 0;
         return mmr >= mmrMin && mmr <= mmrMax;
       });
     }
   }
+  
+  // filter out players without W3C stats if checkbox is checked
+  if (hideNoW3CStats.value) {
+    list = list.filter(p => hasW3CStats(p));
+  }
+  
   return list;
 });
 
@@ -530,6 +550,7 @@ const clearFilters = () => {
   searchName.value = '';
   searchRace.value = null;
   rangeValues.value = [0, 3000];
+  hideNoW3CStats.value = false;
 };
 
 const onResetFilters = async () => {
@@ -563,8 +584,8 @@ function getTeamPlayersForSeason(team) {
   if (Array.isArray(v)) players = v;
   else if (typeof v === 'object') players = Object.values(v);
   
-  // Sort by MMR descending
-  return players.sort((a, b) => (Number(b.mmr) || 0) - (Number(a.mmr) || 0));
+  // Sort by W3C MMR descending
+  return players.sort((a, b) => (getW3CMMR(b) || 0) - (getW3CMMR(a) || 0));
 }
 
 // per-team loading state to avoid double-clicks

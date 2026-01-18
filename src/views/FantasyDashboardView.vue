@@ -131,7 +131,17 @@
                               variant="outlined"
                               density="comfortable"
                               required
-                            ></v-autocomplete>
+                            >
+                              <template v-slot:item="{ props, item }">
+                                <v-list-item v-bind="props">
+                                  <template v-slot:prepend>
+                                    <v-avatar size="32" class="mr-2">
+                                      <v-img :src="teamImages[item.raw.id] || teamDefaultImg" />
+                                    </v-avatar>
+                                  </template>
+                                </v-list-item>
+                              </template>
+                            </v-autocomplete>
                           </v-col>
                           <v-col cols="12" md="6">
                             <RaceSelect
@@ -170,7 +180,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier1 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -203,7 +216,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier2 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -236,7 +252,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier3 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -269,7 +288,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier4 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -302,7 +324,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier5 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -335,7 +360,10 @@
                               clearable
                             >
                               <template v-slot:item="{ props, item }">
-                                <v-list-item v-bind="props">
+                                <v-list-item
+                                  :value="item.value"
+                                  @click="tierSelections.tier6 = item.value"
+                                >
                                   <template v-slot:prepend>
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
@@ -554,6 +582,7 @@ import { fetchWrapper } from '@/helpers';
 import RaceIcon from '@/components/RaceIcon.vue';
 import RaceSelect from '@/components/RaceSelect.vue';
 import { DateTime } from 'luxon';
+import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
 
 defineOptions({ name: 'FantasyDashboardView' });
 
@@ -578,6 +607,7 @@ const playerData = ref(null);
 const existingTeam = ref(null);
 const seasons = ref([]);
 const teams = ref([]);
+const teamImages = ref({});
 const availablePlayers = ref([]);
 
 // Tier selections
@@ -779,6 +809,19 @@ const fetchInitialData = async () => {
     // Fetch teams for the current season
     await teamStore.fetchTeamsBySeasonBasic(teamForm.value.season_id);
     teams.value = teamStore.teams || [];
+
+    // Fetch team images
+    const teamPromises = teams.value.map(async (team) => {
+      try {
+        const imgResponse = await teamStore.getTeamImage(team.id);
+        if (!imgResponse.ok) throw new Error("Image not found");
+        const imgBlob = await imgResponse.blob();
+        teamImages.value[team.id] = URL.createObjectURL(imgBlob);
+      } catch (error) {
+        teamImages.value[team.id] = teamDefaultImg;
+      }
+    });
+    await Promise.all(teamPromises);
 
     // Fetch players
     await playerStore.fetchPlayers();
