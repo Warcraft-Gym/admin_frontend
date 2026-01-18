@@ -233,6 +233,26 @@
                 />
               </v-col>
               <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.start_date" 
+                  label="Start Date"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-start"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="newSeason.end_date" 
+                  label="End Date"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-end"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
                 <v-autocomplete
                   v-model="newSeasonMapIds"
                   :items="maps"
@@ -319,6 +339,26 @@
                   variant="outlined"
                   density="comfortable"
                   prepend-inner-icon="mdi-discord"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.start_date" 
+                  label="Start Date"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-start"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field 
+                  v-model="selectedSeason.end_date" 
+                  label="End Date"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-calendar-end"
                 />
               </v-col>
               <v-col cols="12" md="6">
@@ -441,7 +481,7 @@ onMounted(async () => {
 });
 
 const addNewSeason = () => {
-  newSeason.value = { name: '', number_weeks: 0, pick_ban: '', series_per_week: 0, discordRole: '' };
+  newSeason.value = { name: '', number_weeks: 0, pick_ban: '', series_per_week: 0, discordRole: '', start_date: null, end_date: null };
   newSeasonMapIds.value = [];
   creationError.value = '';
   addNewDialogOpen.value = true;
