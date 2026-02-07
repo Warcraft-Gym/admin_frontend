@@ -17,7 +17,7 @@
           <tbody>
             <tr>
               <td class="text-left text-overline">{{ selectedGnl?.season?.name || 'N/A' }} <RaceIcon v-if="player" :raceIdentifier="player.race" /></td>
-              <td class="text-left text-overline">{{ player?.mmr }}</td>
+              <td class="text-left text-overline">{{ playerW3CMMR }}</td>
               <td class="text-right text-green">{{ selectedGnl?.wins || 0 }}</td>
               <td class="text-right text-red">{{ selectedGnl?.losses || 0 }}</td>
               <td class="text-right">{{ selectedGnl?.games || 0 }}</td>
@@ -30,9 +30,12 @@
                 </a>
               </td>
             </tr>
-            <tr v-for="stat in player?.w3c_stats" v-if="player && !isObjectEmpty(player.w3c_stats)" :key="stat.race">
-              <td class="text-left text-overline"><RaceIcon :raceIdentifier="stat.race" /></td>
-              <td class="text-left text-overline">{{ stat.mmr  }}</td>
+            <tr v-for="stat in w3cStatsToDisplay" v-if="w3cStatsToDisplay && w3cStatsToDisplay.length > 0" :key="`${stat.race}-${stat.wc3_season}`">
+              <td class="text-left text-overline">
+                <RaceIcon :raceIdentifier="stat.race" />
+                <span v-if="stat.wc3_season" class="text-caption ml-2">(Season {{ stat.wc3_season }})</span>
+              </td>
+              <td class="text-left text-overline">{{ stat.mmr }}</td>
               <td class="text-right text-green">{{ stat.wins }}</td>
               <td class="text-right text-red">{{ stat.losses }}</td>
               <td class="text-right">{{ stat.games }}</td>
@@ -48,6 +51,7 @@
 <script setup>
 import { computed } from 'vue';
 import RaceIcon from '@/components/RaceIcon.vue';
+import { getAllRaceStats, getW3CMMR } from '@/helpers/w3c-stats';
 
 const props = defineProps({
   modelValue: {
@@ -59,6 +63,10 @@ const props = defineProps({
     default: null
   },
   seasonId: {
+    type: Number,
+    default: null
+  },
+  w3cSeason: {
     type: Number,
     default: null
   }
@@ -80,5 +88,19 @@ const selectedGnl = computed(() => {
     return null;
   }
   return props.player.gnl_stats.find(stat => stat.season?.id === props.seasonId);
+});
+
+// Get W3C stats - shows stats for current W3C season if provided
+const w3cStatsToDisplay = computed(() => {
+  if (!props.player) return [];
+  
+  // Pass w3cSeason to filter stats to current season
+  return getAllRaceStats(props.player, props.w3cSeason);
+});
+
+// Get W3C MMR with fallback for display
+const playerW3CMMR = computed(() => {
+  if (!props.player) return 0;
+  return getW3CMMR(props.player, props.w3cSeason);
 });
 </script>

@@ -213,15 +213,6 @@
                 density="comfortable"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" md="6">
-              <v-number-input
-                v-model="selectedPlayer.mmr"
-                control-variant="hidden"
-                label="Player MMR"
-                :hideInput="false"
-                :inset="false"
-              ></v-number-input>
-            </v-col>
           </v-row>
           <v-row>
             <v-col cols="12" md="6">
@@ -360,7 +351,7 @@
 <script setup>
 import '@/assets/base.css';
 import { computed, onMounted, ref } from 'vue';
-import { usePlayerStore, useTeamStore, useSeasonStore } from '@/stores';
+import { usePlayerStore, useTeamStore, useSeasonStore, useConfigStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import RaceIcon from '@/components/RaceIcon.vue';
@@ -368,6 +359,12 @@ import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import FilterPanel from '@/components/FilterPanel.vue';
 import CountrySelect from '@/components/CountrySelect.vue';
 import RaceSelect from '@/components/RaceSelect.vue';
+import { 
+  getW3CStatsWithFallback,
+  getW3CGamesCount,
+  hasW3CStatsCurrentSeasonOnly,
+  hasLowGamesCurrentSeasonOnly
+} from '@/helpers/w3c-stats';
 
 defineOptions({ name: 'SeasonTeamAssignView' });
 
@@ -382,6 +379,7 @@ const seasonId = computed(() => {
 const playerStore = usePlayerStore();
 const teamStore = useTeamStore();
 const seasonStore = useSeasonStore();
+const configStore = useConfigStore();
 
 const { players } = storeToRefs(playerStore);
 const { teams } = storeToRefs(teamStore);
@@ -414,28 +412,22 @@ const updateError = ref(null);
 const selectedSignupSeasonIds = ref([]);
 let originalSignupSeasonIds = [];
 
-// W3C stats helper functions
+// Current W3C season for stats fallback
+const currentW3CSeason = ref(null);
+
+// W3C stats helper functions with season fallback for display
 const getW3CStats = (player) => {
-  if (!player || !player.race || !player.w3c_stats) return null;
-  return player.w3c_stats.find(s => s.race === player.race);
+  return getW3CStatsWithFallback(player, null, currentW3CSeason.value);
 };
 
 const hasW3CStats = (player) => {
-  const stats = getW3CStats(player);
-  return stats != null; // checks for both null and undefined
-};
-
-const getW3CGamesCount = (player) => {
-  const stats = getW3CStats(player);
-  if (!stats) return 0;
-  const wins = Number(stats.wins || 0);
-  const losses = Number(stats.losses || 0);
-  return wins + losses;
+  // Use strict current season only check for warnings (no fallback)
+  return hasW3CStatsCurrentSeasonOnly(player, currentW3CSeason.value);
 };
 
 const hasLowGames = (player) => {
-  const games = getW3CGamesCount(player);
-  return games > 0 && games < 20;
+  // Use strict current season only check for warnings (no fallback)
+  return hasLowGamesCurrentSeasonOnly(player, currentW3CSeason.value);
 };
 
 const playerTableHeaders = [
@@ -502,7 +494,25 @@ const fetchData = async () => {
   }
 };
 
-onMounted(() => {
+// Resolve current W3C season from config
+async function resolveCurrentW3CSeason() {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) {
+        currentW3CSeason.value = num;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+  currentW3CSeason.value = null;
+}
+
+onMounted(async () => {
+  await resolveCurrentW3CSeason();
   fetchData();
 });
 
@@ -568,11 +578,10 @@ const showStats = async (player) => {
   showPlayerDetails.value = true;
 };
 
-// Get W3C MMR for player's signed up race
+// Get W3C MMR for player's signed up race (with fallback)
 const getW3CMMR = (player) => {
-  if (!player || !player.race || !player.w3c_stats) return null;
-  const w3cStat = player.w3c_stats.find(s => s.race === player.race);
-  return w3cStat?.mmr ?? null;
+  const stats = getW3CStats(player);
+  return stats?.mmr ?? null;
 };
 
 function getTeamPlayersForSeason(team) {
