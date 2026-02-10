@@ -193,6 +193,7 @@ import '@/assets/base.css';
 import { ref, onMounted, computed } from 'vue';
 import { usePlayerStore, useSeasonStore, useConfigStore, useTeamStore } from '@/stores';
 import { storeToRefs } from 'pinia';
+import { getW3CStatsWithFallback } from '@/helpers/w3c-stats';
 
 defineOptions({ name: 'FantasyTiersView' })
 
@@ -208,6 +209,7 @@ const isSaving = ref(false);
 const errorMessage = ref(null);
 const successMessage = ref(null);
 const currentSeasonId = ref(null);
+const currentW3CSeason = ref(null);
 
 // Default tier ranges
 const tiers = ref([
@@ -223,11 +225,10 @@ const totalPlayers = computed(() => {
   return tiers.value.reduce((sum, tier) => sum + tier.players.length, 0);
 });
 
-// Get W3C MMR for player's race
+// Get W3C MMR for player's race (with fallback)
 const getW3CMMR = (player) => {
-  if (!player || !player.race || !player.w3c_stats) return null;
-  const w3cStat = player.w3c_stats.find(s => s.race === player.race);
-  return w3cStat?.mmr ?? null;
+  const stats = getW3CStatsWithFallback(player, null, currentW3CSeason.value);
+  return stats?.mmr ?? null;
 };
 
 // Get current season players (only those allocated to teams)
@@ -280,6 +281,23 @@ const resolveCurrentSeasonId = async () => {
   currentSeasonId.value = resolvedSeasonId;
 };
 
+// Resolve current W3C season from config
+const resolveCurrentW3CSeason = async () => {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) {
+        currentW3CSeason.value = num;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+  currentW3CSeason.value = null;
+};
+
 // Update tier player allocations based on MMR ranges
 const updateTierRanges = () => {
   tiers.value.forEach(tier => {
@@ -297,6 +315,7 @@ const loadData = async () => {
   
   try {
     await resolveCurrentSeasonId();
+    await resolveCurrentW3CSeason();
     await playerStore.fetchPlayers();
     
     // Fetch teams for the current season

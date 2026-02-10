@@ -816,7 +816,8 @@
   <PlayerDetailsDialog 
     v-model="showPlayerDetails" 
     :player="playerDetails" 
-    :seasonId="match?.season_id" 
+    :seasonId="match?.season_id"
+    :w3cSeason="currentW3CSeason"
   />
 
   <!-- Sync Results Dialog -->
@@ -870,13 +871,14 @@ import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
 import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import { DateTime } from "luxon";
-import { useMatchStore, useSeriesStore, useTeamStore, useSeasonStore } from '@/stores';
+import { useMatchStore, useSeriesStore, useTeamStore, useSeasonStore, useConfigStore } from '@/stores';
 import { useDate } from 'vuetify';
 import { storeToRefs } from 'pinia';
 import FlagIcon from '../components/FlagIcon.vue';
 import SimpleTimePicker from '../components/SimpleTimePicker.vue';
 import SimpleDatePicker from '../components/SimpleDatePicker.vue';
 import PlayerDetailsDialog from '../components/PlayerDetailsDialog.vue';
+import { getW3CStatsWithFallback } from '@/helpers/w3c-stats';
 
 defineOptions({
   name: 'MatchDetailsView'
@@ -888,6 +890,7 @@ const matchStore = useMatchStore();
 const seriesStore = useSeriesStore();
 const teamStore = useTeamStore();
 const seasonStore = useSeasonStore();
+const configStore = useConfigStore();
 const { match, matches } = storeToRefs(matchStore);
 const { series } = storeToRefs(seriesStore);
 
@@ -1018,6 +1021,15 @@ const syncError2 = ref(false);
 const showDeleteDialog = ref(false);
 const selectedDeleteItemId = ref(null);
 const deleteAction = ref(null);
+
+// Current W3C season for stats fallback
+const currentW3CSeason = ref(null);
+
+// Helper to get W3C MMR with fallback
+const getW3CMMR = (player) => {
+  const stats = getW3CStatsWithFallback(player, null, currentW3CSeason.value);
+  return stats?.mmr ?? null;
+};
 
 // Computed properties
 const isProposeValid = computed(() => 
@@ -1225,25 +1237,38 @@ const syncW3CTeams = async () => {
   syncError1.value = false;
   syncError2.value = false;
   syncDialog.value = true;
-  syncMessage1.value = "Sync Onging!";
+  syncMessage1.value = "Sync Ongoing!";
   syncMessage2.value = "Not started!";
 
   try {
-    team1.value = await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
+    await teamStore.syncPlayersW3C(matchStore.match.team1_id, matchStore.match.season_id);
     syncMessage1.value = "Team 1 synced successfully!";
   } catch (error) {
     console.error('Failed to sync Team 1:', error);
     syncError1.value = true;
-    syncMessage1.value = error || "An unknown error occurred.";
+    syncMessage1.value = error?.message || error || "Some players could not be synced.";
   }
+  
   try {
-    syncMessage2.value = "Sync Onging!";
-    team2.value = await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id);
+    syncMessage2.value = "Sync Ongoing!";
+    await teamStore.syncPlayersW3C(matchStore.match.team2_id, matchStore.match.season_id);
     syncMessage2.value = "Team 2 synced successfully!";
   } catch (error) {
     console.error('Failed to sync Team 2:', error);
     syncError2.value = true;
-    syncMessage2.value = error || "An unknown error occurred.";
+    syncMessage2.value = error?.message || error || "Some players could not be synced.";
+  }
+
+  // Always reload team details to get any successfully synced W3C stats
+  // This ensures we show updated data even if some players failed to sync
+  try {
+    await fetchTeamDetails();
+  } catch (error) {
+    console.error('Failed to refresh team details after sync:', error);
+    if (!syncError1.value && !syncError2.value) {
+      syncError1.value = true;
+      syncMessage1.value = "Failed to refresh team data";
+    }
   }
 
   isLoading.value = false; // Show results
@@ -1341,14 +1366,8 @@ const proposeSeries = async () => {
 
     for(let i = 0; i< t1_player.length; i++) {
       let p1 = t1_player[i];
-      let p1_mmr = 0;
-      for(let j = 0; j < p1.w3c_stats.length; j++){
-        let w3cStats = p1.w3c_stats[j];
-        if(w3cStats.race == p1.race){
-          p1_mmr = w3cStats.mmr;
-          break;
-        }
-      }
+      let p1_mmr = getW3CMMR(p1) || 0;
+      
       for(let k=0;k< t2_player.length; k++) {
         let p2_mmr = 0;
         let p2 = t2_player[k];
@@ -1381,13 +1400,8 @@ const proposeSeries = async () => {
           }
         }
 
-        for(let z = 0; z < p2.w3c_stats.length; z++){
-          let w3cStats = p2.w3c_stats[z];
-          if(w3cStats.race == p2.race){
-            p2_mmr = w3cStats.mmr
-            break;
-          }
-        }
+        p2_mmr = getW3CMMR(p2) || 0;
+        
         let mmr_diff = p1_mmr - p2_mmr;
         if (mmr_diff<0){
           mmr_diff*=-1
@@ -1514,7 +1528,25 @@ const removeAllSeries = async () => {
   }
 };
 
-onMounted(() => {
+// Resolve current W3C season from config
+async function resolveCurrentW3CSeason() {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) {
+        currentW3CSeason.value = num;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+  currentW3CSeason.value = null;
+}
+
+onMounted(async () => {
+  await resolveCurrentW3CSeason();
   fetchMatchDetails();
 });
 </script>

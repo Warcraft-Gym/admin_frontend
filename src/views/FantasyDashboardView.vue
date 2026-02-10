@@ -77,7 +77,7 @@
                         <div>
                           <strong class="mb-2 d-block">Drafted Players:</strong>
                           <v-chip-group>
-                            <v-chip v-for="player in existingTeam.drafted_players" :key="player.id" size="small">
+                            <v-chip v-for="player in existingTeam.drafted_players" :key="player.id" size="small" @click="showPlayerDetails(player)" style="cursor: pointer;">
                               {{ player.name }}
                             </v-chip>
                             <v-chip v-if="!existingTeam.drafted_players || existingTeam.drafted_players.length === 0" size="small" color="grey">
@@ -387,7 +387,7 @@
                         <div v-if="selectedPlayers.length > 0" class="mt-4">
                           <strong>Selected Players ({{ selectedPlayers.length }}):</strong>
                           <v-chip-group class="mt-2">
-                            <v-chip v-for="player in selectedPlayers" :key="player.id" size="small" color="primary">
+                            <v-chip v-for="player in selectedPlayers" :key="player.id" size="small" color="primary" @click="showPlayerDetails(player)" style="cursor: pointer;">
                               {{ player.name }}
                               <template v-slot:prepend>
                                 <RaceIcon v-if="player.race" :raceIdentifier="player.race" size="small" class="mr-1" />
@@ -448,7 +448,13 @@
                     >
                       <template #item.players="{ item }">
                         <div>
-                          <strong>{{ item.player1?.name }}</strong> vs <strong>{{ item.player2?.name }}</strong>
+                          <a href="#" @click.prevent="showPlayerDetails(item.player1)" class="text-decoration-none">
+                            <strong>{{ item.player1?.name }}</strong>
+                          </a>
+                          vs
+                          <a href="#" @click.prevent="showPlayerDetails(item.player2)" class="text-decoration-none">
+                            <strong>{{ item.player2?.name }}</strong>
+                          </a>
                         </div>
                       </template>
 
@@ -516,7 +522,13 @@
       <v-card-title class="text-h5">Place Fantasy Bet</v-card-title>
       <v-card-text>
         <div class="mb-4">
-          <strong>{{ betSeries.player1?.name }}</strong> vs <strong>{{ betSeries.player2?.name }}</strong>
+          <a href="#" @click.prevent="showPlayerDetails(betSeries.player1)" class="text-decoration-none">
+            <strong>{{ betSeries.player1?.name }}</strong>
+          </a>
+          vs
+          <a href="#" @click.prevent="showPlayerDetails(betSeries.player2)" class="text-decoration-none">
+            <strong>{{ betSeries.player2?.name }}</strong>
+          </a>
         </div>
         <v-radio-group v-model="selectedBetWinnerId">
           <v-radio
@@ -571,6 +583,13 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Player Details Dialog -->
+  <PlayerDetailsDialog
+    v-model="showPlayerDetailsDialog"
+    :player="selectedPlayerForDetails"
+    :seasonId="existingTeam?.season?.id"
+  />
 </template>
 
 <script setup>
@@ -581,6 +600,7 @@ import { useFantasyStore, useSeasonStore, useTeamStore, usePlayerStore, useConfi
 import { fetchWrapper } from '@/helpers';
 import RaceIcon from '@/components/RaceIcon.vue';
 import RaceSelect from '@/components/RaceSelect.vue';
+import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import { DateTime } from 'luxon';
 import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
 
@@ -1086,9 +1106,9 @@ const deleteBet = async () => {
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return 'Not set';
   try {
-    // Backend stores datetime in ET as naive datetime (e.g., "2025-01-15 18:00:00")
-    // Parse it as ET and display in user's local timezone
-    const dt = DateTime.fromISO(dateTimeStr, { zone: 'America/New_York' });
+    // Backend stores datetime in UTC as naive datetime (e.g., "2025-01-15 18:00:00")
+    // Parse it as UTC and display in user's local timezone
+    const dt = DateTime.fromISO(dateTimeStr + 'Z', { zone: 'UTC' });
     
     if (!dt.isValid) return dateTimeStr;
     
@@ -1156,6 +1176,16 @@ const openW3CStats = (battleTag) => {
 onMounted(() => {
   fetchInitialData();
 });
+
+// Player Details Dialog
+const showPlayerDetailsDialog = ref(false);
+const selectedPlayerForDetails = ref(null);
+
+const showPlayerDetails = (player) => {
+  if (!player) return;
+  selectedPlayerForDetails.value = player;
+  showPlayerDetailsDialog.value = true;
+};
 </script>
 
 <style scoped>

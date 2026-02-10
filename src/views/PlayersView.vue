@@ -246,15 +246,6 @@
                 density="comfortable"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" md="6">
-              <v-number-input
-                v-model="newPlayer.mmr"
-                control-variant="hidden"
-                label="Player MMR"
-                :hideInput="false"
-                :inset="false"
-              ></v-number-input>
-            </v-col>
           </v-row>
           <v-row>
             <v-col cols="12" md="6">
@@ -373,15 +364,6 @@
                 density="comfortable"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" md="6">
-              <v-number-input
-                v-model="selectedPlayer.mmr"
-                control-variant="hidden"
-                label="Player MMR"
-                :hideInput="false"
-                :inset="false"
-              ></v-number-input>
-            </v-col>
           </v-row>
           <v-row>
             <v-col cols="12" md="6">
@@ -458,6 +440,12 @@ import { storeToRefs } from 'pinia';
 import { onMounted, ref, computed } from 'vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import FilterPanel from '@/components/FilterPanel.vue';
+import { 
+  getW3CStatsWithFallback,
+  getW3CGamesCount,
+  hasW3CStatsCurrentSeasonOnly,
+  hasLowGamesCurrentSeasonOnly
+} from '@/helpers/w3c-stats';
 
 defineOptions({
   name: 'PlayersView'
@@ -478,7 +466,6 @@ const newPlayer = ref({
   country: '',
   discordTag: '',
   discordId: '',
-  mmr: 0,
   race: '',
   fantasy_tier: null,
 });
@@ -642,6 +629,8 @@ onMounted( async () => {
   await fetchPlayers();
   // ensure seasons are loaded and resolve the current season id
   await resolveCurrentSeasonId();
+  // resolve current W3C season for stats fallback
+  await resolveCurrentW3CSeason();
 });
 
 // Open player details dialog and ensure we have the player's data
@@ -663,29 +652,22 @@ const playerDetails = ref(null);
 
 // current season id preference (resolved from settings or fallback)
 const currentSeasonId = ref(null);
+// Current W3C season number (for stats fallback logic)
+const currentW3CSeason = ref(null);
 
-// W3C stats helper functions
+// W3C stats helper functions with season fallback
 const getW3CStats = (player) => {
-  if (!player || !player.race || !player.w3c_stats) return null;
-  return player.w3c_stats.find(s => s.race === player.race);
+  return getW3CStatsWithFallback(player, null, currentW3CSeason.value);
 };
 
 const hasW3CStats = (player) => {
-  const stats = getW3CStats(player);
-  return stats != null; // checks for both null and undefined
-};
-
-const getW3CGamesCount = (player) => {
-  const stats = getW3CStats(player);
-  if (!stats) return 0;
-  const wins = Number(stats.wins || 0);
-  const losses = Number(stats.losses || 0);
-  return wins + losses;
+  // Use strict current season only check for warnings (no fallback)
+  return hasW3CStatsCurrentSeasonOnly(player, currentW3CSeason.value);
 };
 
 const hasLowGames = (player) => {
-  const games = getW3CGamesCount(player);
-  return games > 0 && games < 20;
+  // Use strict current season only check for warnings (no fallback)
+  return hasLowGamesCurrentSeasonOnly(player, currentW3CSeason.value);
 };
 
 // Resolve and store the current season id (prefers config setting, falls back to latest season)
@@ -712,6 +694,25 @@ async function resolveCurrentSeasonId() {
   }
 
   currentSeasonId.value = resolvedSeasonId;
+}
+
+// Resolve and store the current W3C season number
+async function resolveCurrentW3CSeason() {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) {
+        currentW3CSeason.value = num;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+
+  // Default fallback if not found in config
+  currentW3CSeason.value = null;
 }
 
 const openDeleteDialog = (id, action) => {
@@ -891,7 +892,6 @@ const cancelAddNewPlayer = () => {
     country: '',
     discordTag: '',
     discordId: '',
-    mmr: 0,
     race: '',
     fantasy_tier: null,
   };

@@ -44,10 +44,14 @@
         <v-chip color="secondary" class="mb-2">
           {{ playerData.discord_tag }}
         </v-chip>
-        <h2 class="text-h5 mb-2">{{ playerData.player.name }}</h2>
+        <h2 class="text-h5 mb-2">
+          <a href="#" @click.prevent="showPlayerDetails(playerData.player)" class="text-decoration-none text-primary">
+            {{ playerData.player.name }}
+          </a>
+        </h2>
         <p><strong>Battle Tag:</strong> {{ playerData.player.battleTag }}</p>
         <p><strong>Race:</strong> {{ playerData.player.race }}</p>
-        <p><strong>MMR:</strong> {{ playerData.player.mmr }}</p>
+        <p><strong>MMR:</strong> {{ getW3CMMR(playerData.player, null) }}</p>
         <p v-if="playerData.player.country"><strong>Country:</strong> {{ playerData.player.country }}</p>
       </v-card-text>
     </v-card>
@@ -74,10 +78,14 @@
       >
         <template #item.opponent="{ item }">
           <span v-if="item.player1_id === playerData.player.id">
-            {{ item.player2?.name || `Player ${item.player2_id}` }}
+            <a href="#" @click.prevent="showPlayerDetails(item.player2)" class="text-decoration-none">
+              {{ item.player2?.name || `Player ${item.player2_id}` }}
+            </a>
           </span>
           <span v-else>
-            {{ item.player1?.name || `Player ${item.player1_id}` }}
+            <a href="#" @click.prevent="showPlayerDetails(item.player1)" class="text-decoration-none">
+              {{ item.player1?.name || `Player ${item.player1_id}` }}
+            </a>
           </span>
         </template>
 
@@ -318,6 +326,14 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Player Details Dialog -->
+  <PlayerDetailsDialog
+    v-model="showPlayerDetailsDialog"
+    :player="selectedPlayerForDetails"
+    :seasonId="playerData?.player?.gnl_stats?.[0]?.season?.id"
+    :w3cSeason="currentW3CSeason"
+  />
 </template>
 
 <script setup>
@@ -325,16 +341,40 @@ import '@/assets/base.css';
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { fetchWrapper } from '@/helpers';
+import { getW3CMMR } from '@/helpers/w3c-stats';
 import SimpleTimePicker from '@/components/SimpleTimePicker.vue';
 import SimpleDatePicker from '@/components/SimpleDatePicker.vue';
+import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import { DateTime } from 'luxon';
 import { useDisplay } from 'vuetify';
+import { useConfigStore } from '@/stores';
 
 defineOptions({ name: 'PlayerDashboardView' })
 
 const route = useRoute();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const { mobile, mdAndUp } = useDisplay();
+const configStore = useConfigStore();
+
+// Current W3C season
+const currentW3CSeason = ref(null);
+
+// Resolve current W3C season from config
+async function resolveCurrentW3CSeason() {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) {
+        currentW3CSeason.value = num;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+  currentW3CSeason.value = null;
+}
 
 // Computed property for mobile detection
 const isMobile = computed(() => {
@@ -342,6 +382,16 @@ const isMobile = computed(() => {
   if (mobile !== undefined) return mobile.value;
   return window.innerWidth < 960;
 });
+
+// Player Details Dialog
+const showPlayerDetailsDialog = ref(false);
+const selectedPlayerForDetails = ref(null);
+
+const showPlayerDetails = (player) => {
+  if (!player) return;
+  selectedPlayerForDetails.value = player;
+  showPlayerDetailsDialog.value = true;
+};
 
 // State
 const isLoading = ref(true);
@@ -758,7 +808,8 @@ const isScoreValid = computed(() => {
   return true;
 });
 
-onMounted(() => {
+onMounted(async () => {
+  await resolveCurrentW3CSeason();
   fetchPlayerData();
 });
 </script>
