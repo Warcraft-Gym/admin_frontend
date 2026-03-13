@@ -218,7 +218,10 @@
                     <span v-else class="text-grey">Not scheduled</span>
                   </td>
                   <td @click.stop="showStats(item.player1)" class="player-cell">
-                    <strong>{{ item.player1.name }}</strong>
+                    <div class="d-flex align-center ga-2">
+                      <RaceIcon :raceIdentifier="item.player1.race" />
+                      <strong>{{ item.player1.name }}</strong>
+                    </div>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
@@ -236,7 +239,10 @@
                     </v-chip>
                   </td>
                   <td @click.stop="showStats(item.player2)" class="player-cell">
-                    <strong>{{ item.player2.name }}</strong>
+                    <div class="d-flex align-center ga-2">
+                      <RaceIcon :raceIdentifier="item.player2.race" />
+                      <strong>{{ item.player2.name }}</strong>
+                    </div>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
@@ -344,19 +350,61 @@
                 <tr class="series-row draft-series-row">
                   <td>{{ item.id }}</td>
                   <td @click.stop="showStats(item.player1)" class="player-cell">
-                    <strong>{{ item.player1.name }}</strong>
+                    <div class="d-flex align-center ga-2">
+                      <RaceIcon :raceIdentifier="item.player1.race" />
+                      <strong>{{ item.player1.name }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-center ga-1">
+                      <v-avatar
+                        v-for="(race, idx) in getOpponentRaceHistory(item.player1)"
+                        :key="`p1-${idx}`"
+                        size="24"
+                        class="race-avatar"
+                      >
+                        <v-img :src="getRaceIconUrl(race)" :alt="race" cover></v-img>
+                      </v-avatar>
+                      <span v-if="getOpponentRaceHistory(item.player1).length === 0" class="text-grey text-caption">—</span>
+                    </div>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
                       {{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}
                     </v-chip>
                   </td>
+                  <td class="text-end">
+                    <v-chip size="small" color="purple">
+                      {{ item.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) || 'N/A' }}
+                    </v-chip>
+                  </td>
                   <td @click.stop="showStats(item.player2)" class="player-cell">
-                    <strong>{{ item.player2.name }}</strong>
+                    <div class="d-flex align-center ga-2">
+                      <RaceIcon :raceIdentifier="item.player2.race" />
+                      <strong>{{ item.player2.name }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-center ga-1">
+                      <v-avatar
+                        v-for="(race, idx) in getOpponentRaceHistory(item.player2)"
+                        :key="`p2-${idx}`"
+                        size="24"
+                        class="race-avatar"
+                      >
+                        <v-img :src="getRaceIconUrl(race)" :alt="race" cover></v-img>
+                      </v-avatar>
+                      <span v-if="getOpponentRaceHistory(item.player2).length === 0" class="text-grey text-caption">—</span>
+                    </div>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
                       {{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}
+                    </v-chip>
+                  </td>
+                  <td class="text-end">
+                    <v-chip size="small" color="purple">
+                      {{ item.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) || 'N/A' }}
                     </v-chip>
                   </td>
                   <td>
@@ -923,13 +971,44 @@
             </v-toolbar>
           </template>
               <template v-slot:[`item.player1.name`]="{ item }">
+                <div class="d-flex align-center ga-2">
+                  <RaceIcon :raceIdentifier="item.player1.race" />
                   <FlagIcon :countryIdentifier="item.player1.country" />
                   <span @click.stop="showStats(item.player1)">{{ item.player1.name }}</span>
+                </div>
               </template>
               <template v-slot:[`item.player2.name`]="{ item }">
-                <FlagIcon :countryIdentifier="item.country" />
+                <div class="d-flex align-center ga-2">
+                  <RaceIcon :raceIdentifier="item.player2.race" />
                   <FlagIcon :countryIdentifier="item.player2.country" />
                   <span @click.stop="showStats(item.player2)">{{ item.player2.name }}</span>
+                </div>
+              </template>
+              <template v-slot:[`item.p1_matchup_history`]="{ item }">
+                <div class="d-flex align-center ga-1">
+                  <v-avatar
+                    v-for="(race, idx) in getOpponentRaceHistory(item.player1)"
+                    :key="`p1-${idx}`"
+                    size="24"
+                    class="race-avatar"
+                  >
+                    <v-img :src="getRaceIconUrl(race)" :alt="race" cover></v-img>
+                  </v-avatar>
+                  <span v-if="getOpponentRaceHistory(item.player1).length === 0" class="text-grey text-caption">—</span>
+                </div>
+              </template>
+              <template v-slot:[`item.p2_matchup_history`]="{ item }">
+                <div class="d-flex align-center ga-1">
+                  <v-avatar
+                    v-for="(race, idx) in getOpponentRaceHistory(item.player2)"
+                    :key="`p2-${idx}`"
+                    size="24"
+                    class="race-avatar"
+                  >
+                    <v-img :src="getRaceIconUrl(race)" :alt="race" cover></v-img>
+                  </v-avatar>
+                  <span v-if="getOpponentRaceHistory(item.player2).length === 0" class="text-grey text-caption">—</span>
+                </div>
               </template>
               <template v-slot:[`item.p1_w3c_mmr`]="{ item }">
                   <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
@@ -958,22 +1037,25 @@
         </v-alert>
       </v-card-text>
       <v-card-actions>
-        <v-checkbox
-          v-model="proposeSeriesIsDraft"
-          label="Create as Draft (Admin Only)"
-          hint="Draft series won't appear on website or in calculations"
-          persistent-hint
-          color="warning"
-          class="ml-4"
-        ></v-checkbox>
         <v-spacer></v-spacer>
         <v-btn variant="text" @click="cancelProposeSeries">Cancel</v-btn>
         <v-btn 
-          color="primary"
-          @click="createSelectedProposedSeries"
+          color="warning"
+          variant="elevated"
+          prepend-icon="mdi-pencil"
+          @click="createSelectedProposedSeries(true)"
           :disabled="!selectedProposedSeries || selectedProposedSeries.length === 0"
         >
-          Create {{ selectedProposedSeries?.length || 0 }} Series
+          Create {{ selectedProposedSeries?.length || 0 }} Draft Series
+        </v-btn>
+        <v-btn 
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-publish"
+          @click="createSelectedProposedSeries(false)"
+          :disabled="!selectedProposedSeries || selectedProposedSeries.length === 0"
+        >
+          Create {{ selectedProposedSeries?.length || 0 }} Published Series
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -1098,15 +1180,27 @@ const seriesTableHeader = [
 const draftSeriesTableHeader = [
   { title: 'ID', value: 'id', sortable: true },  
   { title: 'Player 1', value: 'player1.name', sortable: true },
-  { title: 'MMR', value: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
+  { title: 'Matchup History', key: 'p1_matchup_history', sortable: false },
+  { title: 'Current MMR', value: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
     let aValue = a?.player1.w3c_stats?.find(player => player.race === a?.player1.race)?.mmr || 0;
     let bValue = b?.player1.w3c_stats?.find(player => player.race === b?.player1.race)?.mmr || 0;
     return aValue - bValue;
   } },
+  { title: 'Highest MMR', key: 'p1_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
+    let aValue = a?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let bValue = b?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    return aValue - bValue;
+  }},
   { title: 'Player 2', value: 'player2.name', sortable: true },
-  { title: 'MMR', value: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
+  { title: 'Matchup History', key: 'p2_matchup_history', sortable: false },
+  { title: 'Current MMR', value: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
     let aValue = a?.player2.w3c_stats?.find(player => player.race === a?.player2.race)?.mmr || 0;
     let bValue = b?.player2.w3c_stats?.find(player => player.race === b?.player2.race)?.mmr || 0;
+    return aValue - bValue;
+  }},
+  { title: 'Highest MMR', key: 'p2_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
+    let aValue = a?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let bValue = b?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
     return aValue - bValue;
   }},
   { title: 'Host' },
@@ -1117,7 +1211,7 @@ const draftSeriesTableHeader = [
 const proposedSeriesTableHeader = [
   { title: 'Player 1', value: 'player1.name', width:'300px', sortable: true },
   { title: 'GNL Games', value: 'player1.gnl_stats[0].games', sortable: true, align: 'end' },
-  { title: 'Signup MMR', value: 'player1.mmr', sortable: true },
+  { title: 'Matchup History', key: 'p1_matchup_history', sortable: false },
   { title: 'Current MMR', key: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
     let aValue = a?.player1.w3c_stats?.find(player => player.race === a?.player1.race)?.mmr || 0;
     let bValue = b?.player1.w3c_stats?.find(player => player.race === b?.player1.race)?.mmr || 0;
@@ -1130,7 +1224,7 @@ const proposedSeriesTableHeader = [
   }},
   { title: 'Player 2', value: 'player2.name', width:'300px', sortable: true },
   { title: 'GNL Games', value: 'player2.gnl_stats[0].games', sortable: true, align: 'end' },
-  { title: 'Signup MMR', value: 'player2.mmr', sortable: true }, 
+  { title: 'Matchup History', key: 'p2_matchup_history', sortable: false }, 
   { title: 'Current MMR', key: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
     let aValue = a?.player2.w3c_stats?.find(player => player.race === a?.player2.race)?.mmr || 0;
     let bValue = b?.player2.w3c_stats?.find(player => player.race === b?.player2.race)?.mmr || 0;
@@ -1193,7 +1287,6 @@ const showProposeSeriesModal = ref(false);
 const proposePlayersTeam_1 = ref([]);
 const proposePlayersTeam_2 = ref([]);
 const proposeSeriesMMRDiff = ref(null);
-const proposeSeriesIsDraft = ref(false);
 const proposedSeries = ref([]);
 const selectedProposedSeries = ref([]);
 
@@ -1575,6 +1668,29 @@ const removeProposedSeries = (proposedId) => {
 
 }
 
+// Get opponent races from player's gnl_stats matchup_history (from current season)
+const getOpponentRaceHistory = (player) => {
+  if (!player || !player.gnl_stats || player.gnl_stats.length === 0) {
+    return [];
+  }
+  
+  // Get matchup history from first gnl_stats entry (current season)
+  const currentSeasonStats = player.gnl_stats[0];
+  return currentSeasonStats.matchup_history || [];
+};
+
+// Get race icon URL from race code
+const getRaceIconUrl = (race) => {
+  const raceUrls = {
+    'HU': 'https://warcraft-gym.com/wp-content/uploads/2021/07/HUMAN.86b68278.png',
+    'OC': 'https://warcraft-gym.com/wp-content/uploads/2021/07/ORC.fe8d30a3.png',
+    'UD': 'https://warcraft-gym.com/wp-content/uploads/2021/07/UNDEAD.eedab6ad.png',
+    'NE': 'https://warcraft-gym.com/wp-content/uploads/2021/07/NIGHT_ELF.58a510d9.png',
+    'RANDOM': 'https://warcraft-gym.com/wp-content/uploads/2021/07/RANDOM.f67c1233.png'
+  };
+  return raceUrls[race] || '';
+};
+
 const proposeSeries = async () => {
   isLoading.value = true;
   try {
@@ -1667,8 +1783,7 @@ const proposeSeries = async () => {
   }
 };
 
-const openProposeSeries = () => {
-  proposeSeriesIsDraft.value = false;
+const openProposeSeries = async () => {
   proposeSeries();
   showProposeSeriesModal.value = true;
 };
@@ -1676,13 +1791,13 @@ const cancelProposeSeries = () => {
   showProposeSeriesModal.value = false;
 };
 
-const createSelectedProposedSeries = async () => {
+const createSelectedProposedSeries = async (isDraft = false) => {
   
   isLoading.value = true;
   try {
     for (const proposedSeries of selectedProposedSeries.value) {
-      // Create as draft or published based on checkbox
-      if (proposeSeriesIsDraft.value) {
+      // Create as draft or published based on parameter
+      if (isDraft) {
         await seriesStore.createDraftSeries(proposedSeries);
       } else {
         await seriesStore.createSeries(proposedSeries);
