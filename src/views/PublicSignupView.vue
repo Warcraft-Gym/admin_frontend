@@ -81,21 +81,6 @@
               </v-col>
             </v-row>
 
-            <v-row :dense="true">
-              <v-col cols="12" md="6">
-                <v-number-input 
-                  v-model="mmr" 
-                  control-variant="hidden" 
-                  label="Signup Race MMR" 
-                  variant="outlined"
-                  required
-                  prepend-inner-icon="mdi-chart-line"
-                  :hideInput="false" 
-                  :inset="false" 
-                />
-              </v-col>
-            </v-row>
-
             <v-row>
               <v-col>
                 <v-btn 
@@ -123,7 +108,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 // token validation/consumption is handled server-side via backend endpoints
-import { useSeasonStore, useConfigStore } from '@/stores';
+import { useSeasonStore, useConfigStore, usePlayerStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 
 const route = useRoute();
@@ -139,7 +124,6 @@ const discordTag = ref('');
 const name = ref('');
 const battleTag = ref('');
 const country = ref('');
-const mmr = ref(0);
 const race = ref('');
 const selectedSignupSeasonId = ref(null);
 
@@ -158,8 +142,7 @@ const isFormValid = computed(() => {
   const battleFormatOk = battleOk && battleTagRegex.test(String(battleTag.value));
   const countryOk = !!country.value && String(country.value).trim().length > 0;
   const raceOk = !!race.value && String(race.value).trim().length > 0;
-  const mmrOk = mmr.value !== null && mmr.value !== undefined && String(mmr.value).trim().length > 0;
-  return discordOk && nameOk && battleOk && countryOk && raceOk && mmrOk && battleFormatOk;
+  return discordOk && nameOk && battleOk && countryOk && raceOk && battleFormatOk;
 });
 
 // Vuetify field rules for immediate UI feedback
@@ -170,6 +153,7 @@ const battleTagRules = [
 
 const seasonStore = useSeasonStore();
 const configStore = useConfigStore();
+const playerStore = usePlayerStore();
 const { seasons } = storeToRefs(seasonStore);
 
 onMounted(async () => {
@@ -217,6 +201,22 @@ onMounted(async () => {
     discordId.value = tokenEntry.value.discordId || '';
     discordTag.value = tokenEntry.value.discordTag || '';
 
+    // look up existing user and prefill form if they have already registered
+    if (tokenEntry.value.discordId) {
+      try {
+        const existingUsers = await playerStore.searchByDiscordId(tokenEntry.value.discordId);
+        if (existingUsers && existingUsers.length > 0) {
+          const existing = existingUsers[0];
+          if (existing.name) name.value = existing.name;
+          if (existing.battleTag) battleTag.value = existing.battleTag;
+          if (existing.country) country.value = existing.country;
+          if (existing.race) race.value = existing.race;
+        }
+      } catch (e) {
+        console.log('Could not prefetch existing user data:', e);
+      }
+    }
+
     // fetch seasons for signup selection
     try { await seasonStore.fetchSeasons(); } catch (e) { /* ignore */ }
     // if token contains a season_id prepopulate selection and seasonName
@@ -254,7 +254,6 @@ async function onSubmit() {
       name: name.value,
       battleTag: battleTag.value,
       country: country.value,
-      mmr: mmr.value,
       race: race.value,
       // include season id if token had one or it was provided
       season_id: selectedSignupSeasonId.value ? selectedSignupSeasonId.value : undefined

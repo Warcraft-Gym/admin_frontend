@@ -151,6 +151,8 @@
                 density="comfortable"
                 prepend-icon=""
                 prepend-inner-icon="mdi-image"
+                hint="Max 64 KB · PNG or JPG (MySQL BLOB limit)"
+                persistent-hint
               />
             </v-col>
           </v-row>
@@ -214,6 +216,8 @@
                 density="comfortable"
                 prepend-icon=""
                 prepend-inner-icon="mdi-image"
+                hint="Max 64 KB · PNG or JPG (MySQL BLOB limit)"
+                persistent-hint
               />
             </v-col>
           </v-row>
@@ -252,6 +256,14 @@ import { useTeamStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import  teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
+
+const extractErrorMessage = (error) => {
+  if (!error) return 'Unknown error';
+  if (typeof error === 'string') return error;
+  if (error.error) return error.error;
+  if (error.message) return error.message;
+  return JSON.stringify(error);
+};
 
 defineOptions({
   name: 'TeamsView'
@@ -356,7 +368,7 @@ const updateTeam = async () => {
     cancelEdit(); // Reset the form
   } catch (error) {
     console.error('Error updating Team:', error);
-    updateError.value = 'Error updating Team:' + error;
+    updateError.value = 'Error updating Team: ' + extractErrorMessage(error);
   }
 };
 
@@ -373,6 +385,7 @@ const cancelEdit = () => {
 
 const createNewTeam = async () => {
   creationError.value = ''; // Reset error
+  let createdTeam = null;
   try {
     const nameExists = teamStore.teams.some(
       team => team.name.toLowerCase() === newTeam.value.name.toLowerCase()
@@ -382,16 +395,36 @@ const createNewTeam = async () => {
       throw Error(`Team with name ${newTeam.value.name} already exists`);
     }
 
-    const createdTeam = await teamStore.createTeam(newTeam.value);
-    if(file.value){
-      await teamStore.uploadTeamImage(createdTeam.id, file.value);
-    }
-    await fetchTeams();
-    cancelAddNewTeam();
+    createdTeam = await teamStore.createTeam(newTeam.value);
   } catch (error) {
     console.error('Error creating Team:', error);
-    creationError.value = 'Error creating Team:' + error;
+    creationError.value = 'Error creating Team: ' + extractErrorMessage(error);
+    return;
   }
+
+  // Team created successfully — now try the image upload separately
+  if (file.value) {
+    try {
+      await teamStore.uploadTeamImage(createdTeam.id, file.value);
+    } catch (imgError) {
+      console.error('Error uploading team icon:', imgError);
+      // Switch to edit dialog so retrying the icon doesn't create a duplicate team
+      await fetchTeams();
+      cancelAddNewTeam();
+      selectedTeam.value = {
+        id: createdTeam.id,
+        name: createdTeam.name,
+        long_name: createdTeam.long_name,
+        discord_role: createdTeam.discord_role
+      };
+      updateError.value = 'Team created, but icon upload failed: ' + extractErrorMessage(imgError);
+      showEditTeamModal.value = true;
+      return;
+    }
+  }
+
+  await fetchTeams();
+  cancelAddNewTeam();
 };
 
 const removeTeam = async (teamId) => {

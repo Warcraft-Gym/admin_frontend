@@ -35,6 +35,9 @@ export const usePlayerStore = defineStore({
         async syncW3CPlayer(player_id) {
             await fetchWrapper.post(`${backendUrl}/users/w3c_sync/${player_id}`);
         },
+        async searchByDiscordId(discordId) {
+            return await fetchWrapper.post(`${backendUrl}/users/search?query=discordId == ${discordId}`);
+        },
         async searchPlayer( name, race, minMMR, maxMMR ) {
             let queryString = ''
             let queryADD = false
