@@ -17,6 +17,18 @@
           <v-alert type="error">Token is invalid: {{ tokenInvalidReason }}</v-alert>
         </div>
         <div v-else>
+          <v-alert
+            v-if="alreadySignedUp"
+            type="warning"
+            variant="tonal"
+            border="start"
+            class="mb-4"
+            prominent
+          >
+            <strong>You are already signed up for this season.</strong>
+            You can update your details below and resubmit if you need to make changes.
+          </v-alert>
+
           <v-alert type="info" variant="tonal" border="start" class="mb-4">
             <div><strong>Name:</strong> The player name — choose freely (this is how players are shown in the UI).</div>
             <div><strong>BattleTag:</strong> Your BattleNet / W3C ID in the format <code>Name#123456</code>. You can find it on your W3C profile — <a href="https://w3champions.com/" target="_blank" rel="noopener noreferrer">W3Champions</a>.</div>
@@ -131,6 +143,7 @@ const submitting = ref(false);
 const success = ref(false);
 const submitError = ref('');
 const seasonName = ref('');
+const alreadySignedUp = ref(false);
 
 const isFormValid = computed(() => {
   // require the token-populated discord fields and all user-provided fields
@@ -228,6 +241,17 @@ onMounted(async () => {
         selectedSignupSeasonId.value = s.id;
       } else {
         selectedSignupSeasonId.value = sid;
+      }
+
+      // Check if user is already signed up for this season
+      if (discordId.value && selectedSignupSeasonId.value) {
+        try {
+          const signups = await seasonStore.fetchSeasonSignups(selectedSignupSeasonId.value);
+          alreadySignedUp.value = Array.isArray(signups) &&
+            signups.some(u => String(u.discordId) === String(discordId.value));
+        } catch (e) {
+          console.log('Could not check existing signups:', e);
+        }
       }
     }
   } catch (err) {
