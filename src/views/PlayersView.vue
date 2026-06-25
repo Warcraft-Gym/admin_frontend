@@ -96,7 +96,7 @@
                           <template #activator="{ props }">
                             <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
                           </template>
-                          <span>Less than 20 games ({{ getW3CGamesCount(item) }} games) for {{ item.race }}</span>
+                          <span>Less than 20 games ({{ getW3CGamesCount(item, currentW3CSeason) }} games) for {{ item.race }}</span>
                         </v-tooltip>
                       </template>
                     </div>
@@ -443,8 +443,8 @@ import FilterPanel from '@/components/FilterPanel.vue';
 import { 
   getW3CStatsWithFallback,
   getW3CGamesCount,
-  hasW3CStatsCurrentSeasonOnly,
-  hasLowGamesCurrentSeasonOnly
+  hasW3CStatsTwoSeasons,
+  hasLowGamesTwoSeasons
 } from '@/helpers/w3c-stats';
 
 defineOptions({
@@ -661,13 +661,13 @@ const getW3CStats = (player) => {
 };
 
 const hasW3CStats = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasW3CStatsCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Check current season OR previous season for warning display
+  return hasW3CStatsTwoSeasons(player, currentW3CSeason.value);
 };
 
 const hasLowGames = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasLowGamesCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Use combined games count from current + previous season
+  return hasLowGamesTwoSeasons(player, currentW3CSeason.value);
 };
 
 // Resolve and store the current season id (prefers config setting, falls back to latest season)

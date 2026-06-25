@@ -88,7 +88,7 @@
                       <template #activator="{ props }">
                         <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
                       </template>
-                      <span>Less than 20 games ({{ getW3CGamesCount(item) }} games) for {{ item.race }}</span>
+                      <span>Less than 20 games ({{ getW3CGamesCount(item, currentW3CSeason) }} games) for {{ item.race }}</span>
                     </v-tooltip>
                   </template>
                   <template v-if="perPlayerSyncStatus[item.id] && perPlayerSyncStatus[item.id].state === 'loading'">
@@ -297,7 +297,7 @@
                               <template #activator="{ props }">
                                 <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
                               </template>
-                              <span>Less than 20 games ({{ getW3CGamesCount(p) }} games) for {{ p.race }}</span>
+                              <span>Less than 20 games ({{ getW3CGamesCount(p, currentW3CSeason) }} games) for {{ p.race }}</span>
                             </v-tooltip>
                           </template>
                           <template v-if="perPlayerSyncStatus[p.id] && perPlayerSyncStatus[p.id].state === 'loading'">
@@ -362,8 +362,8 @@ import RaceSelect from '@/components/RaceSelect.vue';
 import { 
   getW3CStatsWithFallback,
   getW3CGamesCount,
-  hasW3CStatsCurrentSeasonOnly,
-  hasLowGamesCurrentSeasonOnly
+  hasW3CStatsTwoSeasons,
+  hasLowGamesTwoSeasons
 } from '@/helpers/w3c-stats';
 
 defineOptions({ name: 'SeasonTeamAssignView' });
@@ -421,13 +421,13 @@ const getW3CStats = (player) => {
 };
 
 const hasW3CStats = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasW3CStatsCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Check current season OR previous season for warning display
+  return hasW3CStatsTwoSeasons(player, currentW3CSeason.value);
 };
 
 const hasLowGames = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasLowGamesCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Use combined games count from current + previous season
+  return hasLowGamesTwoSeasons(player, currentW3CSeason.value);
 };
 
 const playerTableHeaders = [
