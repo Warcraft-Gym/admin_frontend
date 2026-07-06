@@ -108,12 +108,7 @@
                 </div>
               </template>
               <template #item.w3c_mmr="{ item }">
-                <div>
-                  <div>{{ item.mmr }}</div>
-                  <div class="text--secondary" style="font-size: 0.85em;">
-                    W3C: {{ getW3CMMR(item) ?? 'N/A' }}
-                  </div>
-                </div>
+                <div>{{ getW3CMMR(item, currentW3CSeason) ?? 'N/A' }}</div>
               </template>
               <template #item.race="{ item }">
                 <RaceIcon :raceIdentifier="item.race" />
@@ -315,8 +310,7 @@
                             </v-tooltip>
                           </template>
                         </div>
-                        <div class="text--secondary">{{ p.mmr }} — <RaceIcon :raceIdentifier="p.race" /></div>
-                        <div class="text--secondary" style="font-size: 0.85em;">W3C: {{ getW3CMMR(p) ?? 'N/A' }}</div>
+                        <div class="text--secondary">{{ getW3CMMR(p, currentW3CSeason) ?? 'N/A' }} — <RaceIcon :raceIdentifier="p.race" /></div>
                       </div>
                       <div style="display:flex;align-items:center;gap:6px;">
                           <v-btn
@@ -360,6 +354,7 @@ import FilterPanel from '@/components/FilterPanel.vue';
 import CountrySelect from '@/components/CountrySelect.vue';
 import RaceSelect from '@/components/RaceSelect.vue';
 import { 
+  getW3CMMR,
   getW3CStatsWithFallback,
   getW3CGamesCount,
   hasW3CStatsTwoSeasons,
@@ -434,8 +429,8 @@ const playerTableHeaders = [
   { title: 'ID', value: 'id' },
   { title: 'Name', value: 'name' },
   { title: 'MMR', key: 'w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.w3c_stats?.find(stat => stat.race === a?.race)?.mmr || 0;
-    let bValue = b?.w3c_stats?.find(stat => stat.race === b?.race)?.mmr || 0;
+    let aValue = getW3CMMR(a, currentW3CSeason.value) || 0;
+    let bValue = getW3CMMR(b, currentW3CSeason.value) || 0;
     return aValue - bValue;
   }},
   { title: 'Race', value: 'race' },
@@ -529,7 +524,11 @@ const filteredPlayers = computed(() => {
   let list = signedUpPlayers.value || [];
   if (searchName.value && searchName.value.trim().length > 0) {
     const q = searchName.value.trim().toLowerCase();
-    list = list.filter(p => (p.name || '').toLowerCase().includes(q) || (p.battleTag || '').toLowerCase().includes(q));
+    list = list.filter(p =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.battleTag || '').toLowerCase().includes(q) ||
+      (p.discordTag || '').toLowerCase().includes(q)
+    );
   }
   if (searchRace.value) list = list.filter(p => p.race === searchRace.value);
   
@@ -579,11 +578,6 @@ const showStats = async (player) => {
 };
 
 // Get W3C MMR for player's signed up race (with fallback)
-const getW3CMMR = (player) => {
-  const stats = getW3CStats(player);
-  return stats?.mmr ?? null;
-};
-
 function getTeamPlayersForSeason(team) {
   const sid = String(seasonId.value);
   if (!team || !team.player_by_season) return [];
@@ -594,7 +588,7 @@ function getTeamPlayersForSeason(team) {
   else if (typeof v === 'object') players = Object.values(v);
   
   // Sort by W3C MMR descending
-  return players.sort((a, b) => (getW3CMMR(b) || 0) - (getW3CMMR(a) || 0));
+  return players.sort((a, b) => (getW3CMMR(b, currentW3CSeason.value) || 0) - (getW3CMMR(a, currentW3CSeason.value) || 0));
 }
 
 // per-team loading state to avoid double-clicks

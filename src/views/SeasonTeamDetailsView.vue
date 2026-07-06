@@ -20,10 +20,10 @@
         <v-icon class="mr-2">mdi-shield-account</v-icon>
         <span>{{ team.name }}</span>
       </v-card-title>
-      <v-card-text v-if="team.seasons_info">
-        <p><strong>Final Score:</strong> {{ team.seasons_info[0].final_score }}</p>
-        <p><strong>Points Against:</strong> {{ team.seasons_info[0].points_against }}</p>
-        <p><strong>Points Available:</strong> {{ team.seasons_info[0].points_available }}</p>
+      <v-card-text v-if="currentSeasonInfo">
+        <p><strong>Final Score:</strong> {{ currentSeasonInfo.final_score }}</p>
+        <p><strong>Points Against:</strong> {{ currentSeasonInfo.points_against }}</p>
+        <p><strong>Points Available:</strong> {{ currentSeasonInfo.points_available }}</p>
         <!-- Add more details as needed -->
       </v-card-text>
     </v-card>
@@ -163,7 +163,7 @@
                   </div>
                 </td>
                 <td>{{ item.discordTag }}</td>
-                <td>{{ item.mmr }}</td>
+                <td>{{ getW3CMMR(item, currentW3CSeason) }}</td>
                 <td>
                   <div v-if="item.race">
                     <RaceIcon :raceIdentifier="item.race" />                                          
@@ -284,6 +284,7 @@ import FlagIcon from '@/components/FlagIcon.vue';
 import RaceIcon from '@/components/RaceIcon.vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import FilterPanel from '@/components/FilterPanel.vue';
+import { getW3CMMR } from '@/helpers/w3c-stats';
 
 defineOptions({ name: 'SeasonTeamDetailsView' });
 
@@ -306,6 +307,13 @@ const currentW3CSeason = ref(null);
 // Store refs
 const { team } = storeToRefs(teamStore);
 const { players: allPlayers } = storeToRefs(playerStore);
+
+// Season info for the currently viewed season
+const currentSeasonInfo = computed(() => {
+  if (!team.value?.seasons_info) return null;
+  return team.value.seasons_info.find(s => s.season_id === seasonId.value)
+    ?? team.value.seasons_info[0];
+});
 
 // State management
 const isLoading = ref(false);
@@ -338,7 +346,7 @@ const tableHeader = [
   { title: 'Battletag', value: 'battleTag', sortable: true },    
   { title: 'Country', value: 'country', sortable: true },
   { title: 'Discord Name', value: 'discordTag', sortable: true }, 
-  { title: 'GNL MMR', value: 'mmr', sortable: true }, 
+  { title: 'W3C MMR', value: 'mmr', sortable: false }, 
   { title: 'Main Race', value: 'race', sortable: true },  
   { title: 'Signups', value: 'signups', sortable: false },    
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
@@ -531,7 +539,8 @@ const filteredAllPlayers = computed(() => {
     list = list.filter(p => {
       const name = (p.name || '').toLowerCase();
       const bt = (p.battleTag || '').toLowerCase();
-      return name.includes(q) || bt.includes(q);
+      const discord = (p.discordTag || '').toLowerCase();
+      return name.includes(q) || bt.includes(q) || discord.includes(q);
     });
   }
 
@@ -548,7 +557,7 @@ const filteredAllPlayers = computed(() => {
     const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
     if (rangeChanged) {
       list = list.filter(p => {
-        const mmr = Number(p.mmr ?? 0);
+        const mmr = Number(getW3CMMR(p, currentW3CSeason.value) ?? 0);
         return mmr >= mmrMin && mmr <= mmrMax;
       });
     }

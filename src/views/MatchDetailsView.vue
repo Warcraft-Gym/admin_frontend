@@ -225,7 +225,7 @@
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
-                      {{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}
+                      {{ getW3CMMR(item.player1) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td class="text-center">
@@ -246,7 +246,7 @@
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
-                      {{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}
+                      {{ getW3CMMR(item.player2) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td>
@@ -370,12 +370,12 @@
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
-                      {{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}
+                      {{ getW3CMMR(item.player1) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="purple">
-                      {{ item.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) || 'N/A' }}
+                      {{ getHighestW3CMMR(item.player1) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td @click.stop="showStats(item.player2)" class="player-cell">
@@ -399,12 +399,12 @@
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="info">
-                      {{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}
+                      {{ getW3CMMR(item.player2) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td class="text-end">
                     <v-chip size="small" color="purple">
-                      {{ item.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) || 'N/A' }}
+                      {{ getHighestW3CMMR(item.player2) ?? 'N/A' }}
                     </v-chip>
                   </td>
                   <td>
@@ -557,7 +557,7 @@
                     <span @click.stop="showStats(item)">{{ item.name }}</span>
                   </template>
                   <template v-slot:[`item.w3c_mmr`]="{ item }">
-                    <td>{{ item.w3c_stats?.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
+                    <td>{{ getW3CMMR(item, currentW3CSeason) || 'N/A' }}</td>
                   </template>
                 </v-data-table>
               </v-card>                    
@@ -618,7 +618,7 @@
                     <span @click.stop="showStats(item)">{{ item.name }}</span>
                   </template>
                   <template v-slot:[`item.w3c_mmr`]="{ item }">
-                    <td>{{ item.w3c_stats?.find(player => player.race === item.race)?.mmr || 'N/A' }}</td>
+                    <td>{{ getW3CMMR(item, currentW3CSeason) || 'N/A' }}</td>
                   </template>
                 </v-data-table>
               </v-card> 
@@ -827,7 +827,7 @@
                     </template>
                     <template v-slot:[`item.w3c_mmr`]="{ item }">
                       <v-chip size="small" color="info">
-                        {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                        {{ getW3CMMR(item) ?? 'N/A' }}
                       </v-chip>
                     </template>
                   </v-data-table>
@@ -887,7 +887,7 @@
                     </template>
                     <template v-slot:[`item.w3c_mmr`]="{ item }">
                       <v-chip size="small" color="info">
-                        {{ item.w3c_stats.find(player => player.race === item.race)?.mmr || 'N/A' }}
+                        {{ getW3CMMR(item) ?? 'N/A' }}
                       </v-chip>
                     </template>
                   </v-data-table>
@@ -1011,16 +1011,16 @@
                 </div>
               </template>
               <template v-slot:[`item.p1_w3c_mmr`]="{ item }">
-                  <td>{{ item.player1.w3c_stats.find(player => player.race === item.player1.race)?.mmr || 'N/A' }}</td>
+                  <td>{{ getW3CMMR(item.player1) ?? 'N/A' }}</td>
               </template>
               <template v-slot:[`item.p1_w3c_high_mmr`]="{ item }">
-                  <td>{{ item.player1.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
+                  <td>{{ getHighestW3CMMR(item.player1) ?? 'N/A' }}</td>
               </template>
               <template v-slot:[`item.p2_w3c_mmr`]="{ item }">
-                  <td>{{ item.player2.w3c_stats.find(player => player.race === item.player2.race)?.mmr || 'N/A' }}</td>
+                  <td>{{ getW3CMMR(item.player2) ?? 'N/A' }}</td>
               </template>
               <template v-slot:[`item.p2_w3c_high_mmr`]="{ item }">
-                  <td>{{ item.player2.w3c_stats.reduce((max, player) => player.mmr > max ? player.mmr : max, 0) }}</td>
+                  <td>{{ getHighestW3CMMR(item.player2) ?? 'N/A' }}</td>
               </template>
           <template v-slot:[`item.actions`]="{ item }">
             <v-btn 
@@ -1127,7 +1127,7 @@ import FlagIcon from '../components/FlagIcon.vue';
 import SimpleTimePicker from '../components/SimpleTimePicker.vue';
 import SimpleDatePicker from '../components/SimpleDatePicker.vue';
 import PlayerDetailsDialog from '../components/PlayerDetailsDialog.vue';
-import { getW3CStatsWithFallback } from '@/helpers/w3c-stats';
+import { getW3CMMR, getW3CStatsWithFallback } from '@/helpers/w3c-stats';
 
 defineOptions({
   name: 'MatchDetailsView'
@@ -1160,16 +1160,16 @@ const seriesTableHeader = [
   { title: 'Date/Time'}, 
   { title: 'Player 1', value: 'player1.name', sortable: true },
   { title: 'MMR', value: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player1.w3c_stats?.find(player => player.race === a?.player1.race)?.mmr || 0;
-    let bValue = b?.player1.w3c_stats?.find(player => player.race === b?.player1.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player1, currentW3CSeason.value) || 0;
+    let bValue = getW3CMMR(b?.player1, currentW3CSeason.value) || 0;
     return aValue - bValue;
   } },
   { title: 'P1 Score' },
   { title: 'P2 Score' },
   { title: 'Player 2', value: 'player2.name', sortable: true },
   { title: 'MMR', value: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player2.w3c_stats?.find(player => player.race === a?.player2.race)?.mmr || 0;
-    let bValue = b?.player2.w3c_stats?.find(player => player.race === b?.player2.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player2, currentW3CSeason.value) || 0;
+    let bValue = getW3CMMR(b?.player2, currentW3CSeason.value) || 0;
     return aValue - bValue;
   }},
   { title: 'Host' },
@@ -1182,25 +1182,25 @@ const draftSeriesTableHeader = [
   { title: 'Player 1', value: 'player1.name', sortable: true },
   { title: 'Matchup History', key: 'p1_matchup_history', sortable: false },
   { title: 'Current MMR', value: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player1.w3c_stats?.find(player => player.race === a?.player1.race)?.mmr || 0;
-    let bValue = b?.player1.w3c_stats?.find(player => player.race === b?.player1.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player1, currentW3CSeason.value) || 0;
+    let bValue = getW3CMMR(b?.player1, currentW3CSeason.value) || 0;
     return aValue - bValue;
   } },
   { title: 'Highest MMR', key: 'p1_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
-    let bValue = b?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let aValue = getHighestW3CMMR(a?.player1) || 0;
+    let bValue = getHighestW3CMMR(b?.player1) || 0;
     return aValue - bValue;
   }},
   { title: 'Player 2', value: 'player2.name', sortable: true },
   { title: 'Matchup History', key: 'p2_matchup_history', sortable: false },
   { title: 'Current MMR', value: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player2.w3c_stats?.find(player => player.race === a?.player2.race)?.mmr || 0;
-    let bValue = b?.player2.w3c_stats?.find(player => player.race === b?.player2.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player2, currentW3CSeason.value) || 0;
+    let bValue = getW3CMMR(b?.player2, currentW3CSeason.value) || 0;
     return aValue - bValue;
   }},
   { title: 'Highest MMR', key: 'p2_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
-    let bValue = b?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let aValue = getHighestW3CMMR(a?.player2) || 0;
+    let bValue = getHighestW3CMMR(b?.player2) || 0;
     return aValue - bValue;
   }},
   { title: 'Host' },
@@ -1213,26 +1213,26 @@ const proposedSeriesTableHeader = [
   { title: 'GNL Games', value: 'player1.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'Matchup History', key: 'p1_matchup_history', sortable: false },
   { title: 'Current MMR', key: 'p1_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player1.w3c_stats?.find(player => player.race === a?.player1.race)?.mmr || 0;
-    let bValue = b?.player1.w3c_stats?.find(player => player.race === b?.player1.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player1) || 0;
+    let bValue = getW3CMMR(b?.player1) || 0;
     return aValue - bValue;
   }},
   { title: 'Highest Race MMR', key: 'p1_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
-    let bValue = b?.player1.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let aValue = getHighestW3CMMR(a?.player1) || 0;
+    let bValue = getHighestW3CMMR(b?.player1) || 0;
     return aValue - bValue;
   }},
   { title: 'Player 2', value: 'player2.name', width:'300px', sortable: true },
   { title: 'GNL Games', value: 'player2.gnl_stats[0].games', sortable: true, align: 'end' },
   { title: 'Matchup History', key: 'p2_matchup_history', sortable: false }, 
   { title: 'Current MMR', key: 'p2_w3c_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player2.w3c_stats?.find(player => player.race === a?.player2.race)?.mmr || 0;
-    let bValue = b?.player2.w3c_stats?.find(player => player.race === b?.player2.race)?.mmr || 0;
+    let aValue = getW3CMMR(a?.player2) || 0;
+    let bValue = getW3CMMR(b?.player2) || 0;
     return aValue - bValue;
   }},
   { title: 'Highest Race MMR', key: 'p2_w3c_high_mmr', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
-    let bValue = b?.player2.w3c_stats?.reduce((max, player) => player.mmr > max ? player.mmr : max, 0)||0;
+    let aValue = getHighestW3CMMR(a?.player2) || 0;
+    let bValue = getHighestW3CMMR(b?.player2) || 0;
     return aValue - bValue;
   }
   },
@@ -1243,8 +1243,8 @@ const tablePlayerHeader = [
   { title: 'Name', value: 'name', sortable: true },
   { title: 'GNL Games', key: 'gnl_stats[0].games', sortable: true },
   { title: 'MMR', key: 'w3c_mmr', value:'item', sortable: true, sortRaw: (a, b) => {
-    let aValue = a?.w3c_stats?.find(player => player.race === a?.race)?.mmr || 0;
-    let bValue = b?.w3c_stats?.find(player => player.race === b?.race)?.mmr || 0;
+    let aValue = getW3CMMR(a) || 0;
+    let bValue = getW3CMMR(b) || 0;
     return aValue - bValue;
   }
 
@@ -1314,10 +1314,19 @@ const deleteAction = ref(null);
 // Current W3C season for stats fallback
 const currentW3CSeason = ref(null);
 
-// Helper to get W3C MMR with fallback
-const getW3CMMR = (player) => {
-  const stats = getW3CStatsWithFallback(player, null, currentW3CSeason.value);
-  return stats?.mmr ?? null;
+// Helper to get highest MMR across all races, preferring current season with fallback to previous
+const getHighestW3CMMR = (player) => {
+  if (!player || !player.w3c_stats || player.w3c_stats.length === 0) return null;
+  const season = currentW3CSeason.value;
+  const getMax = (entries) => entries.length > 0 ? Math.max(...entries.map(s => s.mmr || 0)) : null;
+  if (season) {
+    const current = player.w3c_stats.filter(s => s.wc3_season === season);
+    if (current.length > 0) return getMax(current);
+    const prev = player.w3c_stats.filter(s => s.wc3_season === season - 1);
+    if (prev.length > 0) return getMax(prev);
+  }
+  const maxSeason = Math.max(...player.w3c_stats.map(s => s.wc3_season || 0));
+  return getMax(player.w3c_stats.filter(s => s.wc3_season === maxSeason));
 };
 
 // Computed properties
@@ -1668,15 +1677,36 @@ const removeProposedSeries = (proposedId) => {
 
 }
 
-// Get opponent races from player's gnl_stats matchup_history (from current season)
+// Get opponent races from player's gnl_stats matchup_history for the current season
 const getOpponentRaceHistory = (player) => {
   if (!player || !player.gnl_stats || player.gnl_stats.length === 0) {
     return [];
   }
   
-  // Get matchup history from first gnl_stats entry (current season)
-  const currentSeasonStats = player.gnl_stats[0];
-  return currentSeasonStats.matchup_history || [];
+  // Find the entry for the current season; fall back to nothing if absent
+  const currentSeasonId = match.value?.season_id;
+  const currentSeasonStats = currentSeasonId
+    ? player.gnl_stats.find(s => s.season_id === currentSeasonId)
+    : player.gnl_stats[0];
+  return currentSeasonStats?.matchup_history || [];
+};
+
+// Helper: count how many series are hosted by team1 vs team2
+// For every series, host_player_id === player1.id means team1 is hosting
+const countTeamHosts = (seriesList) => {
+  let team1Hosts = 0;
+  let team2Hosts = 0;
+  for (const s of seriesList) {
+    if (s.host_player_id === s.player1.id) team1Hosts++;
+    else if (s.host_player_id === s.player2.id) team2Hosts++;
+  }
+  return { team1Hosts, team2Hosts };
+};
+
+// Helper: return the player id that should host next to keep counts balanced
+// player1 is always from team1, player2 from team2
+const getAutoHostPlayerId = (player1, player2, team1HostCount, team2HostCount) => {
+  return team1HostCount > team2HostCount ? player2.id : player1.id;
 };
 
 // Get race icon URL from race code
@@ -1795,13 +1825,24 @@ const createSelectedProposedSeries = async (isDraft = false) => {
   
   isLoading.value = true;
   try {
-    for (const proposedSeries of selectedProposedSeries.value) {
-      // Create as draft or published based on parameter
+    // Start host counts from series already on this match
+    const baseSeries = isDraft
+      ? [...(series.value || []), ...(draftSeries.value || [])]
+      : [...(series.value || [])];
+    let { team1Hosts, team2Hosts } = countTeamHosts(baseSeries);
+
+    for (const ps of selectedProposedSeries.value) {
+      const hostId = getAutoHostPlayerId(ps.player1, ps.player2, team1Hosts, team2Hosts);
+      const seriesWithHost = { ...ps, host_player_id: hostId };
+
       if (isDraft) {
-        await seriesStore.createDraftSeries(proposedSeries);
+        await seriesStore.createDraftSeries(seriesWithHost);
       } else {
-        await seriesStore.createSeries(proposedSeries);
+        await seriesStore.createSeries(seriesWithHost);
       }
+
+      // Track new host for subsequent iterations
+      if (hostId === ps.player1.id) team1Hosts++; else team2Hosts++;
     }
 
     await fetchMatchSeries(); // Refresh match details after creation
@@ -1818,11 +1859,20 @@ const createSeries = async () => {
 
   newSeries.match_id = matchStore.match.id
   newSeries.season_id = matchStore.match.season_id
-  newSeries.host_player_id = newSeries_Player_1.value[0].id
   newSeries.player1_score = 0
   newSeries.player2_score = 0
   newSeries.player1_id = newSeries_Player_1.value[0].id
   newSeries.player2_id = newSeries_Player_2.value[0].id
+
+  // Auto-assign host to keep counts balanced between teams
+  const allCurrent = [...(series.value || []), ...(draftSeries.value || [])];
+  const { team1Hosts, team2Hosts } = countTeamHosts(allCurrent);
+  newSeries.host_player_id = getAutoHostPlayerId(
+    newSeries_Player_1.value[0],
+    newSeries_Player_2.value[0],
+    team1Hosts,
+    team2Hosts
+  );
   
   isLoading.value = true;
   try {
@@ -1914,6 +1964,17 @@ const removeAllDraftSeries = async () => {
 const publishDraftSeries = async (draftSeriesItem) => {
   isLoading.value = true;
   try {
+    // Re-evaluate host against current published series before promoting
+    const { team1Hosts, team2Hosts } = countTeamHosts(series.value || []);
+    const autoHostId = getAutoHostPlayerId(
+      draftSeriesItem.player1,
+      draftSeriesItem.player2,
+      team1Hosts,
+      team2Hosts
+    );
+    if (autoHostId !== draftSeriesItem.host_player_id) {
+      await seriesStore.updateDraftSeries({ ...draftSeriesItem, host_player_id: autoHostId });
+    }
     await seriesStore.promoteDraftSeries(draftSeriesItem.id);
     await fetchMatchSeries(); // Refresh to show updated status
   } catch (error) {
@@ -1928,9 +1989,16 @@ const publishAllDraftSeries = async () => {
   
   isLoading.value = true;
   try {
-    // Publish all drafts in sequence
+    // Start host counts from currently published series, then balance as each draft is promoted
+    let { team1Hosts, team2Hosts } = countTeamHosts(series.value || []);
+
     for (const draft of draftSeries.value) {
+      const autoHostId = getAutoHostPlayerId(draft.player1, draft.player2, team1Hosts, team2Hosts);
+      if (autoHostId !== draft.host_player_id) {
+        await seriesStore.updateDraftSeries({ ...draft, host_player_id: autoHostId });
+      }
       await seriesStore.promoteDraftSeries(draft.id);
+      if (autoHostId === draft.player1.id) team1Hosts++; else team2Hosts++;
     }
     await fetchMatchSeries();
   } catch (error) {

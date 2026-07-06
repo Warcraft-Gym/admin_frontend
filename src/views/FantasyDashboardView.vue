@@ -188,7 +188,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -224,7 +224,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -260,7 +260,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -296,7 +296,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -332,7 +332,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -368,7 +368,7 @@
                                     <RaceIcon v-if="item.raw.race" :raceIdentifier="item.raw.race" size="small" />
                                   </template>
                                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                                  <v-list-item-subtitle>MMR: {{ item.raw.mmr || 'N/A' }}</v-list-item-subtitle>
+                                  <v-list-item-subtitle>MMR: {{ displayMMR(item.raw) }}</v-list-item-subtitle>
                                   <template v-slot:append>
                                     <v-btn
                                       v-if="item.raw.battleTag"
@@ -603,6 +603,7 @@ import RaceSelect from '@/components/RaceSelect.vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import { DateTime } from 'luxon';
 import teamDefaultImg from '@/assets/media/GNL_Team_Default.png';
+import { getW3CMMR } from '@/helpers/w3c-stats';
 
 defineOptions({ name: 'FantasyDashboardView' });
 
@@ -629,6 +630,26 @@ const seasons = ref([]);
 const teams = ref([]);
 const teamImages = ref({});
 const availablePlayers = ref([]);
+
+// Current W3C season for MMR display
+const currentW3CSeason = ref(null);
+async function resolveCurrentW3CSeason() {
+  try {
+    const setting = await configStore.fetchSetting('current_wc3_season');
+    if (setting && setting.value) {
+      const num = Number(setting.value);
+      if (!Number.isNaN(num)) { currentW3CSeason.value = num; return; }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch current_wc3_season setting:', err);
+  }
+  currentW3CSeason.value = null;
+}
+
+const displayMMR = (player) => {
+  const mmr = getW3CMMR(player, currentW3CSeason.value);
+  return mmr > 0 ? mmr : 'N/A';
+};
 
 // Tier selections
 const tierSelections = ref({
@@ -1173,7 +1194,8 @@ const openW3CStats = (battleTag) => {
   window.open(`https://www.w3champions.com/player/${encodeURIComponent(battleTag)}`, '_blank');
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await resolveCurrentW3CSeason();
   fetchInitialData();
 });
 

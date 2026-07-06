@@ -1,11 +1,36 @@
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { onMounted, onUnmounted, computed } from 'vue';
 import { useAuthStore } from '@/stores';
 
 const authStore = useAuthStore();
 const { user: authUser } = storeToRefs(authStore);
 const route = useRoute();
+
+const isReadonly = computed(() =>
+    route.query.readonly === '1' || route.query.readonly === 'true'
+);
+
+let resizeObserver = null;
+
+const sendHeight = () => {
+    window.parent.postMessage(
+        { type: 'gnl-iframe-height', height: document.documentElement.scrollHeight },
+        '*'
+    );
+};
+
+onMounted(() => {
+    if (isReadonly.value) {
+        resizeObserver = new ResizeObserver(sendHeight);
+        resizeObserver.observe(document.body);
+    }
+});
+
+onUnmounted(() => {
+    resizeObserver?.disconnect();
+});
 
 // show navigation links only for authenticated users on non-public routes
 const showNavLinks = () => {
@@ -18,7 +43,7 @@ const showNavLinks = () => {
 
 <template>
     <v-app> 
-    <v-app-bar v-if="route.path !== '/koth/dashboard'">
+    <v-app-bar v-if="route.path !== '/koth/dashboard' && route.query.readonly !== '1' && route.query.readonly !== 'true'">
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list v-show="showNavLinks()" class="inline-nav" nav>
