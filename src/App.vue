@@ -36,14 +36,14 @@ onUnmounted(() => {
 const showNavLinks = () => {
     if (!authStore.user) return false;
     // hide on explicit public-only routes
-    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration' || route.path === '/koth/dashboard') return false;
+    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration' || route.path === '/koth/dashboard' || route.path === '/random-stats') return false;
     return true;
 }
 </script>
 
 <template>
     <v-app> 
-    <v-app-bar v-if="route.path !== '/koth/dashboard' && route.query.readonly !== '1' && route.query.readonly !== 'true'">
+    <v-app-bar v-if="route.path !== '/koth/dashboard' && route.path !== '/random-stats' && route.query.readonly !== '1' && route.query.readonly !== 'true'">
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list v-show="showNavLinks()" class="inline-nav" nav>

@@ -20,3 +20,4 @@ export { default as KothView } from './KothView.vue';
 export { default as KothDashboard } from './KothDashboard.vue';
 export { default as PlayerCareerStatsView } from './PlayerCareerStatsView.vue';
 export { default as SeasonReportView } from './SeasonReportView.vue';
+export { default as RandomStatsView } from './RandomStatsView.vue';
