@@ -8,7 +8,8 @@ export const fetchWrapper = {
     put: request('PUT'),
     delete: request('DELETE'),
     fileUpload: request('FILE_UPLOAD'),
-    getFile: request('GET_FILE')
+    getFile: request('GET_FILE'),
+    postBinary: request('POST_BINARY')  // POST request that receives binary data
 };
 
 function request(method) {
@@ -29,6 +30,10 @@ function request(method) {
         if (requestMethod === "GET_SECURE") {
             requestMethod = "GET";
             requireAuth = true;  // Force authentication for this GET request
+        }
+        if (requestMethod === "POST_BINARY") {
+            requestMethod = "POST";
+            receiveBinary = true;
         }
 
         // **Wait for headers to be resolved before passing them**

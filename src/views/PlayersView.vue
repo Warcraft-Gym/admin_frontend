@@ -96,7 +96,7 @@
                           <template #activator="{ props }">
                             <v-icon v-bind="props" small color="orange">mdi-alert</v-icon>
                           </template>
-                          <span>Less than 20 games ({{ getW3CGamesCount(item) }} games) for {{ item.race }}</span>
+                          <span>Less than 20 games ({{ getW3CGamesCount(item, currentW3CSeason) }} games) for {{ item.race }}</span>
                         </v-tooltip>
                       </template>
                     </div>
@@ -108,7 +108,7 @@
                     </div>
                   </td>
                   <td>{{ item.discordTag }}</td>
-                  <td>{{ item.mmr }}</td>
+                  <td>{{ getW3CMMR(item, currentW3CSeason) }}</td>
                   <td>
                     <div v-if="item.race">
                       <RaceIcon :raceIdentifier="item.race" />                                          
@@ -441,10 +441,11 @@ import { onMounted, ref, computed } from 'vue';
 import PlayerDetailsDialog from '@/components/PlayerDetailsDialog.vue';
 import FilterPanel from '@/components/FilterPanel.vue';
 import { 
+  getW3CMMR,
   getW3CStatsWithFallback,
   getW3CGamesCount,
-  hasW3CStatsCurrentSeasonOnly,
-  hasLowGamesCurrentSeasonOnly
+  hasW3CStatsTwoSeasons,
+  hasLowGamesTwoSeasons
 } from '@/helpers/w3c-stats';
 
 defineOptions({
@@ -482,13 +483,14 @@ const selectedSeasonFilter = ref(null);
 const filteredPlayers = computed(() => {
   let list = players.value || [];
 
-  // filter by name / battletag
+  // filter by name / battletag / discord
   if (searchName.value && searchName.value.trim().length > 0) {
     const q = searchName.value.trim().toLowerCase();
     list = list.filter(p => {
       const name = (p.name || '').toLowerCase();
       const bt = (p.battleTag || '').toLowerCase();
-      return name.includes(q) || bt.includes(q);
+      const discord = (p.discordTag || '').toLowerCase();
+      return name.includes(q) || bt.includes(q) || discord.includes(q);
     });
   }
 
@@ -512,7 +514,7 @@ const filteredPlayers = computed(() => {
     const rangeChanged = (mmrMin !== DEFAULT_MMR_MIN) || (mmrMax !== DEFAULT_MMR_MAX);
     if (rangeChanged) {
       list = list.filter(p => {
-        const mmr = Number(p.mmr ?? 0);
+        const mmr = Number(getW3CMMR(p, currentW3CSeason.value) ?? 0);
         return mmr >= mmrMin && mmr <= mmrMax;
       });
     }
@@ -558,7 +560,7 @@ Name
 BattleTag
 Country
 Discord Tag
-GNL MMR
+W3C MMR
 Main Race
 W3C Stats
 Fantasy Tier
@@ -570,7 +572,7 @@ const tableHeader = [
   { title: 'Battletag', value: 'battleTag', sortable: true },    
   { title: 'Country', value: 'country', sortable: true },
   { title: 'Discord Name', value: 'discordTag', sortable: true }, 
-  { title: 'GNL MMR', value: 'mmr', sortable: true }, 
+  { title: 'W3C MMR', value: 'mmr', sortable: false }, 
   { title: 'Main Race', value: 'race', sortable: true },  
   { title: 'Signups', value: 'signups', sortable: false },    
   { title: 'Actions', key: 'actions', align: 'end', sortable: false }, 
@@ -661,13 +663,13 @@ const getW3CStats = (player) => {
 };
 
 const hasW3CStats = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasW3CStatsCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Check current season OR previous season for warning display
+  return hasW3CStatsTwoSeasons(player, currentW3CSeason.value);
 };
 
 const hasLowGames = (player) => {
-  // Use strict current season only check for warnings (no fallback)
-  return hasLowGamesCurrentSeasonOnly(player, currentW3CSeason.value);
+  // Use combined games count from current + previous season
+  return hasLowGamesTwoSeasons(player, currentW3CSeason.value);
 };
 
 // Resolve and store the current season id (prefers config setting, falls back to latest season)

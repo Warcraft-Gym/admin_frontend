@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 import { useAuthStore } from '@/stores';
-import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView, FantasyLeaderboardView, FantasyBetsView, FantasyDashboardView, FantasyTiersView, UserGuideView, KothView, KothDashboard, PlayerCareerStatsView } from '@/views';
+import { HomeView, LoginView, PlayersView, SeasonsView, SeasonDetailsView, MatchDetailsView, SeasonTeamDetailsView, SeasonTeamAssignView, MapsView, TeamsView, PublicSignupView, PlayerDashboardView, ConfigView, FantasyLeaderboardView, FantasyBetsView, FantasyDashboardView, FantasyTiersView, UserGuideView, KothView, KothDashboard, PlayerCareerStatsView, SeasonReportView, RandomStatsView } from '@/views';
 
 export const router = createRouter({
     history: createWebHashHistory(),
@@ -28,14 +28,17 @@ export const router = createRouter({
         { path: '/koth/dashboard', component: KothDashboard},
         { path: '/user-guide', component: UserGuideView},
         { path: '/player-stats', component: PlayerCareerStatsView},
+        { path: '/report', component: SeasonReportView},
+        { path: '/report/:id', component: SeasonReportView},
+        { path: '/random-stats', component: RandomStatsView },
         
     ]
 });
 
 router.beforeEach(async (to) => {
     // redirect to login page if not logged in and trying to access a restricted page
-    const publicPages = ['/login','/signup','/signup-token','/player-dashboard','/fantasy-registration','/koth/dashboard'];
-    const authRequired = !publicPages.includes(to.path);
+    const publicPages = ['/login','/signup','/signup-token','/player-dashboard','/fantasy-registration','/koth/dashboard','/random-stats'];
+    const authRequired = !publicPages.includes(to.path) && !to.path.startsWith('/report');
     const auth = useAuthStore();
 
     if (authRequired && !auth.user) {

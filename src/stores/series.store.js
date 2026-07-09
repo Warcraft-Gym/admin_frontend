@@ -8,7 +8,8 @@ export const useSeriesStore = defineStore({
     id: 'seriesStore',
     state: () => ({
         // initialize state from local storage to enable user to stay logged in
-        series: [], // Store user data
+        series: [], // Store published series data
+        draftSeries: [], // Store draft series data
         isLoading: false, // Track loading state
     }),
     actions: {
@@ -22,11 +23,45 @@ export const useSeriesStore = defineStore({
         async deleteSeries(series_id) {
             await fetchWrapper.delete(`${backendUrl}/series/${series_id}`);
         },
+        async toggleDraft(series_id) {
+            const updatedSeries = await fetchWrapper.post(`${backendUrl}/series/${series_id}/toggle-draft`);
+            return updatedSeries;
+        },
         async deleteAllSeries() {
             this.series.forEach(async(s) => {
                 await fetchWrapper.delete(`${backendUrl}/series/${s.id}`);                
             });
         },
+        
+        // Draft Series Actions
+        async createDraftSeries(draftSeries) {
+            const created = await fetchWrapper.post(`${backendUrl}/draft-series`, draftSeries);
+            return created;
+        },
+        async updateDraftSeries(draftSeries) {
+            const draftSeriesId = draftSeries.id;
+            const updated = await fetchWrapper.put(`${backendUrl}/draft-series/${draftSeriesId}`, draftSeries);
+            return updated;
+        },
+        async deleteDraftSeries(draft_series_id) {
+            await fetchWrapper.delete(`${backendUrl}/draft-series/${draft_series_id}`);
+        },
+        async getDraftSeriesByMatchId(match_id) {
+            try {
+                this.isLoading = true;
+                this.draftSeries = await fetchWrapper.get(`${backendUrl}/draft-series/match/${match_id}`);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async deleteAllDraftSeriesForMatch(match_id) {
+            await fetchWrapper.delete(`${backendUrl}/draft-series/match/${match_id}`);
+        },
+        async promoteDraftSeries(draft_series_id) {
+            const promoted = await fetchWrapper.post(`${backendUrl}/draft-series/${draft_series_id}/promote`);
+            return promoted;
+        },
+        
         async searchSeries(search) {
             try{
                 this.isLoading = true; // Set loading to true

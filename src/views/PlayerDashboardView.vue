@@ -81,11 +81,17 @@
             <a href="#" @click.prevent="showPlayerDetails(item.player2)" class="text-decoration-none">
               {{ item.player2?.name || `Player ${item.player2_id}` }}
             </a>
+            <div class="text-caption text-grey">
+              {{ item.player2?.race }} · {{ getW3CMMR(item.player2, currentW3CSeason) }}
+            </div>
           </span>
           <span v-else>
             <a href="#" @click.prevent="showPlayerDetails(item.player1)" class="text-decoration-none">
               {{ item.player1?.name || `Player ${item.player1_id}` }}
             </a>
+            <div class="text-caption text-grey">
+              {{ item.player1?.race }} · {{ getW3CMMR(item.player1, currentW3CSeason) }}
+            </div>
           </span>
         </template>
 
@@ -149,10 +155,20 @@
                 <div class="text-caption text-grey">Opponent</div>
                 <div class="text-h6">
                   <span v-if="item.player1_id === playerData.player.id">
-                    {{ item.player2?.name || `Player ${item.player2_id}` }}
+                    <a href="#" @click.prevent="showPlayerDetails(item.player2)" class="text-decoration-none">
+                      {{ item.player2?.name || `Player ${item.player2_id}` }}
+                    </a>
+                    <div class="text-caption text-grey">
+                      {{ item.player2?.race }} · {{ getW3CMMR(item.player2, currentW3CSeason) }}
+                    </div>
                   </span>
                   <span v-else>
-                    {{ item.player1?.name || `Player ${item.player1_id}` }}
+                    <a href="#" @click.prevent="showPlayerDetails(item.player1)" class="text-decoration-none">
+                      {{ item.player1?.name || `Player ${item.player1_id}` }}
+                    </a>
+                    <div class="text-caption text-grey">
+                      {{ item.player1?.race }} · {{ getW3CMMR(item.player1, currentW3CSeason) }}
+                    </div>
                   </span>
                 </div>
               </div>
@@ -331,7 +347,7 @@
   <PlayerDetailsDialog
     v-model="showPlayerDetailsDialog"
     :player="selectedPlayerForDetails"
-    :seasonId="playerData?.player?.gnl_stats?.[0]?.season?.id"
+    :seasonId="playerData?.season_id ? Number(playerData.season_id) : null"
     :w3cSeason="currentW3CSeason"
   />
 </template>

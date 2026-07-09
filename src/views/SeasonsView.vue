@@ -142,6 +142,9 @@
                     <v-list-item @click.stop="editSeason(item)" prepend-icon="mdi-pencil">
                       <v-list-item-title>Edit Season</v-list-item-title>
                     </v-list-item>
+                    <v-list-item @click.stop="exportSeason(item.id, item.name)" prepend-icon="mdi-download">
+                      <v-list-item-title>Export Season</v-list-item-title>
+                    </v-list-item>
                     <v-list-item @click.stop="openDeleteDialog(item.id, removeSeason)" prepend-icon="mdi-delete" class="text-error">
                       <v-list-item-title>Delete Season</v-list-item-title>
                     </v-list-item>
@@ -600,6 +603,32 @@ const uploadFile = async () => {
     seasonId.value = null;
     seasonName.value = null;
     file.value = null;
+  }
+};
+
+const exportSeason = async (seasonId, seasonName) => {
+  try {
+    isLoading.value = true;
+    errorMessage.value = null;
+    
+    const { blob, filename } = await seasonStore.exportSeason(seasonId);
+    
+    // Create a download link and trigger it
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    uploadMessage.value = `Successfully exported ${seasonName}!`;
+  } catch (err) {
+    console.error('Error exporting season:', err);
+    errorMessage.value = 'Error exporting season: ' + (err?.message || err);
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>

@@ -1,24 +1,49 @@
 <script setup>
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { onMounted, onUnmounted, computed } from 'vue';
 import { useAuthStore } from '@/stores';
 
 const authStore = useAuthStore();
 const { user: authUser } = storeToRefs(authStore);
 const route = useRoute();
 
+const isReadonly = computed(() =>
+    route.query.readonly === '1' || route.query.readonly === 'true'
+);
+
+let resizeObserver = null;
+
+const sendHeight = () => {
+    window.parent.postMessage(
+        { type: 'gnl-iframe-height', height: document.documentElement.scrollHeight },
+        '*'
+    );
+};
+
+onMounted(() => {
+    if (isReadonly.value) {
+        resizeObserver = new ResizeObserver(sendHeight);
+        resizeObserver.observe(document.body);
+    }
+});
+
+onUnmounted(() => {
+    resizeObserver?.disconnect();
+});
+
 // show navigation links only for authenticated users on non-public routes
 const showNavLinks = () => {
     if (!authStore.user) return false;
     // hide on explicit public-only routes
-    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration' || route.path === '/koth/dashboard') return false;
+    if (route.path === '/signup' || route.path === '/player-dashboard' || route.path === '/fantasy-registration' || route.path === '/koth/dashboard' || route.path === '/random-stats') return false;
     return true;
 }
 </script>
 
 <template>
     <v-app> 
-    <v-app-bar v-if="route.path !== '/koth/dashboard'">
+    <v-app-bar v-if="route.path !== '/koth/dashboard' && route.path !== '/random-stats' && route.query.readonly !== '1' && route.query.readonly !== 'true'">
             <v-app-bar-title>GNL APP</v-app-bar-title>
             <template v-slot:append>
                 <v-list v-show="showNavLinks()" class="inline-nav" nav>
@@ -49,6 +74,9 @@ const showNavLinks = () => {
                             </v-list-item>
                             <v-list-item>
                                 <RouterLink to="/player-stats">Player Stats</RouterLink>
+                            </v-list-item>
+                            <v-list-item>
+                                <RouterLink to="/report">Season Report</RouterLink>
                             </v-list-item>
                         </v-list>
                     </v-menu>
