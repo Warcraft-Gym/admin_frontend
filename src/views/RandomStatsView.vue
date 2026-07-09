@@ -206,13 +206,13 @@ defineOptions({ name: 'RandomStatsView' });
 const W3C_MATCH_API = 'https://website-backend.w3champions.com/api/matches/search';
 
 // W3C API returns race as a number. Mapping to display name.
-// WC3 internal bit-flag encoding used by W3C Champions:
-//   0 = Random, 1 = Human, 2 = Orc, 4 = Undead, 8 = Night Elf, 16/32 = Random
+// Confirmed from match data (heroes played):
+//   0 = Random (selected race), 1 = Human, 2 = Orc, 4 = Night Elf, 8 = Undead, 16/32 = Random
 const W3C_RACE_NAMES = {
   1: 'Human',
   2: 'Orc',
-  4: 'Undead',
-  8: 'Night Elf',
+  4: 'Night Elf',
+  8: 'Undead',
   16: 'Random',
   32: 'Random',
   // String variants returned by some API versions
@@ -323,6 +323,9 @@ function processMatches(matches, tagLower, breakdown) {
   for (const match of matches) {
     if (!Array.isArray(match.teams) || match.teams.length < 2) continue;
 
+    // Only 1v1 solo games
+    if (match.gameMode !== 1) continue;
+
     let playerTeam = null;
     let opponentTeam = null;
 
@@ -344,10 +347,11 @@ function processMatches(matches, tagLower, breakdown) {
     // Only process Random games (race === 0)
     if (playerEntry.race !== 0) continue;
 
-    // Use rndRace (the actual drawn race) as the grouping key
-    if (!playerEntry.rndRace) continue;
-
-    const drawnRace = raceName(playerEntry.rndRace);
+    // Use rndRace (the actual drawn race) as the grouping key.
+    // rndRace may be 0/null when the API doesn't report the drawn race (common for losses).
+    const drawnRace = (playerEntry.rndRace != null && playerEntry.rndRace !== 0)
+      ? raceName(playerEntry.rndRace)
+      : 'Random=?';
     const oppRace = raceName(opponentEntry.race);
     const won = playerTeam.won === true;
 
